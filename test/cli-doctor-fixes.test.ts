@@ -146,6 +146,12 @@ describe("doctor v2 diagnostic catalog", () => {
     expect(status.ok).toBe(true);
   });
 
+  it("engine-version-mismatch passes for the recorded instance binary", async () => {
+    const diagnostics = buildDiagnostics(stubEffects({ findIiiBinary: () => "/isolated/iii", iiiBinaryVersion: (path) => path === "/isolated/iii" ? "0.24.6" : null }));
+    const check = diagnostics.find((d) => d.id === "engine-version-mismatch")!;
+    expect((await check.check(stubCtx({ pinnedVersion: "0.24.6" }))).ok).toBe(true);
+  });
+
   it("stale-pidfile fails when pidfile points at a dead pid", async () => {
     const diagnostics = buildDiagnostics(
       stubEffects({ pidfileExists: () => true, pidfilePidIsAlive: () => false }),
