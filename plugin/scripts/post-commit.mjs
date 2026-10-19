@@ -7,7 +7,7 @@ import { promisify } from "node:util";
 //#region src/secret-store.ts
 const SECRET_KEY = "AGENTMEMORY_SECRET";
 function agentmemoryHomeDir() {
-	return join(homedir(), ".agentmemory");
+	return process.env["AGENTMEMORY_DATA_DIR"] || join(homedir(), ".agentmemory");
 }
 function secretFilePath() {
 	return join(agentmemoryHomeDir(), "secret");
@@ -31,7 +31,7 @@ function unquote(value) {
 function readEnvFileSecret() {
 	let content;
 	try {
-		content = readFileSync(join(agentmemoryHomeDir(), ".env"), "utf-8");
+		content = readFileSync(process.env["AGENTMEMORY_ENV_FILE"] || join(homedir(), ".agentmemory", ".env"), "utf-8");
 	} catch {
 		return "";
 	}
