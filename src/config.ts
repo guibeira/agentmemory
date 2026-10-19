@@ -17,8 +17,8 @@ function safeParseInt(value: string | undefined, fallback: number): number {
   return Number.isNaN(parsed) ? fallback : parsed;
 }
 
-const DATA_DIR = join(homedir(), ".agentmemory");
-const ENV_FILE = join(DATA_DIR, ".env");
+const DATA_DIR = process.env["AGENTMEMORY_DATA_DIR"] || join(homedir(), ".agentmemory");
+const ENV_FILE = process.env["AGENTMEMORY_ENV_FILE"] || join(homedir(), ".agentmemory", ".env");
 
 let warnPremiumModelShown = false;
 let providerNoticeShown = false;
@@ -204,18 +204,13 @@ export function loadConfig(): AgentMemoryConfig {
 
   const provider = detectProvider(env);
 
-  // Port quartet: REST is the anchor; streams/engine derive from it
-  // unless individually overridden. Default anchor 3111 yields the
-  // canonical 3112 streams / 49134 engine pair, but `III_REST_PORT=3211`
-  // auto-picks 3212 + 49234 so a second instance doesn't collide.
+  // REST is the anchor; viewer and engine ports derive from it unless individually overridden.
   const restPort = parseInt(env["III_REST_PORT"] || "3111", 10) || 3111;
-  const streamsPort =
-    parseInt(env["III_STREAM_PORT"] || env["III_STREAMS_PORT"] || "", 10) ||
-    restPort + 1;
   const viewerPort =
     parseInt(env["III_VIEWER_PORT"] || "", 10) || restPort + 2;
   const engineUrl =
     env["III_ENGINE_URL"] ||
+    env["III_URL"] ||
     `ws://localhost:${
       parseInt(env["III_ENGINE_PORT"] || "", 10) || restPort + 46023
     }`;
@@ -223,7 +218,6 @@ export function loadConfig(): AgentMemoryConfig {
   return {
     engineUrl,
     restPort,
-    streamsPort,
     viewerPort,
     provider,
     tokenBudget: safeParseInt(env["TOKEN_BUDGET"], 2000),
@@ -477,26 +471,6 @@ export function getFollowupWindowSeconds(): number {
     getMergedEnv()["AGENTMEMORY_FOLLOWUP_WINDOW_SECONDS"],
     FOLLOWUP_WINDOW_DEFAULT_SECONDS,
   );
-}
-
-const VIEWER_STREAM_MAX_DEFAULT = 500;
-const VIEWER_STREAM_MAX_FLOOR = 200;
-
-function parseExactInt(value: string | undefined, fallback: number): number {
-  if (!value) return fallback;
-  const trimmed = value.trim();
-  if (!/^-?\d+$/.test(trimmed)) return fallback;
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : fallback;
-}
-
-export function getViewerStreamMax(): number {
-  const parsed = parseExactInt(
-    getMergedEnv()["AGENTMEMORY_VIEWER_STREAM_MAX"],
-    VIEWER_STREAM_MAX_DEFAULT,
-  );
-  if (parsed < 0) return VIEWER_STREAM_MAX_DEFAULT;
-  return Math.max(parsed, VIEWER_STREAM_MAX_FLOOR);
 }
 
 export function isConsolidationEnabled(): boolean {

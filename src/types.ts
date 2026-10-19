@@ -226,7 +226,6 @@ export interface MemoryProvider {
 export interface AgentMemoryConfig {
   engineUrl: string;
   restPort: number;
-  streamsPort: number;
   viewerPort: number;
   provider: ProviderConfig;
   tokenBudget: number;
@@ -281,7 +280,7 @@ export interface HealthSnapshot {
   eventLoopLagMs: number;
   uptimeSeconds: number;
   kvConnectivity?: { status: string; latencyMs?: number; error?: string };
-  streamRelay?: "ok" | "down" | "unknown";
+  liveEvents?: { subscribers: number; eventsSent: number; dropped: number; lastEventAt: number | null };
   status: "healthy" | "degraded" | "critical";
   alerts: string[];
   notes?: string[];

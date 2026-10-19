@@ -133,10 +133,10 @@ function statusInputs(capture: CaptureStatus | null | undefined): StatusInputs {
   return {
     now: new Date("2026-10-02T12:00:00.000Z"),
     version: "0.9.30",
-    engineVersion: "0.22.1",
+    enginePinnedVersion: "0.22.1",
     uptimeSeconds: 60,
     stateBackend: "file",
-    ports: { rest: 3111, streams: 3112, viewer: 3113 },
+    ports: { rest: 3111, viewer: 3113 },
     health: { status: "healthy", alerts: [], notes: [], connectionState: "connected" },
     circuitBreaker: { state: "closed", failures: 0 },
     functionMetrics: [],
