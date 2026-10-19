@@ -1,0 +1,70 @@
+namespace: agentmemory
+startup_timeout: 300s
+stop_timeout: 20s
+required_default: true
+engine:
+  url: ws://127.0.0.1:49134
+  workers:
+    configuration:
+      adapter:
+        name: fs
+        config:
+          directory: /data/config
+    iii-worker-manager:
+      host: 0.0.0.0
+      port: 49134
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "${STATE_VERSION}"
+    config_name: state
+    config_override:
+      adapter:
+        name: kv
+        config:
+          store_method: file_based
+          file_path: /data/state_store.db
+          save_interval_ms: 2000
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "${HTTP_VERSION}"
+    config_name: http
+    config_override:
+      host: 0.0.0.0
+      port: 3111
+      default_timeout: 180000
+      cors:
+        allowed_origins: ["*"]
+        allowed_methods: [GET, POST, PUT, DELETE, OPTIONS]
+  agentmemory:
+    worker: path://.
+    working_dir: /opt/agentmemory
+    start_after: [state, http]
+    startup_timeout: 300s
+    config_name: agentmemory
+    scripts:
+      run: node /opt/agentmemory/dist/index.mjs
+    environment:
+      HOME: /data/home
+      AGENTMEMORY_DATA_DIR: /data
+      III_ENGINE_URL: ws://127.0.0.1:49134
+      III_ENGINE_PORT: "49134"
+      III_REST_PORT: "3111"
+      III_VIEWER_PORT: "3113"
+      III_TELEMETRY_ENABLED: "false"
+      AGENTMEMORY_VIEWER_HOST: "${AGENTMEMORY_VIEWER_HOST:-0.0.0.0}"
+      VIEWER_ALLOWED_HOSTS: "${VIEWER_ALLOWED_HOSTS:-localhost:3113,127.0.0.1:3113,[::1]:3113}"
+      VIEWER_ALLOWED_ORIGINS: "${VIEWER_ALLOWED_ORIGINS:-http://localhost:3113,http://127.0.0.1:3113}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      VOYAGE_API_KEY: "${VOYAGE_API_KEY:-}"
+      COHERE_API_KEY: "${COHERE_API_KEY:-}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      MINIMAX_API_KEY: "${MINIMAX_API_KEY:-}"
+      EMBEDDING_PROVIDER: "${EMBEDDING_PROVIDER:-}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-}"
+      AGENTMEMORY_AUTO_COMPRESS: "${AGENTMEMORY_AUTO_COMPRESS:-false}"
+      PATH: /usr/local/bin:/usr/bin:/bin
+      MALLOC_ARENA_MAX: "2"
