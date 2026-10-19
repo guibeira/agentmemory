@@ -250,9 +250,9 @@ function statusInputs(overrides: Partial<StatusInputs> = {}): StatusInputs {
   return {
     now: new Date("2026-09-25T12:00:00.000Z"),
     version: "0.9.29",
-    engineVersion: "0.22.1",
+    enginePinnedVersion: "0.22.1",
     uptimeSeconds: 100,
-    ports: { rest: 3111, streams: 3112, viewer: 3113 },
+    ports: { rest: 3111, viewer: 3113 },
     health: { status: "healthy", alerts: [], notes: [], connectionState: "connected" },
     circuitBreaker: null,
     functionMetrics: [],

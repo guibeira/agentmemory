@@ -359,10 +359,10 @@ describe("graph compaction in /agentmemory/status", () => {
   const base: StatusInputs = {
     now: new Date("2026-10-01T12:00:00.000Z"),
     version: "0.9.30",
-    engineVersion: "0.22.1",
+    enginePinnedVersion: "0.22.1",
     uptimeSeconds: 10,
     stateBackend: "file",
-    ports: { rest: 4611, streams: 4612, viewer: 4613 },
+    ports: { rest: 4611, viewer: 4613 },
     health: null,
     circuitBreaker: null,
     functionMetrics: [],
