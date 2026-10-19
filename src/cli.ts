@@ -7,7 +7,6 @@ import {
   type ChildProcess,
 } from "node:child_process";
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -58,15 +57,7 @@ import {
 import { portFlagSuffix } from "./cli/ready-hint.js";
 import { expectedIiiSha256, iiiManualInstallCommand, installIiiArchive } from "./cli/engine-install.js";
 import {
-  dockerComposeArgs,
-  dockerProjectName,
-  isBundledConfig,
-  legacyDataMigrations,
-  resolveEngineCwd,
-  rewriteBundledConfig,
   runtimeConfigPath,
-  engineChildEnv,
-  resolveLaunchRenderFailure,
   redactCredentialUrls,
 } from "./cli/engine-launch.js";
 import { runtimeMetadataPath } from "./runtime-paths.js";
@@ -84,10 +75,8 @@ import {
   type StartupDeadline,
 } from "./cli/readiness.js";
 import {
-  clearPersistedBuiltinConfig,
   engineFlushWaitMs,
   engineStateConfigPaths,
-  renderEngineConfig,
 } from "./cli/engine-config.js";
 import { SHUTDOWN_HARD_EXIT_MS, registerStartupCleanup, runStartupCleanup } from "./shutdown.js";
 import { consoleArgs, defaultConsolePort, parseConsoleArgs } from "./cli/console.js";
@@ -96,7 +85,7 @@ import { renderSplash } from "./cli/splash.js";
 import { isFirstRun, readPrefs, resetPrefs, writePrefs } from "./cli/preferences.js";
 import { runOnboarding } from "./cli/onboarding.js";
 import { setBootVerbose } from "./logger.js";
-import { getRedisUrl, getStateBackend, getStateSaveIntervalMs, hydrateProcessEnvFromFile } from "./config.js";
+import { getRedisUrl, getStateBackend, hydrateProcessEnvFromFile } from "./config.js";
 import { III_PINNED_VERSION, VERSION } from "./version.js";
 import { getAllTools, ESSENTIAL_TOOLS } from "./mcp/tools-registry.js";
 import { knownAgents } from "./cli/connect/index.js";
@@ -108,6 +97,9 @@ import { runCaptureCommand } from "./cli/capture.js";
 import { runCompressionCommand } from "./cli/compression.js";
 import { runGraphIndexCommand } from "./cli/graph-index.js";
 import { bearerHeaders, resolveClientSecret } from "./secret-store.js";
+import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, probeComposeEngine, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
+import { COMPOSE_WORKER_VERSIONS, composeNamespace } from "./cli/compose-project.js";
+import { legacyDockerStateMessage, type LegacyDockerEngineState } from "./cli/legacy-docker-state.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -127,7 +119,7 @@ setBootVerbose(IS_VERBOSE);
 const IS_RESET = args.includes("--reset");
 
 // Fold ~/.agentmemory/.env into process.env before any port/URL read
-// (getRestPort/getBaseUrl/getStreamPort/getEnginePort) or the --port /
+// (getRestPort/getBaseUrl/getEnginePort) or the --port /
 // --instance / --tools handlers below. Only-if-unset, so a real
 // process.env value — including one just set by a CLI flag — still wins.
 hydrateProcessEnvFromFile();
@@ -214,7 +206,7 @@ agentmemory — persistent memory for AI coding agents
 Usage: agentmemory [command] [options]
 
 Commands:
-  (default)          Start agentmemory worker
+  (default)          Start agentmemory via a per-instance Worker Compose project
   init               Copy bundled .env.example to ~/.agentmemory/.env if absent
   connect [agent]    Wire agentmemory into an installed agent
                      (${wrapList(knownAgents(), 21)}).
@@ -233,9 +225,8 @@ Commands:
                      in one command (no second terminal).
   upgrade            Upgrade local deps + iii runtime (best effort)
   stop [--force]     Stop the running iii-engine started by this CLI.
-                     --force bypasses the Docker-heuristic guard and signals
-                     whatever pidfile+lsof report on the REST port (use when
-                     the engine was started natively but state file is missing).
+                     --force bypasses the native engine PID identity guard
+                     (use when the engine was started natively but state file is missing).
   mcp                Start standalone MCP shim — opt-in surface for MCP-only clients
                      (Cursor, Gemini CLI, etc). REST always available at :3111.
   capture [--drain]  Show capture health: the local offline spool and the server
@@ -258,9 +249,8 @@ Options:
   --reset            Wipe ~/.agentmemory/preferences.json and re-run onboarding
   --tools all|core   Tool visibility (default: all = ${ALL_TOOLS_COUNT} tools; core = ${CORE_TOOLS_COUNT} essentials)
   --no-engine        Skip auto-starting iii-engine
-  --port <N>         Override REST port (default: 3111). Streams (N+1), viewer
-                     (N+2), and iii engine (N+46023) auto-derive from N so a
-                     single flag relocates the whole quartet.
+  --port <N>         Override REST port (default: 3111). Viewer (N+2) and
+                     iii engine (N+46023) derive from N for side-by-side instances.
   --instance <N>     Shortcut for --port (3111 + N*100) to run multiple
                      daemons side-by-side without env gymnastics.
                      --instance 1 -> 3211/3212/3213/49234, etc. (max N=50)
@@ -270,12 +260,7 @@ Environment:
   AGENTMEMORY_URL              Full REST base URL (e.g. http://localhost:3111).
                                Honored by status, doctor, and MCP shim commands.
   AGENTMEMORY_DATA_DIR         State directory fallback when --data-dir is not set.
-  AGENTMEMORY_USE_DOCKER=1     Prefer the bundled docker-compose path over the
-                               native iii-engine binary on first run.
   AGENTMEMORY_III_VERSION      Override pinned iii-engine version (default ${IIPINNED_VERSION}).
-  AGENTMEMORY_III_CONFIG       Engine config to start from (default: ./iii-config.yaml,
-                               then ~/.agentmemory/iii-config.yaml, then the bundled
-                               loopback-only config).
   AGENTMEMORY_ENGINE_READY_TIMEOUT_MS
                                Engine readiness deadline in milliseconds (default 120000).
   AGENTMEMORY_READY_TIMEOUT_MS
@@ -289,7 +274,7 @@ Environment:
                                (default 30). Long values overcount, short values undercount.
 
 Quick start:
-  npx @agentmemory/agentmemory          # start with local iii-engine or Docker
+  npx @agentmemory/agentmemory          # start pinned iii Worker Compose runtime
   npx @agentmemory/agentmemory demo     # see semantic recall in 30 seconds
   npx @agentmemory/agentmemory doctor   # diagnose config + feature flags
   npx @agentmemory/agentmemory status   # health + memory count + flags
@@ -330,7 +315,7 @@ if (portValue) {
 
 // `--instance N` picks a 100-port block off the 3111 base so multiple
 // agentmemory daemons can coexist on one host without env-var
-// gymnastics. `--instance 0` keeps the canonical 3111/3112/3113/49134
+// gymnastics. `--instance 0` keeps the canonical 3111/3113/49134
 // quartet; `--instance 1` → 3211/3212/3213/49234; etc. REST acts as the
 // anchor — streams/viewer/engine derive from it via fixed offsets below
 // unless an env explicitly pins each one.
@@ -358,8 +343,6 @@ if (hasInstanceArgument) {
 
 const restPort = parseInt(process.env["III_REST_PORT"] || "3111", 10);
 if (Number.isFinite(restPort) && restPort > 0) {
-  process.env["III_STREAM_PORT"] ??=
-    process.env["III_STREAMS_PORT"] ?? String(restPort + 1);
   process.env["III_VIEWER_PORT"] ??= String(restPort + 2);
   const configuredEngineUrl = process.env["III_ENGINE_URL"];
   if (configuredEngineUrl) {
@@ -455,20 +438,6 @@ function getViewerUrl(): string {
   }
 }
 
-// WebSocket streams port. Engine writes here; the SDK and viewer
-// subscribe. Honors both `III_STREAM_PORT` (the singular name the
-// engine docs use post-0.11) and `III_STREAMS_PORT` (the name our
-// own config.ts has used since 0.7) so a single source of truth in
-// either form lights up the ready panel. Falls back to REST+1 so
-// `--port 3211` auto-picks 3212 instead of colliding on 3112.
-function getStreamPort(): number {
-  return (
-    parseInt(process.env["III_STREAM_PORT"] || "", 10) ||
-    parseInt(process.env["III_STREAMS_PORT"] || "", 10) ||
-    getRestPort() + 1
-  );
-}
-
 // Bridge WebSocket port — the iii engine's internal worker bus.
 // Defaults derived from REST as REST+46023 so the canonical 3111
 // anchor yields 49134 and `--port 3211` auto-picks 49234 without a
@@ -488,7 +457,9 @@ function getEnginePort(): number {
 }
 
 async function isEngineRunning(): Promise<boolean> {
-  const result = await withinStartupDeadline(startupDeadline(2000), (signal) => probeEngine(getBaseUrl(), signal)).catch(() => null);
+  const state = readEngineState();
+  const endpoint = state?.kind === "compose" && state.restPort === getRestPort() ? `http://127.0.0.1:${state.restPort}` : getBaseUrl();
+  const result = await withinStartupDeadline(startupDeadline(2000), (signal) => probeEngine(endpoint, signal)).catch(() => null);
   return result?.completed === true && result.value;
 }
 
@@ -499,26 +470,6 @@ async function isAgentmemoryReady(): Promise<boolean> {
 
 function workerReadinessProbe(signal: AbortSignal): Promise<boolean> {
   return probeWorker(getBaseUrl(), signal, (port) => { discoveredViewerPort = port; });
-}
-
-function findIiiConfig(): string {
-  // Precedence (user-overridable wins): explicit env > project cwd >
-  // ~/.agentmemory/ > bundled. The bundled config used to win
-  // unconditionally, so users hitting the observability log-feedback
-  // loop had no way to drop a tamer config in place without
-  // editing node_modules.
-  const envPath = process.env["AGENTMEMORY_III_CONFIG"];
-  const candidates = [
-    ...(envPath ? [envPath] : []),
-    join(process.cwd(), "iii-config.yaml"),
-    join(homedir(), ".agentmemory", "iii-config.yaml"),
-    join(__dirname, "iii-config.yaml"),
-    join(__dirname, "..", "iii-config.yaml"),
-  ];
-  for (const c of candidates) {
-    if (existsSync(c)) return resolve(c);
-  }
-  return "";
 }
 
 function warnIfRelocatedDataDir(): void {
@@ -653,6 +604,24 @@ function engineStatePath(): string {
   return runtimeMetadataPath("engine-state.json");
 }
 
+type ComposeEngineState = {
+  kind: "compose";
+  restPort: number;
+  viewerPort: number;
+  enginePort: number;
+  engineUrl: string;
+  namespace: string;
+  file: string;
+  stateDir: string;
+  logFile: string;
+  binPath: string;
+  composePid?: number;
+  enginePid?: number;
+  workerBinDir?: string;
+  workerFailure?: string;
+  workerVersions?: typeof COMPOSE_WORKER_VERSIONS | { local: true };
+};
+
 type NativeEngineState = {
   kind: "native";
   configPath: string;
@@ -661,31 +630,8 @@ type NativeEngineState = {
   restPort?: number;
 };
 
-type DockerEngineState = {
-  kind: "docker";
-  schemaVersion?: 2;
-  composeFile: string;
-  projectName?: string;
-  engineVersion?: string;
-  restPort?: number;
-  dataDir?: string;
-  containerId?: string;
-  dataMountType?: "bind" | "volume";
-  dataMountSource?: string;
-  preserveContainer?: boolean;
-};
 
-type EngineState = NativeEngineState | DockerEngineState;
-
-function writeEnginePidfile(pid: number): void {
-  try {
-    const pidPath = enginePidfilePath();
-    mkdirSync(dirname(pidPath), { recursive: true });
-    writeFileSync(pidPath, `${pid}\n`, { encoding: "utf-8" });
-  } catch (err) {
-    vlog(`writeEnginePidfile: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
+type EngineState = NativeEngineState | LegacyDockerEngineState | ComposeEngineState;
 
 function readEnginePidfile(): number | null {
   try {
@@ -723,28 +669,11 @@ function clearWorkerPidfile(): void {
   } catch {}
 }
 
-function writeEngineState(state: EngineState): void {
-  try {
-    const statePath = engineStatePath();
-    mkdirSync(dirname(statePath), { recursive: true });
-    const normalized = state.kind === "docker" && state.schemaVersion === 2
-      ? {
-          ...state,
-          restPort: state.restPort ?? getRestPort(),
-          dataDir: state.dataDir ?? dataDirResolution.dataDir,
-        }
-      : { ...state, restPort: state.restPort ?? getRestPort() };
-    writeFileSync(statePath, `${JSON.stringify(normalized)}\n`, { encoding: "utf-8" });
-  } catch (err) {
-    vlog(`writeEngineState: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
 function readEngineState(): EngineState | null {
   try {
     const raw = readFileSync(engineStatePath(), "utf-8");
     const parsed = JSON.parse(raw) as Partial<EngineState>;
-    if (parsed && (parsed.kind === "native" || parsed.kind === "docker")) {
+    if (parsed && (parsed.kind === "native" || parsed.kind === "docker" || parsed.kind === "compose")) {
       return parsed as EngineState;
     }
     return null;
@@ -759,13 +688,9 @@ function clearEngineState(): void {
   } catch {}
 }
 
-function engineStateRestPort(state: EngineState): number {
+function engineStateRestPort(state: NativeEngineState | ComposeEngineState): number {
   if (state.restPort && Number.isFinite(state.restPort)) return state.restPort;
-  if (state.kind === "docker") {
-    const projectPort = state.projectName?.match(/^agentmemory-(\d+)$/)?.[1];
-    if (projectPort) return parseInt(projectPort, 10);
-    return 3111;
-  }
+  if (state.kind === "compose") return 3111;
   try {
     const raw = readFileSync(state.configPath, "utf-8");
     const httpBlock = raw.match(
@@ -778,6 +703,59 @@ function engineStateRestPort(state: EngineState): number {
 }
 
 async function startWorkerForEngineState(background = false): Promise<void> {
+  if (readEngineState()?.kind === "compose") {
+    const timeoutMs = startupTimeouts().workerMs;
+    const ready = await waitForReadiness(startupDeadline(timeoutMs), workerReadinessProbe, {
+      stopped: () => {
+        const state = readEngineState();
+        if (state?.kind === "compose") {
+          try {
+            const failure = composeRegistryFailureMessage(readFileSync(state.logFile, "utf8"), state.workerBinDir);
+            if (failure) startupFailure = { kind: "engine-crashed", stderr: failure };
+          } catch {}
+        }
+        return startupInterrupted || engineStartupFailed() || Boolean(startupFailure?.stderr?.startsWith("Worker registry unavailable"));
+      },
+    });
+    if (!ready) {
+      printComposeStartupLogs();
+      const state = readEngineState();
+      let registryFailure = state?.kind === "compose" ? composeStateRegistryFailure(dataDirResolution.dataDir, state.file) : null;
+      if (state?.kind === "compose" && !registryFailure) {
+        registryFailure = (() => {
+          try { return composeRegistryFailureMessage(readFileSync(state.logFile, "utf8"), state.workerBinDir); } catch { return null; }
+        })();
+      }
+      if (state?.kind === "compose" && await isEngineRunning()) {
+        try {
+          const status = await composeCall<ComposeStatus>({ engineUrl: state.engineUrl, namespace: state.namespace, functionId: "compose::status", file: state.file });
+          const project = ownedComposeProject(status, state.file);
+          const failures = (project?.containers ?? [])
+            .filter((container) => container.state === "failed" || container.last_error)
+            .map((container) => {
+              let detail = container.last_error ?? container.state ?? "failed";
+              if (container.log_path) {
+                try {
+                  const log = readFileSync(container.log_path, "utf8").trim();
+                  if (log) detail += `\n${log.split(/\r?\n/).slice(-12).join("\n")}`;
+                } catch {}
+              }
+              return `${container.container ?? "worker"}: ${detail}`;
+            });
+          if (failures.length) {
+            state.workerFailure = failures.join("\n");
+            writeComposeState(engineStatePath(), { ...state, workerVersions: state.workerVersions ?? (state.workerBinDir ? { local: true } : COMPOSE_WORKER_VERSIONS) });
+            const aggregate = composeRegistryFailureMessage(state.workerFailure, state.workerBinDir);
+            registryFailure = aggregate ? `${aggregate} Compose reported: ${state.workerFailure}` : registryFailure;
+          }
+        } catch {}
+      }
+      throw new Error(registryFailure || startupFailure?.stderr || startupTimeoutMessage("worker", timeoutMs));
+    }
+    composeStartupCompleted = true;
+    finishStartup();
+    return;
+  }
   const timeoutMs = startupTimeouts().workerMs;
   startupWorkerFailure = null;
   const ready = await startWorkerAndWait({
@@ -837,368 +815,17 @@ function configuredEngineMayStartWorker(): boolean {
 }
 
 
-function discoverComposeFile(): string | null {
-  const candidates = [
-    join(__dirname, "..", "docker-compose.yml"),
-    join(__dirname, "docker-compose.yml"),
-    join(process.cwd(), "docker-compose.yml"),
-  ];
-  return candidates.find((c) => existsSync(c)) ?? null;
-}
-
-type DockerEngineInspection =
-  | {
-      status: "running" | "stopped";
-      composeFile: string;
-      projectName: string;
-      containerId: string;
-      dataMountType: "bind" | "volume";
-      dataMountSource: string;
-      preserveContainer: boolean;
-    }
-  | { status: "missing"; composeFile: string; projectName?: string }
-  | { status: "unavailable"; reason: string };
-
-type DockerInspectRecord = {
-  Id?: string;
-  State?: { Running?: boolean };
-  Config?: { Image?: string; Labels?: Record<string, string> };
-  HostConfig?: {
-    PortBindings?: Record<
-      string,
-      Array<{ HostIp?: string; HostPort?: string }> | null
-    >;
-  };
-  Mounts?: Array<{
-    Type?: string;
-    Name?: string;
-    Source?: string;
-    Destination?: string;
-  }>;
-};
-
-function sameDockerMountSource(
-  type: "bind" | "volume",
-  left: string,
-  right: string,
-): boolean {
-  return type === "bind" ? resolve(left) === resolve(right) : left === right;
-}
-
-function inspectDockerContainer(
-  dockerBin: string,
-  containerId: string,
-  state: DockerEngineState,
-  ownerPort: number,
-): DockerEngineInspection {
-  const result = spawnSync(dockerBin, ["inspect", containerId], {
-    encoding: "utf-8",
-    stdio: ["ignore", "pipe", "ignore"],
-    maxBuffer: 1024 * 1024,
-    timeout: 5000,
-    killSignal: "SIGKILL",
-  });
-  if (result.status !== 0) {
-    return { status: "unavailable", reason: `docker inspect failed for ${containerId}` };
-  }
-  let record: DockerInspectRecord;
-  try {
-    record = (JSON.parse(result.stdout) as DockerInspectRecord[])[0] ?? {};
-  } catch {
-    return { status: "unavailable", reason: `docker inspect returned invalid JSON for ${containerId}` };
-  }
-
-  const image = record.Config?.Image ?? "";
-  const expectedImage = `iiidev/iii:${state.engineVersion ?? IIPINNED_VERSION}`;
-  if (image !== expectedImage) {
-    return {
-      status: "unavailable",
-      reason: `saved container uses ${image || "an unknown image"}, expected ${expectedImage}`,
-    };
-  }
-
-  const labels = record.Config?.Labels ?? {};
-  const projectName = labels["com.docker.compose.project"] ?? "";
-  if (labels["com.docker.compose.service"] !== "iii-engine" || !projectName) {
-    return {
-      status: "unavailable",
-      reason: "saved container is not the iii-engine service of a Compose project",
-    };
-  }
-  if (state.projectName && state.projectName !== projectName) {
-    return {
-      status: "unavailable",
-      reason: `saved Docker project ${state.projectName} does not match container project ${projectName}`,
-    };
-  }
-  if (state.schemaVersion === 2 && projectName !== dockerProjectName(ownerPort)) {
-    return {
-      status: "unavailable",
-      reason: `Docker project ${projectName} does not match REST port ${ownerPort}`,
-    };
-  }
-
-  const restBindings = record.HostConfig?.PortBindings?.[`${ownerPort}/tcp`] ?? [];
-  if (!restBindings.some((binding) => binding.HostPort === String(ownerPort))) {
-    return {
-      status: "unavailable",
-      reason: `saved container does not publish REST port ${ownerPort}`,
-    };
-  }
-
-  const dataMount = record.Mounts?.find((mount) => mount.Destination === "/data");
-  const dataMountType = dataMount?.Type;
-  const dataMountSource = dataMountType === "volume"
-    ? dataMount?.Name ?? dataMount?.Source ?? ""
-    : dataMount?.Source ?? "";
-  if (
-    (dataMountType !== "bind" && dataMountType !== "volume") ||
-    !dataMountSource
-  ) {
-    return {
-      status: "unavailable",
-      reason: "saved container has no verifiable /data bind or volume mount",
-    };
-  }
-  if (
-    state.dataMountType &&
-    state.dataMountType !== dataMountType
-  ) {
-    return {
-      status: "unavailable",
-      reason: `saved /data mount type ${state.dataMountType} changed to ${dataMountType}`,
-    };
-  }
-  if (
-    state.dataMountSource &&
-    !sameDockerMountSource(dataMountType, state.dataMountSource, dataMountSource)
-  ) {
-    return {
-      status: "unavailable",
-      reason: "saved container /data mount source changed",
-    };
-  }
-  if (!state.dataMountSource) {
-    if (
-      dataMountType === "bind" &&
-      resolve(dataMountSource) !== resolve(dataDirResolution.dataDir)
-    ) {
-      return {
-        status: "unavailable",
-        reason: `container /data bind ${dataMountSource} does not match ${dataDirResolution.dataDir}`,
-      };
-    }
-    if (dataMountType === "volume" && dataDirResolution.source !== "default") {
-      return {
-        status: "unavailable",
-        reason: "legacy container uses a named volume but this invocation selects an explicit data directory",
-      };
-    }
-  }
-  if (
-    state.dataDir &&
-    resolve(state.dataDir) !== resolve(dataDirResolution.dataDir)
-  ) {
-    return {
-      status: "unavailable",
-      reason: `saved data directory ${state.dataDir} does not match ${dataDirResolution.dataDir}`,
-    };
-  }
-
-  return {
-    status: record.State?.Running ? "running" : "stopped",
-    composeFile: existsSync(state.composeFile)
-      ? state.composeFile
-      : discoverComposeFile() ?? state.composeFile,
-    projectName,
-    containerId: record.Id ?? containerId,
-    dataMountType,
-    dataMountSource,
-    preserveContainer:
-      state.preserveContainer === true ||
-      (state.schemaVersion !== 2 && dataMountType === "volume"),
-  };
-}
-
-function inspectOwnedDockerEngine(state: EngineState): DockerEngineInspection {
-  if (state.kind !== "docker") {
-    return { status: "unavailable", reason: "engine state is not Docker" };
-  }
-  const ownerPort = engineStateRestPort(state);
-  if (state.schemaVersion === 2 && state.projectName !== dockerProjectName(ownerPort)) {
-    return {
-      status: "unavailable",
-      reason: `saved Docker project ${state.projectName} does not match REST port ${ownerPort}`,
-    };
-  }
-
-  const dockerBin = whichBinary("docker");
-  if (!dockerBin) {
-    return { status: "unavailable", reason: "docker is not on PATH" };
-  }
-
-  const discoveryFailures: string[] = [];
-  if (state.containerId) {
-    const direct = inspectDockerContainer(dockerBin, state.containerId, state, ownerPort);
-    if (direct.status !== "unavailable") return direct;
-    if (state.preserveContainer) return direct;
-    discoveryFailures.push(direct.reason);
-  }
-
-  const composeFile = existsSync(state.composeFile)
-    ? state.composeFile
-    : discoverComposeFile() ?? state.composeFile;
-  const candidateIds = new Set<string>();
-  try {
-    if (existsSync(composeFile)) {
-      const composeText = readFileSync(composeFile, "utf-8");
-      if (!/^\s+iii-engine:/m.test(composeText)) {
-        return {
-          status: "unavailable",
-          reason: `${composeFile} does not define iii-engine`,
-        };
-      }
-      const psResult = spawnSync(
-        dockerBin,
-        dockerComposeArgs(composeFile, state.projectName, [
-          "ps",
-          "-q",
-          "--all",
-          "iii-engine",
-        ]),
-        { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, killSignal: "SIGKILL" },
-      );
-      if (psResult.status === 0) {
-        for (const id of (psResult.stdout ?? "").trim().split(/\s+/)) {
-          if (id) candidateIds.add(id);
-        }
-      } else {
-        discoveryFailures.push(
-          `docker compose ps failed for project ${state.projectName ?? "<default>"}`,
-        );
-      }
-    }
-
-    const scanArgs = [
-      "ps",
-      "-aq",
-      "--filter",
-      "label=com.docker.compose.service=iii-engine",
-      "--filter",
-      `ancestor=iiidev/iii:${state.engineVersion ?? IIPINNED_VERSION}`,
-      ...(state.projectName
-        ? ["--filter", `label=com.docker.compose.project=${state.projectName}`]
-        : []),
-    ];
-    const scanResult = spawnSync(
-      dockerBin,
-      scanArgs,
-      { encoding: "utf-8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, killSignal: "SIGKILL" },
-    );
-    if (scanResult.status === 0) {
-      for (const id of (scanResult.stdout ?? "").trim().split(/\s+/)) {
-        if (id) candidateIds.add(id);
-      }
-    } else {
-      discoveryFailures.push("docker container scan failed");
-    }
-
-    const matches: DockerEngineInspection[] = [];
-    for (const containerId of candidateIds) {
-      const inspected = inspectDockerContainer(dockerBin, containerId, state, ownerPort);
-      if (inspected.status === "running" || inspected.status === "stopped") {
-        if (
-          !matches.some(
-            (match) =>
-              (match.status === "running" || match.status === "stopped") &&
-              match.containerId === inspected.containerId,
-          )
-        ) {
-          matches.push(inspected);
-        }
-      } else if (inspected.status === "unavailable") {
-        discoveryFailures.push(inspected.reason);
-      }
-    }
-    if (matches.length === 1) return matches[0]!;
-    if (matches.length > 1) {
-      return {
-        status: "unavailable",
-        reason: `multiple Docker iii-engine containers match REST port ${ownerPort}`,
-      };
-    }
-    if (discoveryFailures.length > 0) {
-      return {
-        status: "unavailable",
-        reason: [...new Set(discoveryFailures)].join("; "),
-      };
-    }
-    if (state.schemaVersion !== 2 || state.preserveContainer) {
-      return {
-        status: "unavailable",
-        reason: `legacy Docker ownership exists for REST port ${ownerPort}, but no unique container can be verified`,
-      };
-    }
-    return {
-      status: "missing",
-      composeFile,
-      projectName: state.projectName,
-    };
-  } catch (err) {
-    return {
-      status: "unavailable",
-      reason: err instanceof Error ? err.message : String(err),
-    };
-  }
-}
-
-function persistDockerInspection(
-  state: DockerEngineState,
-  inspection: DockerEngineInspection,
-): DockerEngineState {
-  if (inspection.status !== "running" && inspection.status !== "stopped") {
-    return state;
-  }
-  const resolved: DockerEngineState = {
-    ...state,
-    composeFile: inspection.composeFile,
-    projectName: inspection.projectName,
-    containerId: inspection.containerId,
-    dataMountType: inspection.dataMountType,
-    dataMountSource: inspection.dataMountSource,
-    preserveContainer: inspection.preserveContainer,
-  };
-  writeEngineState(resolved);
-  return resolved;
-}
-
 async function assertRuntimePortOwnership(): Promise<void> {
   const state = readEngineState();
   if (!state) return;
-  const ownerPort = engineStateRestPort(state);
-  const requestedPort = getRestPort();
-  if (ownerPort === requestedPort) return;
-
   if (state.kind === "docker") {
-    const inspection = inspectOwnedDockerEngine(state);
-    if (inspection.status === "unavailable") {
-      p.log.error(
-        `The data directory contains Docker ownership for REST port ${ownerPort}, but it cannot be verified: ${inspection.reason}. Refusing to overwrite its lifecycle state.`,
-      );
-      process.exit(1);
-    }
-    if (inspection.status === "running" || inspection.status === "stopped") {
-      persistDockerInspection(state, inspection);
-      p.log.error(
-        `The canonical lifecycle state is owned by a ${inspection.status} Docker engine on REST port ${ownerPort}. Refusing to reuse it for port ${requestedPort}. Use the original port, or use --instance <N> for an isolated daemon.`,
-      );
-      process.exit(1);
-    }
-    p.log.error(
-      `The canonical lifecycle state still records a Docker engine for REST port ${ownerPort}, but its container is missing. Refusing to overwrite that ownership from port ${requestedPort}. Re-run \`agentmemory stop\` with the original port to reconcile it.`,
-    );
+    p.log.error(legacyDockerStateMessage(state));
     process.exit(1);
   }
+  const ownerPort = engineStateRestPort(state);
+  if (state.kind === "compose" && ownerPort !== getRestPort()) return;
+  const requestedPort = getRestPort();
+  if (ownerPort === requestedPort) return;
 
   const enginePid = readEnginePidfile();
   const workerPid = readWorkerPidfile();
@@ -1225,22 +852,6 @@ async function assertRuntimePortOwnership(): Promise<void> {
   clearEnginePidfile();
   clearWorkerPidfile();
   clearEngineState();
-}
-
-function configureDockerHostUser(): void {
-  if (typeof process.getuid !== "function" || typeof process.getgid !== "function") {
-    return;
-  }
-  const hostUid = String(process.getuid());
-  const hostGid = String(process.getgid());
-  process.env["AGENTMEMORY_DOCKER_UID"] ??= hostUid;
-  process.env["AGENTMEMORY_DOCKER_GID"] ??= hostGid;
-  if (
-    process.env["AGENTMEMORY_DOCKER_UID"] === hostUid &&
-    process.env["AGENTMEMORY_DOCKER_GID"] === hostGid
-  ) {
-    process.env["AGENTMEMORY_DOCKER_SKIP_CHOWN"] ??= "1";
-  }
 }
 
 function isInvokedViaNpx(): boolean {
@@ -1306,44 +917,6 @@ async function maybeOfferGlobalInstall(): Promise<void> {
   }
 }
 
-function adoptRunningEngine(): void {
-  try {
-    const existingState = readEngineState();
-    const existingPid = readEnginePidfile();
-    if (existingState && existingPid) return;
-
-    const pids = findEnginePidsByPort(getRestPort());
-    const enginePid = pids[0];
-    if (enginePid) {
-      // A Docker-forwarded port is held by the VM/proxy process
-      // (com.docker.backend, vpnkit, ...), not the engine. Adopting it
-      // as kind:"native" would make a later `stop` SIGTERM that process.
-      const comm = pidCommand(enginePid);
-      if (isForeignPortHolder(comm)) {
-        vlog(
-          `adoptRunningEngine: refusing to adopt pid ${enginePid} (${comm}) — not the iii engine binary`,
-        );
-        return;
-      }
-    }
-    if (enginePid && !existingPid) {
-      writeEnginePidfile(enginePid);
-    }
-    if (!existingState) {
-      writeEngineState({
-        kind: "native",
-        configPath: findIiiConfig() || "",
-        attached: true,
-      });
-    }
-    if (enginePid && !existingPid) {
-      p.log.info(c.ok(`Attached to existing iii-engine (pid ${enginePid})`));
-    }
-  } catch (err) {
-    vlog(`adoptRunningEngine: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
-
 async function runIiiInstaller(): Promise<{ ok: boolean; binPath: string | null }> {
   const releaseUrl = iiiReleaseUrl();
   const asset = iiiReleaseAsset();
@@ -1351,7 +924,7 @@ async function runIiiInstaller(): Promise<{ ok: boolean; binPath: string | null 
 
   if (!releaseUrl) {
     p.log.warn(
-      `iii-engine binary not available for ${platform()}/${process.arch}. Use Docker (\`docker pull iiidev/iii:${IIPINNED_VERSION}\`) or download manually from https://github.com/iii-hq/iii/releases/tag/iii%2Fv${IIPINNED_VERSION}.`,
+      `iii-engine binary not available for ${platform()}/${process.arch}. Download manually from https://github.com/iii-hq/iii/releases/tag/iii%2Fv${IIPINNED_VERSION}.`,
     );
     return { ok: false, binPath: null };
   }
@@ -1362,7 +935,7 @@ async function runIiiInstaller(): Promise<{ ok: boolean; binPath: string | null 
         `  1. Download ${releaseUrl}\n` +
         `     Its SHA-256 must be ${expectedIiiSha256(IIPINNED_VERSION, asset ?? "") ?? `the value in ${releaseUrl.replace(/\.zip$/, ".sha256")}`}\n` +
         `  2. Extract iii.exe and place it on PATH (e.g. %USERPROFILE%\\.local\\bin)\n` +
-        `Or use Docker: docker pull iiidev/iii:${IIPINNED_VERSION}`,
+        `Install the pinned iii binary from ${releaseUrl}`,
     );
     return { ok: false, binPath: null };
   }
@@ -1407,8 +980,7 @@ async function runIiiInstaller(): Promise<{ ok: boolean; binPath: string | null 
       `${heading}: ${outcome.detail.slice(0, 300)}\n` +
         `Install it manually, then re-run agentmemory:\n` +
         `  ${iiiManualInstallCommand(releaseUrl, binDir, binPath, sha256)}\n` +
-        checksumHint +
-        `Or use Docker: docker pull iiidev/iii:${IIPINNED_VERSION}`,
+        checksumHint,
     );
     return { ok: false, binPath: null };
   }
@@ -1417,7 +989,7 @@ async function runIiiInstaller(): Promise<{ ok: boolean; binPath: string | null 
 }
 
 type StartupFailure = {
-  kind: "no-engine" | "no-docker-compose" | "engine-crashed" | "docker-crashed";
+  kind: "no-engine" | "engine-crashed";
   stderr?: string;
   binary?: string;
 };
@@ -1425,11 +997,11 @@ type StartupFailure = {
 let startupFailure: StartupFailure | null = null;
 let activeStartupStderr = createStartupStderrCapture();
 let spawnedNativeEngine: ChildProcess | null = null;
+let spawnedComposeDaemon: ChildProcess | null = null;
+let composeStartupCompleted = false;
 let importedStartupWorker = false;
 let spawnedStartupWorker: ChildProcess | null = null;
 let startupWorkerFailure: Error | null = null;
-let spawnedDockerCommand: ChildProcess | null = null;
-let startedDockerEngine: DockerEngineState | null = null;
 let engineReadinessDeadline: StartupDeadline | null = null;
 let startupInterrupted = false;
 let finishStartup = (): void => {};
@@ -1455,7 +1027,7 @@ function beginStartup(): void {
 }
 
 function engineStartupFailed(): boolean {
-  return startupFailure?.kind === "engine-crashed" || startupFailure?.kind === "docker-crashed";
+  return startupFailure?.kind === "engine-crashed";
 }
 
 async function cleanupFailedStartup(): Promise<void> {
@@ -1470,27 +1042,12 @@ async function cleanupFailedStartup(): Promise<void> {
     }
     if (readWorkerPidfile() === worker.pid) clearWorkerPidfile();
   }
-  const dockerCommand = spawnedDockerCommand;
-  spawnedDockerCommand = null;
-  if (dockerCommand && typeof dockerCommand.pid === "number" && dockerCommand.exitCode === null && dockerCommand.signalCode === null) {
-    await signalAndWait(dockerCommand.pid, "SIGTERM", 1000);
-  }
-  const dockerState = startedDockerEngine;
-  startedDockerEngine = null;
-  if (dockerState) {
-    const inspection = inspectOwnedDockerEngine(dockerState);
-    if (inspection.status === "running" || inspection.status === "stopped") {
-      persistDockerInspection(dockerState, inspection);
-      const dockerBin = whichBinary("docker");
-      if (inspection.status === "running" && dockerBin) {
-        runCommand(dockerBin, ["stop", "--time", "10", inspection.containerId], {
-          label: "Stopping the Docker container started by this invocation",
-          timeoutMs: 15_000,
-        });
-      }
-    } else {
-      p.log.warn("Docker startup ownership could not be verified for cleanup; project state was preserved for `agentmemory stop`.");
-    }
+  const composeChild = spawnedComposeDaemon;
+  spawnedComposeDaemon = null;
+  if (composeChild && typeof composeChild.pid === "number") {
+    const stopped = await signalAndWait(composeChild.pid, "SIGTERM", 20_000);
+    if (!stopped) p.log.warn(`Compose daemon pid ${composeChild.pid} survived shutdown; lifecycle state was preserved.`);
+    else clearEngineState();
   }
   const child = spawnedNativeEngine;
   spawnedNativeEngine = null;
@@ -1518,214 +1075,172 @@ function printCapturedStartupStderr(): void {
   }
 }
 
-function printDockerStartupLogs(): void {
+function readComposeStartupLogs(): { path: string; text: string } | null {
   const state = readEngineState();
-  if (state?.kind !== "docker") return;
-  const inspection = inspectOwnedDockerEngine(state);
-  if (inspection.status !== "running" && inspection.status !== "stopped") return;
-  const dockerBin = whichBinary("docker");
-  if (!dockerBin) return;
-  const result = spawnSync(
-    dockerBin,
-    [
-      "logs",
-      "--tail",
-      "80",
-      inspection.containerId,
-    ],
-    {
-      encoding: "utf-8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 5000,
-      killSignal: "SIGKILL",
-      maxBuffer: 64 * 1024,
-    },
-  );
-  const output = redactCredentialUrls(`${result.stdout ?? ""}${result.stderr ?? ""}`.trim());
-  if (output) p.note(output.slice(-16 * 1024), "docker engine logs");
+  if (state?.kind !== "compose") return null;
+  try {
+    const text = readFileSync(state.logFile, "utf8").trim();
+    return { path: state.logFile, text: redactCredentialUrls(text.slice(-16 * 1024)) };
+  } catch {
+    return { path: state.logFile, text: "(Compose log file could not be read.)" };
+  }
 }
 
-// Spawn a background engine and collect any startup stderr for a short
-// window. The process is unref'd so the CLI parent can exit cleanly; we
-// only care about stderr that shows up BEFORE the health check succeeds,
-// which is what surfaces early crash/config-parse errors on all platforms.
-function spawnEngineBackground(
-  bin: string,
-  spawnArgs: string[],
-  label: string,
-  cwd?: string,
-): ChildProcess {
-  vlog(`spawn: ${bin} ${spawnArgs.join(" ")}${cwd ? ` (cwd: ${cwd})` : ""}`);
-  activeStartupStderr = createStartupStderrCapture();
-  startupFailure = null;
-  engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
-  const child = spawn(bin, spawnArgs, {
-    detached: true,
-    stdio: ["ignore", "ignore", "pipe"],
-    windowsHide: true,
-    env: engineChildEnv(process.env),
-    ...(cwd ? { cwd } : {}),
-  });
-  const isDocker = label.includes("Docker");
-  if (isDocker) spawnedDockerCommand = child;
-  if (!isDocker) {
-    spawnedNativeEngine = child;
-    if (typeof child.pid === "number") writeEnginePidfile(child.pid);
-  }
-  child.on("error", (error) => {
-    if ((isDocker ? spawnedDockerCommand : spawnedNativeEngine) !== child) return;
-    startupFailure = {
-      kind: isDocker ? "docker-crashed" : "engine-crashed",
-      stderr: redactCredentialUrls(error.message),
-      binary: bin,
-    };
-    if (!isDocker && spawnedNativeEngine === child) {
-      clearEnginePidfile();
-      clearEngineState();
-    }
-  });
-  child.stderr?.on("data", (chunk: Buffer) => {
-    if ((isDocker ? spawnedDockerCommand : spawnedNativeEngine) !== child) return;
-    activeStartupStderr.append(chunk);
-  });
-  (child.stderr as { unref?: () => void } | null)?.unref?.();
-  child.on("exit", (code, signal) => {
-    if ((isDocker ? spawnedDockerCommand : spawnedNativeEngine) !== child) return;
-    const abnormal = !isDocker || (code !== null && code !== 0) || (code === null && signal !== null);
-    if (abnormal) {
-      const stderr = redactCredentialUrls(activeStartupStderr.text());
-      startupFailure = {
-        kind: isDocker ? "docker-crashed" : "engine-crashed",
-        stderr:
-          stderr.trim() ||
-          (signal
-            ? `process killed by signal ${signal}`
-            : `process exited with code ${code}`),
-        binary: bin,
-      };
-      vlog(`engine exited early: code=${code} signal=${signal}`);
-      if (IS_VERBOSE && stderr.trim()) {
-        p.log.error(`engine stderr:\n${stderr}`);
-      }
-      if (!isDocker && readEnginePidfile() === child.pid) {
-        clearEnginePidfile();
-        clearEngineState();
-      }
-    }
-  });
-  child.unref();
-  return child;
+function printComposeStartupLogs(): void {
+  const logs = readComposeStartupLogs();
+  if (!logs) return;
+  if (logs.text) p.note(`Log file: ${logs.path}\n\n${logs.text}`, "Recent Worker Compose output");
 }
 
-function prepareEngineLaunch(configPath: string): {
-  configPath: string;
-  cwd: string;
-} {
-  const home = homedir();
-  const bundledConfig = isBundledConfig(configPath, __dirname);
-  const cwd = resolveEngineCwd(
-    configPath,
-    process.cwd(),
-    home,
-    bundledConfig,
-  );
-  const stateBackendKind = getStateBackend();
+function composePidMatches(pid: number, state: ComposeEngineState): boolean {
   try {
-    mkdirSync(cwd, { recursive: true });
-  } catch (err) {
-    const failure = resolveLaunchRenderFailure(stateBackendKind, err);
-    if (failure.fatal) {
-      p.log.error(failure.message);
-      process.exit(1);
-    }
-    return { configPath, cwd: process.cwd() };
+    const command = execFileSync("ps", ["-p", String(pid), "-o", "args="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    const executable = IS_WINDOWS ? "" : readlinkSync(`/proc/${pid}/exe`);
+    return Boolean(
+      command.includes("compose") &&
+      command.includes("compose --namespace") &&
+      command.includes(state.namespace) &&
+      command.includes(state.file) &&
+      executable && resolve(executable) === resolve(state.binPath),
+    );
+  } catch {
+    return false;
   }
+}
+
+function composeChildProcesses(state: ComposeEngineState): Array<{ pid: number; pgid: number; args: string }> {
+  if (IS_WINDOWS || !state.composePid) return [];
   try {
-    const rawConfig = readFileSync(configPath, "utf-8");
-    const options = {
-      dataDir: dataDirResolution.dataDir,
-      ports: {
-        restPort: getRestPort(),
-        streamPort: getStreamPort(),
-        viewerPort: getConfiguredViewerPort(),
-        enginePort: getEnginePort(),
-      },
-      stateBackend: { kind: stateBackendKind, redisUrl: getRedisUrl() },
-      saveIntervalMs: getStateSaveIntervalMs(),
-    };
-    const rewritten = bundledConfig
-      ? rewriteBundledConfig(
-          rawConfig,
-          home,
-          process.execPath,
-          join(__dirname, "index.mjs"),
-          options,
-        )
-      : renderEngineConfig(rawConfig, options);
-    const runtimePath = runtimeConfigPath(dataDirResolution.dataDir);
-    mkdirSync(dirname(runtimePath), { recursive: true });
-    writeFileSync(runtimePath, rewritten, "utf-8");
-    try {
-      const cleared = clearPersistedBuiltinConfig(cwd, runtimePath, rewritten);
-      if (cleared.length > 0) {
-        vlog(
-          `cleared ${cleared.length} persisted builtin config entries so the rendered runtime config seeds the engine again`,
-        );
-      }
-    } catch (err) {
-      p.log.error(
-        `${String(err instanceof Error ? err.message : err)}. The engine would ignore the rendered runtime config and keep its previously persisted ports and timeouts. Fix the permissions on that file and run agentmemory start again.`,
-      );
-      process.exit(1);
-    }
-    if (selectedInstance === 0 && dataDirResolution.source === "default") {
-      for (const m of legacyDataMigrations(
-        process.cwd(),
-        home,
-        dataDirResolution.dataDir,
-      )) {
-        if (existsSync(m.from) && !existsSync(m.to)) {
-          try {
-            mkdirSync(dirname(m.to), { recursive: true });
-            cpSync(m.from, m.to, { recursive: true });
-            p.log.info(`Copied existing data: ${m.from} -> ${m.to}`);
-          } catch (err) {
-            vlog(`data copy failed for ${m.from}: ${String(err)}`);
-          }
+    const rows = execFileSync("ps", ["-eo", "pid=,ppid=,pgid=,args="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+      .split(/\r?\n/)
+      .map((row) => {
+        const match = row.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/);
+        return match ? { pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]), args: match[4]! } : null;
+      })
+      .filter((row): row is { pid: number; ppid: number; pgid: number; args: string } => row !== null);
+    const descendants = new Set([state.composePid]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const row of rows) {
+        if (!descendants.has(row.pid) && descendants.has(row.ppid)) {
+          descendants.add(row.pid);
+          changed = true;
         }
       }
     }
-    return {
-      configPath: runtimePath,
-      cwd,
-    };
-  } catch (err) {
-    const failure = resolveLaunchRenderFailure(stateBackendKind, err);
-    if (failure.fatal) {
-      p.log.error(failure.message);
-      process.exit(1);
-    }
-    vlog(`runtime config generation failed, using bundled config verbatim: ${String(err)}`);
-    return { configPath, cwd };
+    return rows
+      .filter((row) => row.pid !== state.composePid && descendants.has(row.pid))
+      .map(({ pid, pgid, args }) => ({ pid, pgid, args }));
+  } catch {
+    return [];
   }
 }
 
-function startIiiBin(iiiBin: string, configPath: string): boolean {
-  const s = p.spinner();
-  s.start(`Starting iii-engine: ${iiiBin}`);
-  const launch = prepareEngineLaunch(configPath);
-  writeEngineState({
-    kind: "native",
-    configPath: launch.configPath,
-    binPath: iiiBin,
-  });
-  spawnEngineBackground(
+function composeChildPids(state: ComposeEngineState): number[] {
+  return [...new Set(composeChildProcesses(state).map((child) => child.pid))];
+}
+
+function composeEnginePid(state: ComposeEngineState): number | undefined {
+  const label = `iii:e:${state.namespace}`;
+  return composeChildProcesses(state).find(({ args }) => args.includes(label))?.pid;
+}
+
+async function terminateComposeChildren(state: ComposeEngineState): Promise<boolean> {
+  if (IS_WINDOWS) return true;
+  const groups = [...new Set(composeChildProcesses(state).map((child) => child.pgid).filter((pgid) => pgid !== state.composePid))];
+  let stopped = true;
+  for (const pgid of groups) {
+    try { process.kill(-pgid, "SIGTERM"); } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ESRCH") stopped = false;
+      continue;
+    }
+    const deadline = Date.now() + 5_000;
+    while (Date.now() < deadline) {
+      try { process.kill(-pgid, 0); } catch { break; }
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    try { process.kill(-pgid, 0); process.kill(-pgid, "SIGKILL"); } catch {}
+  }
+  for (const pid of composeChildPids(state)) {
+    if (pidAlive(pid) && !(await signalAndWait(pid, "SIGTERM", 1000))) stopped = false;
+  }
+  return stopped;
+}
+
+async function startIiiBin(iiiBin: string): Promise<boolean> {
+  const workerBinDir = process.env["AGENTMEMORY_WORKER_BIN_DIR"]?.trim() || undefined;
+  if (workerBinDir && (!existsSync(resolve(process.cwd(), workerBinDir)) ||
+    !["state", "http"].every((name) => existsSync(join(resolve(process.cwd(), workerBinDir), name))))) {
+    throw new Error(`AGENTMEMORY_WORKER_BIN_DIR must contain executable state and http binaries: ${workerBinDir}`);
+  }
+  const envPath = join(homedir(), ".agentmemory", ".env");
+  const namespace = composeNamespace(getRestPort());
+  const projectRoot = resolve(__dirname, "..");
+  const ports = { restPort: getRestPort(), viewerPort: getConfiguredViewerPort(), enginePort: getEnginePort() };
+  // Fast, actionable diagnosis before Compose attempts to bind its managed listeners.
+  // Only reachable local TCP listeners count; failures to connect mean free/closed.
+  await assertComposePortsFree([ports.restPort, ports.viewerPort, ports.enginePort]);
+  const compose = startComposeDaemon({
+    ports,
+    dataDir: dataDirResolution.dataDir,
+    projectRoot,
+    nodeBin: process.execPath,
+    homeDir: homedir(),
+    ...(existsSync(envPath) ? { envFile: envPath } : {}),
+    ...(workerBinDir ? { workerBinDir } : {}),
+    cwd: process.cwd(),
+    stateBackend: { kind: getStateBackend() },
+    ...(getStateBackend() === "redis" && getRedisUrl() ? { redisUrl: getRedisUrl() } : {}),
+    workerEnvironment: process.env,
+    disableRestartPolicy: process.env["AGENTMEMORY_DISABLE_COMPOSE_RESTART"] === "1",
+    startupTimeoutMs: startupTimeouts().workerMs,
+    linux: process.platform === "linux",
+    stateDir: join(dataDirResolution.dataDir, "compose-state"),
+    logFile: join(homedir(), ".agentmemory", `compose-${getRestPort()}.log`),
     iiiBin,
-    ["--config", launch.configPath, "--no-update-check"],
-    "iii-engine",
-    launch.cwd,
-  );
-  s.stop(c.ok("iii-engine process started"));
+    env: process.env,
+  });
+  spawnedComposeDaemon = compose.child;
+  composeStartupCompleted = false;
+  if (typeof compose.child.pid !== "number") throw new Error("Failed to spawn the iii Compose daemon.");
+  const state = {
+    kind: "compose" as const,
+    restPort: getRestPort(),
+    viewerPort: getConfiguredViewerPort(),
+    enginePort: getEnginePort(),
+    engineUrl: `ws://127.0.0.1:${getEnginePort()}`,
+    namespace,
+    file: compose.file,
+    stateDir: compose.stateDir,
+    logFile: compose.logFile,
+    binPath: iiiBin,
+    composePid: compose.child.pid,
+    ...(workerBinDir ? { workerBinDir: resolve(process.cwd(), workerBinDir) } : {}),
+  };
+  writeComposeState(engineStatePath(), {
+    ...state,
+    workerVersions: workerBinDir ? { local: true } : COMPOSE_WORKER_VERSIONS,
+  });
+  engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
+  engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
+  compose.child.on("error", (error) => {
+    if (spawnedComposeDaemon === compose.child) {
+      startupFailure = { kind: "engine-crashed", stderr: redactCredentialUrls(error.message), binary: iiiBin };
+    }
+  });
+  compose.child.on("exit", (code, signal) => {
+    if (spawnedComposeDaemon === compose.child && !composeStartupCompleted && (code !== 0 || signal !== null)) {
+      startupFailure = {
+        kind: "engine-crashed",
+        stderr: signal ? `Compose exited from ${signal}` : `Compose exited with code ${code}`,
+        binary: iiiBin,
+      };
+    }
+  });
+  const s = p.spinner();
+  s.start(`Starting iii Worker Compose: ${iiiBin}`);
+  s.stop(c.ok(`Compose daemon started (pid ${compose.child.pid})`));
   return true;
 }
 
@@ -1741,15 +1256,6 @@ function pickCompatibleIii(candidates: Array<string | null | undefined>): string
     if (resolved) return resolved;
   }
   return null;
-}
-
-function warnIfDockerIgnoresStateBackend(stateBackendKind: "file" | "redis"): void {
-  if (stateBackendKind !== "redis") return;
-  p.log.warn(
-    "AGENTMEMORY_STATE_BACKEND=redis is not applied on the Docker path: docker-compose.yml mounts iii-config.docker.yaml read-only, so this start will not render it. " +
-      "Edit iii-config.docker.yaml by hand to point iii-state/iii-stream at redis (see README \"Storage backend\"), or it keeps using the file store. " +
-      "docker-compose.yml passes AGENTMEMORY_REDIS_URL into the engine container, so redis_url: '${AGENTMEMORY_REDIS_URL}' works in that file.",
-  );
 }
 
 async function startEngine(): Promise<boolean> {
@@ -1769,46 +1275,28 @@ async function startEngine(): Promise<boolean> {
     );
     process.exit(1);
   }
-  await assertRuntimePortOwnership();
   const persistedState = readEngineState();
   if (persistedState?.kind === "docker") {
-    warnIfDockerIgnoresStateBackend(stateBackendKind);
-    const inspection = inspectOwnedDockerEngine(persistedState);
-    if (inspection.status === "unavailable" || inspection.status === "missing") {
-      const detail = inspection.status === "unavailable"
-        ? inspection.reason
-        : "container is missing";
-      p.log.error(
-        `A saved Docker engine owns this lifecycle state, but it cannot be resumed safely (${detail}). Run \`agentmemory stop\` to reconcile that project before starting another engine.`,
-      );
-      return false;
-    }
-    persistDockerInspection(persistedState, inspection);
-    if (inspection.status === "running") return true;
-    const dockerBin = whichBinary("docker");
-    if (!dockerBin) return false;
-    startedDockerEngine = persistDockerInspection(persistedState, inspection);
-    engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
-    return runCommand(dockerBin, ["start", inspection.containerId], {
-      label: `Restarting owned Docker container ${inspection.containerId}`,
-      timeoutMs: startupTimeouts().engineMs,
-    });
+    p.log.error(legacyDockerStateMessage(persistedState));
+    return false;
   }
-  const configPath = findIiiConfig();
+  await assertRuntimePortOwnership();
+  if (persistedState?.kind === "compose") {
+    if (await isEngineRunning()) {
+      p.log.error("The managed Worker Compose engine is already running; it should have been reconciled before attempting a fresh start.");
+      process.exit(1);
+    }
+    if (persistedState.restPort === getRestPort()) {
+      if (persistedState.composePid && pidAlive(persistedState.composePid)) {
+        p.log.error(`Worker Compose daemon ${persistedState.composePid} is still alive. Stop it before retrying.`);
+        process.exit(1);
+      }
+      clearEngineState();
+    }
+  }
   warnIfRelocatedDataDir();
   const pathIii = whichBinary("iii");
-  vlog(`iii binary: ${pathIii ?? "(not on PATH)"}, config: ${configPath || "(not found)"}`);
-
-  const dockerBin = whichBinary("docker");
-  const dockerComposeCandidates = [
-    join(__dirname, "..", "docker-compose.yml"),
-    join(__dirname, "docker-compose.yml"),
-    join(process.cwd(), "docker-compose.yml"),
-  ];
-  const composeFile = dockerComposeCandidates.find((c) => existsSync(c));
-  const dockerOptIn =
-    process.env["AGENTMEMORY_USE_DOCKER"] === "1" ||
-    process.env["AGENTMEMORY_USE_DOCKER"] === "true";
+  vlog(`iii binary: ${pathIii ?? "(not on PATH)"}`);
 
   const fallbacks = fallbackIiiPaths().filter((p) => existsSync(p));
   for (const f of fallbacks) {
@@ -1818,12 +1306,12 @@ async function startEngine(): Promise<boolean> {
 
   let iiiBin = pickCompatibleIii([pathIii, ...fallbacks]);
 
-  if (iiiBin && configPath && !(dockerOptIn && dockerBin && composeFile)) {
+  if (iiiBin) {
     if (iiiBin !== pathIii) {
       p.log.info(`Using iii at: ${c.dim(iiiBin)} (v${c.accent(IIPINNED_VERSION)})`);
       process.env["PATH"] = `${dirname(iiiBin)}${PATH_DELIMITER}${process.env["PATH"] ?? ""}`;
     }
-    return startIiiBin(iiiBin, configPath);
+    return startIiiBin(iiiBin);
   }
 
   if (pathIii && !iiiBin) {
@@ -1834,17 +1322,10 @@ async function startEngine(): Promise<boolean> {
     );
   }
 
-  if (!configPath) {
-    startupFailure = { kind: "no-engine" };
-    return false;
-  }
-
-  vlog(`docker binary: ${dockerBin ?? "(not on PATH)"}`);
   mkdirSync(dataDirResolution.dataDir, { recursive: true });
-  vlog(`docker-compose.yml: ${composeFile ?? "(not found)"}`);
   const interactive = !!process.stdin.isTTY && !process.env["CI"];
 
-  type Choice = "install" | "docker" | "manual";
+  type Choice = "install" | "manual";
   let choice: Choice;
 
   // Wrong-version iii on PATH is a configuration trap: any prompt would
@@ -1852,9 +1333,7 @@ async function startEngine(): Promise<boolean> {
   // prompt and auto-install pinned engine to the private location.
   const pathIiiMismatch = pathIii !== null && resolveCompatibleIii(pathIii) === null;
 
-  if (dockerOptIn && dockerBin && composeFile) {
-    choice = "docker";
-  } else if (pathIiiMismatch) {
+  if (pathIiiMismatch) {
     choice = "install";
     const detected = iiiBinVersion(pathIii!);
     p.log.info(
@@ -1873,9 +1352,6 @@ async function startEngine(): Promise<boolean> {
         hint: "recommended",
       },
     ];
-    if (dockerBin && composeFile) {
-      options.push({ value: "docker", label: "Use Docker compose", hint: "advanced" });
-    }
     options.push({ value: "manual", label: "Show manual install steps and exit" });
 
     const picked = await p.select<Choice>({
@@ -1900,66 +1376,23 @@ async function startEngine(): Promise<boolean> {
     if (result.ok && result.binPath) {
       process.env["PATH"] = `${dirname(result.binPath)}${PATH_DELIMITER}${process.env["PATH"] ?? ""}`;
       iiiBin = result.binPath;
-      return startIiiBin(iiiBin, configPath);
+      return startIiiBin(iiiBin);
     }
-    if (dockerBin && composeFile && interactive) {
-      const fallback = await p.confirm({
-        message: "Auto-install failed. Try Docker compose instead?",
-        initialValue: true,
-      });
-      if (p.isCancel(fallback) || fallback !== true) {
-        startupFailure = { kind: "no-engine" };
-        return false;
-      }
-      choice = "docker";
-    } else {
-      startupFailure = { kind: "no-engine" };
-      return false;
-    }
-  }
-
-  if (choice === "docker" && dockerBin && composeFile) {
-    warnIfDockerIgnoresStateBackend(stateBackendKind);
-    const s = p.spinner();
-    s.start("Starting iii-engine via Docker...");
-    configureDockerHostUser();
-    const projectName = dockerProjectName(getRestPort());
-    const dockerState: DockerEngineState = {
-      kind: "docker",
-      schemaVersion: 2,
-      composeFile,
-      projectName,
-      engineVersion: IIPINNED_VERSION,
-      dataMountType: "bind",
-      dataMountSource: dataDirResolution.dataDir,
-      preserveContainer: false,
-    };
-    const previous = inspectOwnedDockerEngine(dockerState);
-    if (previous.status === "missing" || previous.status === "stopped") {
-      startedDockerEngine = previous.status === "stopped"
-        ? persistDockerInspection(dockerState, previous)
-        : dockerState;
-    }
-    writeEngineState(dockerState);
-    spawnEngineBackground(
-      dockerBin,
-      dockerComposeArgs(composeFile, projectName, ["up", "-d"]),
-      "iii-engine via Docker",
-    );
-    s.stop("Docker compose started");
-    return true;
-  }
-
-  if (!composeFile && dockerBin) {
-    startupFailure = { kind: "no-docker-compose" };
-  } else {
     startupFailure = { kind: "no-engine" };
+    return false;
   }
+
+  startupFailure = { kind: "no-engine" };
   return false;
 }
 
 async function waitForEngine(timeoutMs = startupTimeouts().engineMs): Promise<boolean> {
-  return waitForReadiness(engineReadinessDeadline ?? startupDeadline(timeoutMs), (signal) => probeEngine(getBaseUrl(), signal), {
+  const state = readEngineState();
+  const endpoint = state?.kind === "compose" ? `http://127.0.0.1:${state.enginePort}` : getBaseUrl();
+  const probe = state?.kind === "compose"
+    ? (signal: AbortSignal) => probeComposeEngine(state.enginePort, signal)
+    : (signal: AbortSignal) => probeEngine(endpoint, signal);
+  return waitForReadiness(engineReadinessDeadline ?? startupDeadline(timeoutMs), probe, {
     intervalMs: 500,
     stopped: () => startupInterrupted || engineStartupFailed(),
   });
@@ -1970,47 +1403,6 @@ async function waitForPersistedNativeEngine(): Promise<boolean> {
   const pid = readEnginePidfile();
   if (state?.kind !== "native" || !pid || !pidAlive(pid) || isForeignPortHolder(pidCommand(pid))) return false;
   if (!(await waitForEngine())) throw new Error(startupTimeoutMessage("engine", startupTimeouts().engineMs));
-  return true;
-}
-
-async function reconcilePersistedDockerEngine(): Promise<boolean> {
-  const state = readEngineState();
-  if (state?.kind !== "docker") return false;
-  const inspection = inspectOwnedDockerEngine(state);
-  if (inspection.status === "unavailable") {
-    p.log.error(
-      `The saved Docker engine cannot be verified: ${inspection.reason}. Refusing to overwrite its lifecycle state. Run \`agentmemory stop\` after restoring Docker/compose access.`,
-    );
-    process.exit(1);
-  }
-  if (inspection.status === "missing") {
-    p.log.error(
-      "The saved Docker project no longer has an iii-engine container. Run `agentmemory stop` to remove its stale project state, then start agentmemory again.",
-    );
-    process.exit(1);
-  }
-  persistDockerInspection(state, inspection);
-  if (inspection.status === "stopped") {
-    startedDockerEngine = persistDockerInspection(state, inspection);
-    engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
-    const dockerBin = whichBinary("docker");
-    if (
-      !dockerBin ||
-      !runCommand(dockerBin, ["start", inspection.containerId], {
-        label: `Restarting owned Docker container ${inspection.containerId}`,
-        timeoutMs: startupTimeouts().engineMs,
-      })
-    ) {
-      throw new Error("The owned Docker container could not be restarted; lifecycle state was preserved.");
-    }
-  }
-  if (!(await waitForEngine())) {
-    printDockerStartupLogs();
-    throw new Error(`${startupTimeoutMessage("engine", startupTimeouts().engineMs)} Docker ownership state was preserved.`);
-  }
-  await startWorkerForEngineState();
-  await maybeOfferGlobalInstall();
-  printReadyHint();
   return true;
 }
 
@@ -2032,9 +1424,6 @@ function installInstructions(): string[] {
       "     3. Extract iii.exe to %USERPROFILE%\\.local\\bin\\iii.exe (or add to PATH)",
       "     4. Re-run: npx @agentmemory/agentmemory",
       "",
-      `  B) Docker: docker pull iiidev/iii:${IIPINNED_VERSION}`,
-      "     Re-run with AGENTMEMORY_USE_DOCKER=1 npx @agentmemory/agentmemory",
-      "",
       "Or skip the engine entirely (standalone MCP):  npx @agentmemory/agentmemory mcp",
       "",
       "Docs: https://iii.dev/docs",
@@ -2049,9 +1438,6 @@ function installInstructions(): string[] {
     linuxInstall,
     "     Then re-run: npx @agentmemory/agentmemory",
     "",
-    `  B) Docker: docker pull iiidev/iii:${IIPINNED_VERSION}`,
-    "     Re-run with AGENTMEMORY_USE_DOCKER=1 npx @agentmemory/agentmemory",
-    "",
     "Or skip the engine entirely (standalone MCP):  npx @agentmemory/agentmemory mcp",
     "",
     "Docs: https://iii.dev/docs",
@@ -2064,33 +1450,10 @@ function portInUseDiagnostic(port: number): string {
     : `  lsof -i :${port}   # or: ss -tlnp | grep :${port}`;
 }
 
-
-// Derive a host string for the streams/engine WebSocket lines from
-// the configured engine URL (`III_ENGINE_URL`) or REST base
-// (`AGENTMEMORY_URL`) so a remote-bind setup like
-// `III_ENGINE_URL=ws://my-host:49134` doesn't print misleading
-// localhost addresses. Falls back to localhost.
-function getEngineHost(): string {
-  const envKeys = shouldUseAgentmemoryUrl()
-    ? ["III_ENGINE_URL", "AGENTMEMORY_URL"]
-    : ["III_ENGINE_URL"];
-  for (const envKey of envKeys) {
-    const raw = process.env[envKey];
-    if (!raw) continue;
-    try {
-      const parsed = new URL(raw);
-      if (parsed.hostname) return parsed.hostname;
-    } catch {}
-  }
-  return "localhost";
-}
-
 function printReadyHint(): void {
   const restUrl = getBaseUrl();
   const viewerUrl = getViewerUrl();
-  const engineHost = getEngineHost();
-  const streamUrl = `ws://${engineHost}:${getStreamPort()}`;
-  const engineUrl = `ws://${engineHost}:${getEnginePort()}`;
+  const engineUrl = process.env["III_ENGINE_URL"] || `ws://localhost:${getEnginePort()}`;
   const invocation = isInvokedViaNpx() ? "npx @agentmemory/agentmemory" : "agentmemory";
   const consolePort = defaultConsolePort(getConfiguredViewerPort());
   const portFlags = portFlagSuffix(getRestPort(), selectedInstance);
@@ -2100,7 +1463,6 @@ function printReadyHint(): void {
   const lines = [
     `${c.label("REST API")}     ${c.url(restUrl)}`,
     `${c.label("Viewer")}       ${c.url(viewerUrl)}`,
-    `${c.label("Streams")}      ${c.url(streamUrl)}`,
     `${c.label("Engine")}       ${c.url(engineUrl)}`,
     consoleLine,
   ];
@@ -2118,6 +1480,41 @@ function printReadyHint(): void {
   process.stdout.write(`\n${c.dim("Try:")} ${c.cmd(demoCommand)}\n`);
 }
 
+async function reconcilePersistedComposeEngine(): Promise<boolean> {
+  const state = readEngineState();
+  if (state?.kind !== "compose") return false;
+  if (!(await isEngineRunning())) {
+    if (state.composePid && pidAlive(state.composePid)) {
+      p.log.error(`Worker Compose daemon ${state.composePid} is alive but REST ${state.restPort} is not ready. Inspect ${state.logFile}; use agentmemory stop to reconcile.`);
+      process.exit(1);
+    }
+    if (await isEngineRunning()) {
+      p.log.error(`An engine is responding on :${state.restPort}, but the recorded Compose daemon is gone. Refusing to adopt or clear this endpoint automatically.`);
+      process.exit(1);
+    }
+    clearEngineState();
+    p.log.info("Found stale Worker Compose lifecycle state; starting a fresh managed instance.");
+    return false;
+  }
+  const version = iiiBinVersion(state.binPath);
+  if (state.composePid && !composePidMatches(state.composePid, state)) {
+    p.log.error(`Compose metadata points to PID ${state.composePid}, but its process identity does not match the saved engine/file/namespace.`);
+    process.exit(1);
+  }
+  if (version !== IIPINNED_VERSION) {
+    p.log.error(`Managed Compose engine is ${version ?? "unverified"}; expected ${IIPINNED_VERSION}. Run agentmemory stop before changing the runtime.`);
+    process.exit(1);
+  }
+  try {
+    const status = await composeCall<ComposeStatus>({ engineUrl: state.engineUrl, namespace: state.namespace, functionId: "compose::status", file: state.file });
+    if (!ownedComposeProject(status, state.file)) throw new Error("Compose daemon does not report the owned worker-compose.yaml project.");
+  } catch (err) {
+    p.log.error(`Could not verify the managed Compose project: ${err instanceof Error ? err.message : String(err)}. See ${state.logFile}.`);
+    process.exit(1);
+  }
+  return true;
+}
+
 async function main() {
   startupTimeouts();
   await assertRuntimePortOwnership();
@@ -2131,7 +1528,7 @@ async function main() {
     const probe = await fetch(`${getBaseUrl()}/agentmemory/livez`, {
       signal: AbortSignal.timeout(1500),
     });
-    if (probe.ok) {
+    if (probe.ok && readEngineState()?.kind !== "compose") {
       p.log.error(
         `agentmemory is already running on port ${getRestPort()}. Starting a second instance here would corrupt the running daemon's REST routing. Use the REST API (or the MCP tools) against the running instance, run a different --instance, or stop it first with \`agentmemory stop\`.`,
       );
@@ -2139,6 +1536,13 @@ async function main() {
     }
   } catch {
     // no live daemon on this port; boot normally
+  }
+
+  const legacyState = readEngineState();
+  if (legacyState?.kind === "docker") {
+    p.intro("agentmemory");
+    p.log.error(legacyDockerStateMessage(legacyState));
+    process.exit(1);
   }
 
   // `--reset` wipes preferences before anything else so the onboarding
@@ -2171,7 +1575,12 @@ async function main() {
     return;
   }
 
-  if (await reconcilePersistedDockerEngine()) return;
+  if (await reconcilePersistedComposeEngine()) {
+    await startWorkerForEngineState();
+    await maybeOfferGlobalInstall();
+    printReadyHint();
+    return;
+  }
 
   if (await isEngineRunning() || await waitForPersistedNativeEngine()) {
     if (IS_VERBOSE) p.log.success("iii-engine is running");
@@ -2189,7 +1598,7 @@ async function main() {
       whichBinary("iii") ??
       fallbackIiiPaths().find((p) => existsSync(p)) ??
       null;
-    const detected = attachedBin ? iiiBinVersion(attachedBin) : null;
+    const detected = persisted?.kind === "compose" ? iiiBinVersion(persisted.binPath) : attachedBin ? iiiBinVersion(attachedBin) : null;
 
     // Fail closed: only adopt the running engine when we can positively
     // confirm it is the pinned version. An unknown version (detected === null,
@@ -2198,11 +1607,8 @@ async function main() {
     // WebSocket reconnect loop. Worst case here is a re-run that reinstalls
     // the pinned engine, never a silent loop.
     if (detected === IIPINNED_VERSION) {
-      adoptRunningEngine();
-      await startWorkerForEngineState();
-      await maybeOfferGlobalInstall();
-      printReadyHint();
-      return;
+      p.log.error(`An unmanaged iii engine is already listening on ${getEnginePort()}. Agentmemory will not attach to it; stop that engine explicitly or select another --instance/--port.`);
+      process.exit(1);
     }
 
     const detectedLabel = detected ? `v${detected}` : "an unverified version";
@@ -2244,13 +1650,6 @@ async function main() {
   if (!started) {
     p.log.error("Could not start iii-engine.");
     const lines = installInstructions();
-    if (startupFailure?.kind === "no-docker-compose") {
-      lines.unshift(
-        "Docker is installed but docker-compose.yml is missing from this",
-        "install. Re-install with: npm install -g @agentmemory/agentmemory",
-        "",
-      );
-    }
     p.note(lines.join("\n"), "Setup required");
     throw new Error("iii-engine could not be started.");
   }
@@ -2259,12 +1658,33 @@ async function main() {
   s.start("Waiting for iii-engine to be ready...");
 
   const ready = await waitForEngine();
+  if (ready) {
+    const composeState = readEngineState();
+    if (composeState?.kind === "compose") {
+      composeState.enginePid = composeEnginePid(composeState);
+      writeComposeState(engineStatePath(), { ...composeState, workerVersions: composeState.workerVersions ?? COMPOSE_WORKER_VERSIONS });
+    }
+  }
   if (!ready) {
     const port = getRestPort();
-    s.stop(startupTimeoutMessage("engine", startupTimeouts().engineMs));
-    printDockerStartupLogs();
+    let composeState = readEngineState();
+    let composeLog = composeState?.kind === "compose" ? readComposeStartupLogs() : null;
+    if (composeState?.kind === "compose" && spawnedComposeDaemon?.exitCode !== null) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      composeLog = readComposeStartupLogs() ?? composeLog;
+    }
+    let registryFailure: string | null = null;
+    if (composeState?.kind === "compose") {
+      const stateFailure = composeState.workerFailure ?? composeStateRegistryFailure(dataDirResolution.dataDir, composeState.file);
+      const logFailure = composeLog ? composeRegistryFailureMessage(composeLog.text, composeState.workerBinDir) : null;
+      if (stateFailure) registryFailure = `Worker registry unavailable while resolving state/http; retry later or set AGENTMEMORY_WORKER_BIN_DIR. Compose reported: ${stateFailure}`;
+      else registryFailure = logFailure;
+    }
+    const shortFailure = registryFailure || startupFailure?.stderr || startupTimeoutMessage("engine", startupTimeouts().engineMs);
+    s.stop(shortFailure);
+    printComposeStartupLogs();
 
-    if (startupFailure?.kind === "engine-crashed" || startupFailure?.kind === "docker-crashed") {
+    if (startupFailure?.kind === "engine-crashed") {
       p.log.error("The iii-engine process crashed on startup.");
       if (startupFailure.binary) {
         p.log.info(`Binary: ${startupFailure.binary}`);
@@ -2279,7 +1699,6 @@ async function main() {
           "Common causes:",
           `  - iii-engine version mismatch — reinstall the pinned v${IIPINNED_VERSION} binary`,
           "    (sh script on macOS/Linux, GitHub release zip on Windows)",
-          "  - Docker Desktop not running (if you're using the Docker path)",
           "  - Port already in use (see below)",
           "",
           "See https://iii.dev/docs for current install instructions.",
@@ -2302,11 +1721,17 @@ async function main() {
         "Troubleshooting",
       );
     }
-    throw new Error(engineStartupFailed() ? "iii-engine failed during startup." : startupTimeoutMessage("engine", startupTimeouts().engineMs));
+    if (composeLog?.text) p.log.error(`Compose log: ${composeLog.path}`);
+    throw new Error(shortFailure);
   }
 
   s.stop(c.ok("iii-engine is ready"));
   await startWorkerForEngineState();
+  const managedCompose = readEngineState();
+  if (managedCompose?.kind === "compose" && !managedCompose.enginePid) {
+    managedCompose.enginePid = composeChildPids(managedCompose)[0];
+    writeComposeState(engineStatePath(), { ...managedCompose, workerVersions: managedCompose.workerVersions ?? COMPOSE_WORKER_VERSIONS });
+  }
   await maybeOfferGlobalInstall();
   printReadyHint();
   // Mark splash as something to skip on subsequent runs. This is a
@@ -2328,9 +1753,12 @@ async function apiFetch<T = unknown>(base: string, path: string, timeoutMs = 500
 }
 
 async function runStatus() {
-  const port = getRestPort();
   const base = getBaseUrl();
   p.intro("agentmemory status");
+  const savedState = readEngineState();
+  if (savedState?.kind === "docker") {
+    p.log.warn(legacyDockerStateMessage(savedState));
+  }
 
   const up = await isEngineRunning();
   if (!up) {
@@ -2417,6 +1845,17 @@ async function runStatus() {
       );
     }
 
+    const managed = readEngineState();
+    if (managed?.kind === "compose") {
+      try {
+        const composeStatus = await composeCall<ComposeStatus>({ engineUrl: managed.engineUrl, namespace: managed.namespace, functionId: "compose::status", file: managed.file });
+        const composeProject = ownedComposeProject(composeStatus, managed.file);
+        const containers = composeProject?.containers ?? [];
+        lines.push("", "Compose workers:", ...containers.map((container) => `  ${container.container ?? "?"}: ${container.state ?? "unknown"}${container.last_error ? ` — ${container.last_error}` : ""}`));
+      } catch (error) {
+        lines.push("", `Compose status unavailable: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
     p.note(lines.join("\n"), "agentmemory");
   } catch (err) {
     p.log.error(err instanceof Error ? err.message : String(err));
@@ -2496,7 +1935,7 @@ function buildDoctorContext(): DoctorContext {
     baseUrl: getBaseUrl(),
     viewerUrl: getViewerUrl(),
     envPath: join(homedir(), ".agentmemory", ".env"),
-    pidfilePath: enginePidfilePath(),
+    pidfilePath: readEngineState()?.kind === "compose" ? engineStatePath() : enginePidfilePath(),
     enginePath: engineStatePath(),
     pinnedVersion: IIPINNED_VERSION,
   };
@@ -2514,14 +1953,26 @@ function buildDoctorEffects(): DoctorEffects {
         return {};
       }
     },
-    pidfileExists: () => existsSync(enginePidfilePath()),
+    pidfileExists: () => {
+      const state = readEngineState();
+      return state?.kind === "compose" ? Boolean(state.composePid) : existsSync(enginePidfilePath());
+    },
     pidfilePidIsAlive: () => {
+      const state = readEngineState();
+      if (state?.kind === "compose") return state.composePid ? pidAlive(state.composePid) : null;
       const pid = readEnginePidfile();
       if (pid === null) return null;
       return pidAlive(pid);
     },
-    findIiiBinary: () => whichBinary("iii"),
-    localBinIiiPath: () => privateIiiPath(),
+    findIiiBinary: () => {
+      const state = readEngineState();
+      if (state?.kind === "compose") return existsSync(state.binPath) ? state.binPath : null;
+      return whichBinary("iii");
+    },
+    localBinIiiPath: () => {
+      const state = readEngineState();
+      return state?.kind === "compose" ? state.binPath : privateIiiPath();
+    },
     iiiBinaryVersion: (binPath: string) => iiiBinVersion(binPath),
     viewerReachable: async (timeoutMs = 2000) => {
       try {
@@ -2583,6 +2034,10 @@ function buildDoctorEffects(): DoctorEffects {
     runStop: async () => {
       try {
         startupTimeouts();
+        if (readEngineState()?.kind === "compose") {
+          await runStop();
+          return { ok: true, message: "Worker Compose project stopped." };
+        }
         // runStop calls process.exit on its own — guard against that here
         // by short-circuiting when there's nothing to stop.
         const port = getRestPort();
@@ -3141,7 +2596,6 @@ async function startServerForDemo(): Promise<() => Promise<void>> {
     }
     if (!(await waitForEngine())) {
       printCapturedStartupStderr();
-      printDockerStartupLogs();
       throw new Error(startupTimeoutMessage("engine", startupTimeouts().engineMs));
     }
   }
@@ -3292,7 +2746,6 @@ async function runUpgrade() {
 
   const pnpmBin = whichBinary("pnpm");
   const npmBin = whichBinary("npm");
-  const dockerBin = whichBinary("docker");
 
   p.log.info(`Working directory: ${cwd}`);
   const requireSuccess = (ok: boolean, label: string): void => {
@@ -3357,15 +2810,6 @@ async function runUpgrade() {
     await runIiiInstaller();
   } else {
     p.log.info("Skipped iii-engine installer.");
-  }
-
-  if (dockerBin) {
-    runCommand(dockerBin, ["pull", `iiidev/iii:${IIPINNED_VERSION}`], {
-      label: `Pulling iii Docker image v${IIPINNED_VERSION} (pinned)`,
-      optional: true,
-    });
-  } else {
-    p.log.info("Docker not found. Skipping Docker image refresh.");
   }
 
   p.note(
@@ -3441,9 +2885,15 @@ async function waitForEngineFlush(): Promise<void> {
   try {
     stateBackend = getStateBackend();
   } catch {}
+  const composeState = readEngineState();
+  if (composeState?.kind === "compose") {
+    const isolatedRuntime = dataDirResolution.dataDir !== join(homedir(), ".agentmemory");
+    await new Promise((resolve) => setTimeout(resolve, getStateBackend() === "redis" || isolatedRuntime ? 0 : 3500));
+    return;
+  }
   const runtimePath = runtimeConfigPath(dataDirResolution.dataDir);
   const configTexts: string[] = [];
-  for (const path of engineStateConfigPaths(join(homedir(), ".agentmemory"), runtimePath)) {
+  for (const path of engineStateConfigPaths(dataDirResolution.dataDir, runtimePath)) {
     try {
       configTexts.push(readFileSync(path, "utf-8"));
     } catch {}
@@ -3528,10 +2978,10 @@ function pidCommand(pid: number): string {
 }
 
 // Positive identity beats a denylist: the engine is always the `iii`
-// binary (spawned from PATH or ~/.agentmemory/bin), so anything else
-// holding the port — Docker's proxy, an ssh forward, a stray dev
-// server — must not be adopted or signaled. A denylist of known VM
-// stacks failed open for every name it didn't know.
+// binary (spawned from PATH or ~/.agentmemory/bin), so any other process
+// holding the port — an SSH forward or a stray dev server, for example —
+// must not be adopted or signaled. A denylist failed open for every name
+// it did not know.
 function isForeignPortHolder(comm: string): boolean {
   if (!comm) return false;
   const base = comm.split("/").pop() || comm;
@@ -3563,112 +3013,13 @@ function findEnginePidsByPort(port: number): number[] {
   }
 }
 
-async function stopDockerEngine(
-  state: DockerEngineState,
-  port: number,
-  suppressOutro = false,
-): Promise<void> {
-  const dockerBin = whichBinary("docker");
-  if (!dockerBin) {
-    p.log.error(
-      "Engine was started via Docker, but `docker` is no longer on PATH. Lifecycle state was preserved.",
-    );
-    process.exit(1);
-  }
-
-  const inspection = inspectOwnedDockerEngine(state);
-  if (inspection.status === "unavailable") {
-    p.log.error(
-      `The saved Docker engine cannot be verified: ${inspection.reason}. Refusing to stop or clear ownership state.`,
-    );
-    process.exit(1);
-  }
-  const resolvedState = persistDockerInspection(state, inspection);
-
-  const workerPid = readWorkerPidfile();
-  if (workerPid && !(await stopWorkerPid(workerPid, 5000))) {
-    p.log.error("The agentmemory worker could not be stopped; Docker ownership state was preserved.");
-    process.exit(1);
-  }
-  clearWorkerPidfile();
-
-  if (inspection.status === "running" || inspection.status === "stopped") {
-    if (
-      inspection.status === "running" &&
-      !runCommand(
-        dockerBin,
-        ["stop", "--time", "10", inspection.containerId],
-        { label: `Stopping preserved Docker container ${inspection.containerId}` },
-      )
-    ) {
-      p.log.error("The Docker container could not be stopped; ownership state was preserved.");
-      process.exit(1);
-    }
-    clearEnginePidfile();
-    writeEngineState(resolvedState);
-    if (!suppressOutro) {
-      p.outro(
-        "Stopped. The validated Docker container and data mount were preserved for a lossless restart.",
-      );
-    }
-    return;
-  }
-
-  const projectName = inspection.projectName ?? resolvedState.projectName;
-  if (!projectName) {
-    p.log.error("No verified Docker Compose project name is available. Refusing an unscoped stop.");
-    process.exit(1);
-  }
-  const effectiveComposeFile = existsSync(inspection.composeFile)
-    ? inspection.composeFile
-    : discoverComposeFile();
-  if (!effectiveComposeFile) {
-    p.log.error("No agentmemory compose file is available. Docker ownership state was preserved.");
-    process.exit(1);
-  }
-  const composeText = readFileSync(effectiveComposeFile, "utf-8");
-  const ownServices = ["iii-engine", "iii-init"].filter((service) =>
-    new RegExp(`^\\s+${service}:`, "m").test(composeText),
-  );
-  if (ownServices.length === 0) {
-    p.log.error(`${effectiveComposeFile} does not define iii-engine or iii-init. Refusing an unscoped stop.`);
-    process.exit(1);
-  }
-
-  const composeCommand = [
-    "docker",
-    ...dockerComposeArgs(effectiveComposeFile, projectName, []),
-  ].join(" ");
-
-  const ok = runCommand(
-    dockerBin,
-    dockerComposeArgs(effectiveComposeFile, projectName, [
-      "rm",
-      "-s",
-      "-f",
-      ...ownServices,
-    ]),
-    {
-      label: `${composeCommand} rm -s -f ${ownServices.join(" ")}`,
-    },
-  );
-  // Clear each piece of state only after its shutdown succeeded, so a
-  // failed stop stays retryable.
-  if (ok) {
-    clearEnginePidfile();
-    clearEngineState();
-  } else {
-    p.log.error(
-      `docker compose rm failed. The engine may still be running on :${port}. Inspect with:\n  ${composeCommand} ps`,
-    );
-    process.exit(1);
-  }
-  if (!suppressOutro) {
-    p.outro("Stopped. Memories persisted to disk; restart anytime with: npx @agentmemory/agentmemory");
-  }
-}
-
 async function runStop(): Promise<void> {
+  const savedState = readEngineState();
+  if (savedState?.kind === "docker") {
+    p.intro("agentmemory stop");
+    p.log.error(legacyDockerStateMessage(savedState));
+    process.exit(1);
+  }
   await assertRuntimePortOwnership();
   p.intro("agentmemory stop");
   const port = getRestPort();
@@ -3676,11 +3027,43 @@ async function runStop(): Promise<void> {
   const running = await isEngineRunning();
   const force = args.includes("--force");
 
-  if (state?.kind === "docker") {
-    if (!running) {
-      p.log.info(`No engine responding on port ${port}.`);
+  if (state?.kind === "compose") {
+    const ownedDaemonAlive = Boolean(state.composePid && pidAlive(state.composePid));
+    if (ownedDaemonAlive && !composePidMatches(state.composePid!, state)) {
+      p.log.error(`Recorded Compose pid ${state.composePid} does not match the saved daemon identity; refusing to invoke Compose control or signal it. Lifecycle state was preserved.`);
+      process.exit(1);
     }
-    await stopDockerEngine(state, port);
+    if (running && !ownedDaemonAlive) {
+      p.log.error("The REST endpoint is responding, but the recorded Compose daemon is not alive. Refusing to stop or clear an engine that may be unrelated; restore the owning daemon or inspect the endpoint manually.");
+      process.exit(1);
+    }
+    if (running && ownedDaemonAlive) {
+      try {
+        await composeCall({ engineUrl: state.engineUrl, namespace: state.namespace, functionId: "compose::down", file: state.file, timeoutMs: 60_000 });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (!message.includes("ENGINE_RESTART_REQUIRED")) {
+          p.log.error(`compose::down failed for ${state.file}: ${message}. Lifecycle state was preserved.`);
+          process.exit(1);
+        }
+        p.log.warn("Compose requested an engine restart while stopping; terminating its verified owning daemon to finish shutdown.");
+      }
+    }
+    if (ownedDaemonAlive) {
+      const childrenStopped = await terminateComposeChildren(state);
+      if (!childrenStopped) {
+        p.log.error(`One or more child workers of Compose ${state.composePid} did not stop; lifecycle state was preserved.`);
+        process.exit(1);
+      }
+      if (!(await signalAndWait(state.composePid!, "SIGTERM", 20_000))) {
+        p.log.error(`Worker Compose daemon pid ${state.composePid} did not stop; lifecycle state was preserved. Inspect ${state.logFile}.`);
+        process.exit(1);
+      }
+    }
+    clearEnginePidfile();
+    clearWorkerPidfile();
+    clearEngineState();
+    p.outro("Stopped Worker Compose, engine, and agentmemory workers. Data was preserved.");
     return;
   }
 
@@ -3728,22 +3111,6 @@ async function runStop(): Promise<void> {
     process.exit(1);
   }
 
-  if (!state) {
-    const compose = discoverComposeFile();
-    if (compose && pidfilePid === null) {
-      if (force) {
-        p.log.warn(
-          `--force: bypassing Docker-heuristic guard. Falling back to native pidfile + lsof on :${port}.`,
-        );
-      } else {
-        p.log.error(
-          `Engine is running on :${port} but no pidfile or state file is present. It may have been started via Docker compose by a different shell. Refusing to signal host PIDs.\n\nStop it with:\n  docker compose -f ${compose} down\n\nOr re-run with --force to signal whatever lsof finds on :${port}, or AGENTMEMORY_USE_DOCKER=1 to record state next time.`,
-        );
-        process.exit(1);
-      }
-    }
-  }
-
   const candidates = new Set<number>();
   if (pidfilePid) candidates.add(pidfilePid);
   for (const pid of portPids) candidates.add(pid);
@@ -3780,9 +3147,8 @@ async function runStop(): Promise<void> {
   const skippedForeign: Array<{ pid: number; comm: string }> = [];
   for (const pid of candidates) {
     if (workerCandidates.has(pid)) continue;
-    // Last-line guard against a stale/poisoned pidfile or a Docker
-    // port-forward holding :port — signaling com.docker.backend kills
-    // Docker Desktop's whole backend.
+    // Last-line guard against a stale/poisoned pidfile or a port-forward
+    // holding :port — signaling its process could stop unrelated services.
     const comm = pidCommand(pid);
     if (!force && isForeignPortHolder(comm)) {
       skippedForeign.push({ pid, comm });
@@ -3803,7 +3169,7 @@ async function runStop(): Promise<void> {
       .map((sf) => `  pid ${sf.pid}  ${sf.comm}`)
       .join("\n");
     p.log.error(
-      `Refused to signal process(es) holding :${port} that are not the iii engine:\n${list}\n\nIf the engine runs in Docker, stop it there:\n  docker compose ps && docker compose rm -s -f <service>\n\nOr re-run with --force to signal them anyway.`,
+      `Refused to signal process(es) holding :${port} that are not the iii engine:\n${list}\n\nInspect those processes and stop the engine with its owning runtime.\nOr re-run with --force to signal them anyway.`,
     );
     process.exit(1);
   }
@@ -4055,25 +3421,13 @@ async function runRemove(): Promise<void> {
   const force = args.includes("--force");
   const keepData = args.includes("--keep-data");
   const ownedState = readEngineState();
+  if (ownedState?.kind === "compose") {
+    p.log.error("Stop the Worker Compose project with `agentmemory stop` before removing agentmemory; its data and daemon ownership are preserved.");
+    process.exit(1);
+  }
   if (ownedState?.kind === "docker") {
-    const inspection = inspectOwnedDockerEngine(ownedState);
-    if (inspection.status === "running" || inspection.status === "stopped") {
-      persistDockerInspection(ownedState, inspection);
-      if (!keepData) {
-        p.log.error(
-          `Docker-backed removal requires --keep-data so the validated ${inspection.dataMountType} data mount (${inspection.dataMountSource}) and its recovery metadata remain usable. Re-run \`agentmemory remove --keep-data\`; destructive Docker data deletion is intentionally not automated.`,
-        );
-        process.exit(1);
-      }
-    } else {
-      const detail = inspection.status === "unavailable"
-        ? inspection.reason
-        : "the owned container is missing";
-      p.log.error(
-        `remove cannot safely reconcile the saved Docker ownership (${detail}). Lifecycle state was preserved for manual recovery.`,
-      );
-      process.exit(1);
-    }
+    p.log.error(legacyDockerStateMessage(ownedState));
+    process.exit(1);
   }
 
   const home = homedir();
@@ -4083,7 +3437,6 @@ async function runRemove(): Promise<void> {
   const options: RemoveOptions = {
     force,
     keepData,
-    preserveRuntimeState: ownedState?.kind === "docker",
   };
   const plan = buildRemovePlan(
     {
@@ -4140,11 +3493,6 @@ async function runRemove(): Promise<void> {
     }
 
     if (item.id === "stop-engine") {
-      if (ownedState?.kind === "docker") {
-        await stopDockerEngine(ownedState, getRestPort(), true);
-        p.log.success("stopped Docker engine; container, data mount, and recovery state preserved");
-        continue;
-      }
       const stopped = await stopNativeEngineForRemoval();
       if (!stopped.ok) {
         p.log.error(`Removal aborted: ${stopped.reason}.`);
@@ -4194,7 +3542,6 @@ async function runConsole(): Promise<void> {
     iiiBin,
     consolePort: parsed.consolePort,
     restPort: getRestPort(),
-    streamPort: getStreamPort(),
     enginePort: getEnginePort(),
     extraArgs: parsed.extraArgs,
   };
@@ -4204,7 +3551,7 @@ async function runConsole(): Promise<void> {
     );
   }
   p.log.info(
-    `iii console: http://127.0.0.1:${launch.consolePort} (engine REST ${launch.restPort}, streams ${launch.streamPort}, bridge ${launch.enginePort}). The first run downloads the console binary next to the pinned iii.`,
+    `iii console: http://127.0.0.1:${launch.consolePort} (engine REST ${launch.restPort}, bridge ${launch.enginePort}). The first run downloads the console binary next to the pinned iii.`,
   );
   const child = spawn(iiiBin, consoleArgs(launch), {
     stdio: "inherit",

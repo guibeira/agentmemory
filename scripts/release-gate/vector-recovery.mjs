@@ -82,13 +82,13 @@ const fixture = createServer(async (req, res) => {
 await new Promise((resolve, reject) => { fixture.once("error", reject); fixture.listen(0, "127.0.0.1", resolve); });
 const fixturePort = fixture.address().port;
 let config = readFileSync(join(pkg, "iii-config.yaml"), "utf8").split("  - name: iii-exec")[0];
-config = config.replaceAll("3111", String(port)).replaceAll("3112", String(port + 1)).replaceAll("3113", String(port + 2)).replaceAll("./data/", `${data}/`);
+config = config.replaceAll("3111", String(port)).replaceAll("3113", String(port + 2)).replaceAll("./data/", `${data}/`);
 config += `  - name: iii-worker-manager\n    config:\n      port: ${port + 46023}\n      host: 127.0.0.1\n`;
 const configPath = join(root, "iii-config.yaml"); writeFileSync(configPath, config);
 const env = (extra = {}) => ({
   HOME: home, USERPROFILE: home, PATH: [dirname(process.execPath), "/usr/bin", "/bin", "/usr/sbin", "/sbin"].join(delimiter), TMPDIR: root,
   CI: "1", NO_COLOR: "1", LANG: "C.UTF-8", OTEL_ENABLED: "false", III_TELEMETRY_ENABLED: "false",
-  AGENTMEMORY_DATA_DIR: data, AGENTMEMORY_RUNTIME_DIR: runtime, III_REST_PORT: String(port), III_STREAM_PORT: String(port + 1), III_VIEWER_PORT: String(port + 2),
+  AGENTMEMORY_DATA_DIR: data, AGENTMEMORY_RUNTIME_DIR: runtime, III_REST_PORT: String(port), III_VIEWER_PORT: String(port + 2),
   III_ENGINE_PORT: String(port + 46023), III_ENGINE_URL: `ws://127.0.0.1:${port + 46023}`, AGENTMEMORY_METRICS_PORT: String(port + 6353),
   LLM_PROVIDER: "none", EMBEDDING_PROVIDER: "openai", OPENAI_EMBEDDING_API_KEY: "local-fixture-only", OPENAI_EMBEDDING_DIMENSIONS: String(dimensions),
   OPENAI_EMBEDDING_BASE_URL: `http://127.0.0.1:${fixture.address().port}/v1`, AGENTMEMORY_VECTOR_BACKFILL_MAX: "2", AGENTMEMORY_GRAPH_WEIGHT: "0",

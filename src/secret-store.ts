@@ -15,7 +15,7 @@ import { join } from "node:path";
 const SECRET_KEY = "AGENTMEMORY_SECRET";
 
 export function agentmemoryHomeDir(): string {
-  return join(homedir(), ".agentmemory");
+  return process.env["AGENTMEMORY_DATA_DIR"] || join(homedir(), ".agentmemory");
 }
 
 export function secretFilePath(): string {
@@ -43,7 +43,7 @@ function unquote(value: string): string {
 export function readEnvFileSecret(): string {
   let content: unknown;
   try {
-    content = readFileSync(join(agentmemoryHomeDir(), ".env"), "utf-8");
+    content = readFileSync(process.env["AGENTMEMORY_ENV_FILE"] || join(homedir(), ".agentmemory", ".env"), "utf-8");
   } catch {
     return "";
   }

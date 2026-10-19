@@ -217,9 +217,10 @@ export function buildDiagnostics(effects: DoctorEffects): Diagnostic[] {
       id: "engine-version-mismatch",
       message: "iii binary on PATH doesn't match the version agentmemory pins to.",
       fixPreview:
-        "Re-run the iii installer for the pinned version and restart the engine.",
+        "Verify the ii-engine binary recorded for the managed Worker Compose project.",
       moreInfo:
-        "agentmemory pins the iii engine to a specific release because newer engines " +
+        "agentmemory manages its pinned iii engine and workers through Worker Compose; " +
+        "a foreign process on PATH is not the instance binary. " +
         "use a different worker model. Running a mismatched binary surfaces as EPIPE " +
         "reconnect loops and empty search results.",
       check: async (ctx) => {
@@ -262,11 +263,11 @@ export function buildDiagnostics(effects: DoctorEffects): Diagnostic[] {
     {
       id: "stale-pidfile",
       message: "Stale pidfile: pid recorded but the process is gone.",
-      fixPreview: "Clear ~/.agentmemory/iii.pid + engine-state.json, then restart.",
+      fixPreview: "Verify the Compose daemon ownership record and restart only the managed project.",
       moreInfo:
-        "When the engine crashes hard (kill -9, OOM, host reboot) the pidfile sticks " +
-        "around. agentmemory refuses to start a second engine on top of a stale pid, " +
-        "so this state must be cleared explicitly.",
+        "When a managed Compose daemon crashes hard (kill -9, OOM, host reboot), its " +
+        "ownership PID can stick around. The check uses the saved Compose process, " +
+        "never a legacy iii.pid from a previous lifecycle.",
       check: async () => {
         if (!effects.pidfileExists()) return { ok: true, detail: "no pidfile" };
         const alive = effects.pidfilePidIsAlive();

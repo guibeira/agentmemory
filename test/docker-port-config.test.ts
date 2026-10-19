@@ -4,71 +4,53 @@ import { describe, expect, it } from "vitest";
 
 const root = join(import.meta.dirname, "..");
 const compose = readFileSync(join(root, "docker-compose.yml"), "utf8");
-const engineConfig = readFileSync(join(root, "iii-config.docker.yaml"), "utf8");
+const workerCompose = readFileSync(
+  join(root, "deploy/runtime/worker-compose.yaml"),
+  "utf8",
+);
+const entrypoint = readFileSync(
+  join(root, "deploy/runtime/entrypoint.sh"),
+  "utf8",
+);
 
-function workerBlock(name: string): string {
-  const start = engineConfig.indexOf(`  - name: ${name}`);
-  if (start === -1) return "";
-  const next = engineConfig.indexOf("\n  - name:", start + 1);
-  return engineConfig.slice(start, next === -1 ? undefined : next);
-}
-
-describe("Docker engine port configuration", () => {
-  it("passes the resolved port quartet into the engine container", () => {
-    expect(compose).toContain('III_REST_PORT: "${III_REST_PORT:-3111}"');
-    expect(compose).toContain('III_STREAM_PORT: "${III_STREAM_PORT:-3112}"');
-    expect(compose).toContain('III_VIEWER_PORT: "${III_VIEWER_PORT:-3113}"');
-    expect(compose).toContain('III_ENGINE_PORT: "${III_ENGINE_PORT:-49134}"');
+describe("Docker Worker Compose runtime", () => {
+  it("publishes configurable loopback REST and viewer ports", () => {
+    expect(compose).toContain('"127.0.0.1:${AGENTMEMORY_REST_PORT:-3111}:3111"');
+    expect(compose).toContain('"127.0.0.1:${AGENTMEMORY_VIEWER_PORT:-3113}:3113"');
+    expect(compose).not.toContain("49134:");
+    expect(compose).not.toContain("3112:");
   });
 
-  it("publishes the configured host and container ports", () => {
-    expect(compose).toContain(
-      '"127.0.0.1:${III_REST_PORT:-3111}:${III_REST_PORT:-3111}"',
-    );
-    expect(compose).toContain(
-      '"127.0.0.1:${III_STREAM_PORT:-3112}:${III_STREAM_PORT:-3112}"',
-    );
-    expect(compose).toContain(
-      '"127.0.0.1:${III_ENGINE_PORT:-49134}:${III_ENGINE_PORT:-49134}"',
-    );
-    expect(compose).toContain(
-      '"127.0.0.1:${AGENTMEMORY_METRICS_PORT:-9464}:9464"',
-    );
+  it("keeps engine and service listeners on the private Compose network", () => {
+    expect(workerCompose).toContain("url: ws://127.0.0.1:49134");
+    expect(workerCompose).toContain("port: 49134");
+    expect(workerCompose).toContain('III_REST_PORT: "3111"');
+    expect(workerCompose).toContain('III_VIEWER_PORT: "3113"');
+    expect(workerCompose).toContain("port: 3111");
+    expect(workerCompose).toContain("state:");
+    expect(workerCompose).toContain("http:");
+    expect(workerCompose).toContain("agentmemory:");
+    expect(workerCompose).not.toMatch(/^  (?:queue|cron|pubsub|stream):/m);
   });
 
-  it("runs CLI-managed bind mounts as the host user without recursive chown", () => {
-    expect(compose).toContain(
-      'user: "${AGENTMEMORY_DOCKER_UID:-65532}:${AGENTMEMORY_DOCKER_GID:-65532}"',
-    );
-    expect(compose).toContain("AGENTMEMORY_DOCKER_SKIP_CHOWN");
-    expect(compose).toContain("target: /app/config");
+  it("persists application state in a named volume and uses the shared image build", () => {
+    expect(compose).toContain("dockerfile: deploy/Dockerfile");
+    expect(compose).toContain("- agentmemory-data:/data");
+    expect(compose).toContain("agentmemory-data:");
+    expect(compose).not.toMatch(/^\s+- \.\//m);
   });
 
-  it("configures every iii listener from the same environment", () => {
-    expect(workerBlock("iii-http")).toContain("port: ${III_REST_PORT:3111}");
-    expect(workerBlock("iii-stream")).toContain("port: ${III_STREAM_PORT:3112}");
-
-    const manager = workerBlock("iii-worker-manager");
-    expect(manager).toContain("port: ${III_ENGINE_PORT:49134}");
-    expect(manager).toContain("host: 0.0.0.0");
-    expect(engineConfig).not.toMatch(/- name: (http|state|pubsub|cron|queue)$/m);
+  it("starts the pinned runtime through the shared entrypoint with telemetry disabled", () => {
+    expect(compose).toContain('III_TELEMETRY_ENABLED: "false"');
+    expect(entrypoint).toContain("/usr/local/bin/iii compose");
+    expect(entrypoint).toContain("--namespace agentmemory --up --file");
+    expect(workerCompose).toContain("configuration:");
+    expect(workerCompose).toContain("save_interval_ms: 2000");
   });
 
-  it("starts the pinned engine without update checks and with usage telemetry off by default", () => {
-    expect(compose).toContain('command: ["--config", "/app/config.yaml", "--no-update-check"]');
-    expect(compose).toContain('III_TELEMETRY_ENABLED: "${III_TELEMETRY_ENABLED:-false}"');
-  });
-
-  it("leaves worker ownership to the host CLI", () => {
-    expect(engineConfig).not.toContain("- name: iii-exec");
-    expect(engineConfig).not.toContain("node dist/index.mjs");
-  });
-
-  it("keeps REST and viewer CORS aligned with overridden ports", () => {
-    const http = workerBlock("iii-http");
-    expect(http).toContain("http://localhost:${III_REST_PORT:3111}");
-    expect(http).toContain("http://127.0.0.1:${III_REST_PORT:3111}");
-    expect(http).toContain("http://localhost:${III_VIEWER_PORT:3113}");
-    expect(http).toContain("http://127.0.0.1:${III_VIEWER_PORT:3113}");
+  it("sets host and viewer allowlists from runtime environment", () => {
+    expect(workerCompose).toContain('AGENTMEMORY_VIEWER_HOST: "${AGENTMEMORY_VIEWER_HOST:-0.0.0.0}"');
+    expect(workerCompose).toContain("VIEWER_ALLOWED_HOSTS:");
+    expect(workerCompose).toContain("VIEWER_ALLOWED_ORIGINS:");
   });
 });

@@ -106,7 +106,7 @@ async function profile(name, instance = 0, sharedHome) {
   const p = { name, instance, dir, home, runtime, data, port, ports: [0, 1, 2, 3, 6353, 46023].map((n) => port + n), secret: "", trace: [], traceSummary: new Map(), phase: "startup", sockets: new Set(), holdManifestAt: 0, manifestReads: 0, held: false };
   profiles.push(p);
   let config = readFileSync(join(pkg, "iii-config.yaml"), "utf8").split("  - name: iii-exec")[0];
-  config = config.replaceAll("3111", String(port)).replaceAll("3112", String(port + 1)).replaceAll("3113", String(port + 2)).replaceAll("./data/", `${data}/`);
+  config = config.replaceAll("3111", String(port)).replaceAll("3113", String(port + 2)).replaceAll("./data/", `${data}/`);
   config += `  - name: iii-worker-manager\n    config:\n      port: ${port + 46023}\n      host: 127.0.0.1\n`;
   p.config = join(dir, "iii-config.yaml"); writeFileSync(p.config, config);
   return p;
@@ -117,7 +117,7 @@ function environment(p) {
     CI: "1", NO_COLOR: "1", LANG: "C.UTF-8", OTEL_ENABLED: "false", III_TELEMETRY_ENABLED: "false",
     AGENTMEMORY_DATA_DIR: p.data, AGENTMEMORY_RUNTIME_DIR: p.runtime,
     ...(p.explicitSecret ? { AGENTMEMORY_SECRET: p.explicitSecret } : {}),
-    III_REST_PORT: String(p.port), III_STREAM_PORT: String(p.port + 1), III_VIEWER_PORT: String(p.port + 2),
+    III_REST_PORT: String(p.port), III_VIEWER_PORT: String(p.port + 2),
     III_ENGINE_PORT: String(p.port + 3), III_ENGINE_URL: `ws://127.0.0.1:${p.port + 3}`, AGENTMEMORY_METRICS_PORT: String(p.port + 6353),
     LLM_PROVIDER: "none", EMBEDDING_PROVIDER: "none", AGENTMEMORY_GRAPH_WEIGHT: "0.3",
     AGENTMEMORY_GRAPH_COMPACT_ON_BOOT: "true", AGENTMEMORY_AUTO_COMPRESS: "false", AGENTMEMORY_SESSION_SWEEP_ENABLED: "false", AGENTMEMORY_FINALIZE_IDLE_MS: "0",

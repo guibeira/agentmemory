@@ -147,9 +147,9 @@ async function install() {
 }
 class Instance {
   constructor(name) {
-    this.name = name; this.dir = join(root, name); this.home = join(this.dir, "home"); this.data = join(this.dir, "data"); this.runtime = join(this.home, ".agentmemory");
+    this.name = name; this.dir = join(root, name); this.home = join(this.dir, "home"); this.data = join(this.dir, "data"); this.runtime = join(this.home, ".agentmemory"); this.configPath = null;
     for (const dir of [this.home, this.data, this.runtime]) mkdirSync(dir, { recursive: true });
-    this.logFile = join(out, `${name}.log`); this.envExtra = {}; this.handles = []; this.ownedPids = new Set(); this.dockerProject = null;
+    this.logFile = join(out, `${name}.log`); this.envExtra = {}; this.handles = []; this.ownedPids = new Set();
     instances.add(this);
   }
   async init() {
@@ -157,19 +157,38 @@ class Instance {
     const binDir = join(this.runtime, "bin"); mkdirSync(binDir, { recursive: true }); copyFileSync(engine, join(binDir, "iii")); chmodSync(join(binDir, "iii"), 0o755);
     return this;
   }
-  env(extra = {}) { return { ...baseEnv(this.home), AGENTMEMORY_DATA_DIR: this.data, AGENTMEMORY_RUNTIME_DIR: this.runtime, III_REST_PORT: String(this.port), III_STREAM_PORT: String(this.port + 1), III_VIEWER_PORT: String(this.port + 2), III_ENGINE_PORT: String(this.port + 46023), AGENTMEMORY_METRICS_PORT: String(this.port + 6353), ...this.envExtra, ...extra }; }
+  env(extra = {}) { return { ...baseEnv(this.home), AGENTMEMORY_DATA_DIR: this.data, AGENTMEMORY_RUNTIME_DIR: this.runtime, III_REST_PORT: String(this.port), III_VIEWER_PORT: String(this.port + 2), III_ENGINE_PORT: String(this.port + 46023), AGENTMEMORY_METRICS_PORT: String(this.port + 6353), ...this.envExtra, ...extra }; }
   get url() { return `http://127.0.0.1:${this.port}`; }
   pid(name) { try { return Number(readFileSync(join(this.runtime, `${name}.pid`), "utf8").trim()); } catch { return null; } }
   config({ delayMs = 0, earlyPid = false, worker = true } = {}) {
-    let raw = readFileSync(join(pkg, "iii-config.yaml"), "utf8").split("  - name: iii-exec")[0];
-    raw = raw.replaceAll("3111", String(this.port)).replaceAll("3112", String(this.port + 1)).replaceAll("3113", String(this.port + 2)).replaceAll("./data/", `${this.data}/`);
+    let raw = [
+      "workers:",
+      "  - name: iii-http",
+      "    config:",
+      "      port: 3111",
+      "      host: 127.0.0.1",
+      "      default_timeout: 180000",
+      "  - name: iii-state",
+      "    config:",
+      "      adapter:",
+      "        name: kv",
+      "        config:",
+      "          store_method: file_based",
+      "          save_interval_ms: 2000",
+      "          file_path: ./data/state_store.db",
+      "  - name: iii-cron",
+      "    config:",
+      "      adapter:",
+      "        name: kv",
+    ].join("\n");
+    raw = raw.replaceAll("3111", String(this.port)).replaceAll("3113", String(this.port + 2)).replaceAll("./data/", `${this.data}/`);
     raw += `  - name: iii-worker-manager\n    config:\n      port: ${this.port + 46023}\n      host: 127.0.0.1\n`;
     if (worker) {
       const wrapper = join(this.dir, "delayed-worker.mjs");
       writeFileSync(wrapper, `import { appendFileSync, writeFileSync } from 'node:fs';\nappendFileSync(${JSON.stringify(join(this.dir, "worker-starts.jsonl"))}, JSON.stringify({pid:process.pid,at:Date.now()})+'\\n');\n${earlyPid ? `writeFileSync(${JSON.stringify(join(this.runtime, "worker.pid"))}, String(process.pid));` : ""}\nawait new Promise(r=>setTimeout(r,${delayMs}));\nawait import(${JSON.stringify(pathToFileURL(join(pkg, "dist/index.mjs")).href)});\n`);
       raw += `  - name: iii-exec\n    config:\n      exec:\n        - ${process.execPath} ${wrapper}\n`;
     }
-    const file = join(this.dir, "iii-config.yaml"); writeFileSync(file, raw); this.envExtra.AGENTMEMORY_III_CONFIG = file; if (worker) this.envExtra.AGENTMEMORY_ENGINE_MANAGES_WORKER = "true"; return file;
+    const file = join(this.dir, "native-engine.yaml"); writeFileSync(file, raw); this.configPath = file; if (worker) this.envExtra.AGENTMEMORY_ENGINE_MANAGES_WORKER = "true"; return file;
   }
   start(args = [], env = {}) {
     this.cli = launch(process.execPath, [cli, ...args, "--port", String(this.port)], this.env(env), this.dir, this.logFile);
@@ -195,7 +214,6 @@ class Instance {
   async close() {
     if (this.closed) return; this.closed = true;
     for (const handle of this.handles) { handle.closeAllConnections?.(); handle.close(); }
-    if (this.dockerProject) await command(this.dockerBin, ["compose", "-p", this.dockerProject, "-f", join(pkg, "docker-compose.yml"), "down", "--volumes"], this.env(), this.dir, 30_000, this.logFile).catch((err) => log(`${this.name} Docker cleanup: ${err.message}`));
     for (const name of ["worker", "iii"]) { const pid = this.pid(name); if (pid) this.ownedPids.add(pid); }
     for (const row of this.wrapperStarts()) this.ownedPids.add(row.pid);
     for (const pid of this.ownedPids) kill(pid);
@@ -252,7 +270,7 @@ async function fixtureServer(instance, livez) {
   const sleeper = launch(process.execPath, ["-e", "setInterval(()=>{},1000)"], instance.env(), instance.dir);
   instance.ownedPids.add(sleeper.pid); writeFileSync(join(instance.runtime, "worker.pid"), String(sleeper.pid));
   instance.config({ worker: false });
-  writeFileSync(join(instance.runtime, "engine-state.json"), JSON.stringify({ kind: "native", configPath: instance.envExtra.AGENTMEMORY_III_CONFIG, binPath: engine, restPort: instance.port, attached: true }));
+  writeFileSync(join(instance.runtime, "engine-state.json"), JSON.stringify({ kind: "native", configPath: instance.configPath, binPath: engine, restPort: instance.port, attached: true }));
   return { worker: sleeper, probes: () => probes };
 }
 async function expectFailure(instance, args, env, { budgetMs = 5000, message } = {}) {
@@ -261,17 +279,7 @@ async function expectFailure(instance, args, env, { budgetMs = 5000, message } =
   if (message) assert(child.text.includes(message), `Missing ${message}: ${child.text.slice(-1500)}`);
   return { elapsedMs: Date.now() - at, exitCode: result.code };
 }
-function dockerFixture(instance, mode) {
-  const fixtureBin = join(instance.dir, "fixture-bin"); mkdirSync(fixtureBin);
-  const project = `agentmemory-${instance.port}`; const containerId = "startup-fixture-owned-container";
-  const record = { Id: containerId, State: { Running: false }, Config: { Image: `iiidev/iii:${installed.dependencies["iii-sdk"]}`, Labels: { "com.docker.compose.project": project, "com.docker.compose.service": "iii-engine" } }, HostConfig: { PortBindings: { [`${instance.port}/tcp`]: [{ HostPort: String(instance.port) }] } }, Mounts: [{ Type: "bind", Source: instance.data, Destination: "/data" }] };
-  const pidFile = join(instance.dir, "docker-stub.pid");
-  const file = join(fixtureBin, "docker");
-  writeFileSync(file, `#!${process.execPath}\nconst {writeFileSync}=require('node:fs');\nconst args=process.argv.slice(2);\nif(args[0]===${JSON.stringify(mode)}) { writeFileSync(${JSON.stringify(pidFile)},String(process.pid)); process.on('SIGTERM',()=>{}); setInterval(()=>{},1000); }\nelse if(args[0]==='inspect') console.log(${JSON.stringify(JSON.stringify([record]))});\nelse if(args.includes('ps')) console.log(${JSON.stringify(containerId)});\n`); chmodSync(file, 0o755);
-  instance.envExtra.PATH = [fixtureBin, instance.env().PATH].join(delimiter);
-  writeFileSync(join(instance.runtime, "engine-state.json"), JSON.stringify({ kind: "docker", schemaVersion: 2, composeFile: join(pkg, "docker-compose.yml"), projectName: project, engineVersion: installed.dependencies["iii-sdk"], restPort: instance.port, dataDir: instance.data, containerId, dataMountType: "bind", dataMountSource: instance.data, preserveContainer: mode === "inspect" }));
-  return pidFile;
-}
+
 async function main() {
   await install();
   await scenario("slow-native", (i, d) => delayedConfigured(i, d, { delayMs: options.delayMs, earlyPid: true }));
@@ -296,7 +304,6 @@ async function main() {
   await scenario("untracked-native-adoption", async (i, d) => {
     const config = i.config({ worker: false }); const externalConfig = join(i.dir, "external-config.yaml");
     copyFileSync(config, externalConfig); rmSync(config); await i.startEngine(externalConfig);
-    delete i.envExtra.AGENTMEMORY_III_CONFIG;
     rmSync(join(i.runtime, "engine-state.json")); rmSync(join(i.runtime, "iii.pid"));
     i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "3000" }); await i.ready(6_000);
     assert.equal(i.pid("worker"), i.cli.pid, "Untracked engine was assumed to own a configured worker");
@@ -413,63 +420,6 @@ async function main() {
     assert.notEqual(i.pid("worker"), child.pid, "Doctor did not detach the CLI-owned worker");
     d.doctorExitCode = result.code; d.workerPid = i.pid("worker"); d.transport = "real native engine and installed detached worker created by doctor --all";
   });
-  await scenario("hung-docker-start", async (i, d) => {
-    const pidFile = dockerFixture(i, "start");
-    Object.assign(d, await expectFailure(i, [], { AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "300" }, { budgetMs: 3000 }));
-    const pid = Number(readFileSync(pidFile, "utf8")); i.ownedPids.add(pid); assert(!alive(pid), "Timed-out Docker start subprocess survived");
-    assert(existsSync(join(i.runtime, "engine-state.json")), "Docker command timeout discarded owned lifecycle metadata");
-    d.transport = "Docker command fixture whose start subprocess ignores SIGTERM; actual installed CLI";
-  });
-  await scenario("hung-docker-inspect", async (i, d) => {
-    const pidFile = dockerFixture(i, "inspect");
-    Object.assign(d, await expectFailure(i, [], { AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "300" }, { budgetMs: 8_000, message: "cannot be verified" }));
-    const pid = Number(readFileSync(pidFile, "utf8")); i.ownedPids.add(pid); assert(!alive(pid), "Timed-out Docker inspect subprocess survived");
-    assert(existsSync(join(i.runtime, "engine-state.json"))); d.transport = "Docker inspect subprocess fixture ignoring SIGTERM; actual installed CLI";
-  });
-  await scenario("docker", async (i, d) => {
-    let dockerBin;
-    try { dockerBin = execFileSync("which", ["docker"], { encoding: "utf8" }).trim(); } catch { d.skipped = "Docker executable unavailable"; return; }
-    let host;
-    try { host = process.env.DOCKER_HOST ?? execFileSync(dockerBin, ["context", "inspect", "--format", '{{(index .Endpoints "docker").Host}}'], { encoding: "utf8" }).trim(); } catch { d.skipped = "Docker context unavailable"; return; }
-    i.dockerBin = dockerBin;
-    i.envExtra = { AGENTMEMORY_USE_DOCKER: "1", DOCKER_HOST: host, DOCKER_CONFIG: process.env.DOCKER_CONFIG ?? join(homedir(), ".docker"), PATH: [dirname(dockerBin), i.env().PATH].join(delimiter) };
-    try { d.serverVersion = (await command(dockerBin, ["info", "--format", "{{.ServerVersion}}"], i.env(), i.dir, 10_000)).trim(); } catch { d.skipped = "Docker daemon unavailable"; return; }
-    let project;
-    for (let attempt = 0; attempt < 20; attempt++) {
-      const candidate = `agentmemory-${i.port}`;
-      const filter = `label=com.docker.compose.project=${candidate}`;
-      const existing = await Promise.all([
-        command(dockerBin, ["ps", "-aq", "--filter", filter], i.env(), i.dir),
-        command(dockerBin, ["network", "ls", "-q", "--filter", filter], i.env(), i.dir),
-        command(dockerBin, ["volume", "ls", "-q", "--filter", filter], i.env(), i.dir),
-      ]);
-      if (existing.every((value) => !value.trim())) { project = candidate; break; }
-      i.port = await portBlock();
-    }
-    assert(project, "Could not reserve an unused Docker project");
-    i.dockerProject = project;
-    const at = Date.now(); i.start([], { AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "30000", AGENTMEMORY_READY_TIMEOUT_MS: "15000" });
-    await i.ready(90_000); d.freshReadyMs = Date.now() - at;
-    const state = JSON.parse(readFileSync(join(i.runtime, "engine-state.json"), "utf8")); assert.equal(state.kind, "docker");
-    const containerId = (await command(dockerBin, ["compose", "-p", i.dockerProject, "-f", join(pkg, "docker-compose.yml"), "ps", "-q", "iii-engine"], i.env(), i.dir)).trim(); assert(containerId);
-    d.containerId = containerId;
-    kill(i.cli.pid); await exited(i.cli, 3_000);
-    await command(dockerBin, ["stop", "--time", "3", containerId], i.env(), i.dir, 15_000);
-    const failedProxy = await delayedSocket(i, i.port + 46023, 10_000);
-    d.stoppedRecoveryTimeout = await expectFailure(i, [], { III_ENGINE_URL: `ws://127.0.0.1:${failedProxy.port}`, AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "30000", AGENTMEMORY_READY_TIMEOUT_MS: "300" }, { budgetMs: 20_000, message: "0.3s" });
-    const stopped = await command(dockerBin, ["inspect", "--format", "{{.State.Running}}", containerId], i.env(), i.dir); assert.equal(stopped.trim(), "false", "Failed recovery did not stop the container it restarted");
-    assert.equal(JSON.parse(readFileSync(join(i.runtime, "engine-state.json"), "utf8")).containerId, containerId, "Failed Docker recovery lost lifecycle ownership");
-    const proxy = await delayedSocket(i, i.port + 46023, 3_000);
-    const restartAt = Date.now(); i.start([], { III_ENGINE_URL: `ws://127.0.0.1:${proxy.port}`, AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "30000", AGENTMEMORY_READY_TIMEOUT_MS: "15000" });
-    await i.ready(30_000); d.recoveryReadyMs = Date.now() - restartAt;
-    assert(d.recoveryReadyMs >= 3000); assert(proxy.accepted() > 0);
-    const restored = JSON.parse(readFileSync(join(i.runtime, "engine-state.json"), "utf8")); assert.equal(restored.containerId, containerId);
-    kill(i.cli.pid); await exited(i.cli, 3_000);
-    const externalProxy = await delayedSocket(i, i.port + 46023, 10_000);
-    d.runningEngineTimeout = await expectFailure(i, [], { III_ENGINE_URL: `ws://127.0.0.1:${externalProxy.port}`, AGENTMEMORY_READY_TIMEOUT_MS: "300" }, { budgetMs: 5_000, message: "0.3s" });
-    const running = await command(dockerBin, ["inspect", "--format", "{{.State.Running}}", containerId], i.env(), i.dir); assert.equal(running.trim(), "true", "Failed attach stopped a preexisting running Docker engine");
-    d.transport = "real Docker Compose pinned iii image; same owned container restarted; installed host worker over delayed TCP proxy";
-  });
   await scenario("demo", async (i, d) => {
     i.config({ delayMs: 2_000, earlyPid: true }); const at = Date.now();
     const child = i.start(["demo", "--serve"], { AGENTMEMORY_READY_TIMEOUT_MS: "15000" });
@@ -484,9 +434,6 @@ for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) process.once(signal, () =>
     for (const name of ["iii", "worker"]) kill(i.pid(name));
     for (const row of i.wrapperStarts()) kill(row.pid);
     for (const pid of i.ownedPids) kill(pid);
-    if (i.dockerProject && !i.closed) {
-      try { execFileSync(i.dockerBin, ["compose", "-p", i.dockerProject, "-f", join(pkg, "docker-compose.yml"), "down", "--volumes"], { env: i.env(), timeout: 30_000, stdio: "ignore" }); } catch {}
-    }
   }
   for (const child of children) kill(child.pid);
   process.exit(130);

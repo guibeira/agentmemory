@@ -1,0 +1,277 @@
+import { chmodSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
+import { MAX_STARTUP_TIMEOUT_MS } from "./readiness.js";
+
+export interface EngineRuntimePorts {
+  restPort: number;
+  viewerPort: number;
+  enginePort: number;
+}
+
+export interface StateBackendOptions {
+  kind: "file" | "redis";
+  redisUrl?: string;
+}
+
+/** Registry versions are pinned here so every generated project uses one reviewed set. */
+export const COMPOSE_WORKER_VERSIONS = {
+  state: "0.22.20",
+  http: "0.22.7",
+} as const;
+
+export function composeNamespace(restPort: number): string {
+  // A distinct namespace per REST port prevents two separately managed engine
+  // daemons from competing for the SDK/default namespace during overlap.
+  return `agentmemory-${restPort}`;
+}
+
+export function composeProjectPaths(dataDir: string): {
+  directory: string;
+  file: string;
+  stateDir: string;
+  logFile: string;
+  configDir: string;
+} {
+  const directory = join(dataDir, "compose");
+  return {
+    directory,
+    file: join(directory, "worker-compose.yaml"),
+    stateDir: join(dataDir, "compose-state"),
+    logFile: join(directory, "compose-daemon.log"),
+    configDir: join(directory, "config"),
+  };
+}
+
+const AGENTMEMORY_WORKER_ENV_ALLOWLIST = new Set([
+  "EMBEDDING_PROVIDER", "OPENAI_API_KEY", "OPENAI_API_KEY_FOR_LLM", "OPENAI_BASE_URL",
+  "OPENAI_MODEL", "OPENAI_EMBEDDING_API_KEY", "OPENAI_EMBEDDING_BASE_URL",
+  "OPENAI_EMBEDDING_MODEL", "OPENAI_EMBEDDING_DIMENSIONS", "ANTHROPIC_API_KEY",
+  "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL", "GEMINI_API_KEY", "GEMINI_MODEL",
+  "GOOGLE_API_KEY", "VOYAGE_API_KEY", "VOYAGE_MODEL", "COHERE_API_KEY",
+  "COHERE_MODEL", "OPENROUTER_API_KEY", "OPENROUTER_MODEL", "MINIMAX_API_KEY",
+  "MINIMAX_MODEL", "OLLAMA_HOST", "LLM_PROVIDER", "BM25_WEIGHT", "VECTOR_WEIGHT",
+  "MAX_TOKENS", "TOKEN_BUDGET", "MAX_OBS_PER_SESSION", "CONSOLIDATION_ENABLED",
+  "GRAPH_EXTRACTION_ENABLED", "AGENTMEMORY_AUTO_COMPRESS", "AGENTMEMORY_INJECT_CONTEXT",
+  "AGENTMEMORY_ALLOW_AGENT_SDK", "AGENTMEMORY_SESSION_SWEEP_ENABLED",
+  "AGENTMEMORY_SESSION_SWEEP_STALE_HOURS", "AGENTMEMORY_FINALIZE_IDLE_MS",
+  "AGENTMEMORY_GRAPH_COMPACT_ON_BOOT", "AGENTMEMORY_DROP_STALE_INDEX",
+  "AGENTMEMORY_AUDIT_RETENTION_MONTHS", "AGENTMEMORY_AUDIT_MIGRATE_MAX_BYTES",
+  "AGENTMEMORY_STATE_SAVE_INTERVAL_MS", "AGENTMEMORY_SECRET", "AGENT_ID", "TEAM_ID",
+  "TEAM_MODE", "USER_ID", "AGENTMEMORY_AGENT_SCOPE", "SNAPSHOT_DIR", "SNAPSHOT_ENABLED",
+  "SNAPSHOT_INTERVAL", "STANDALONE_PERSIST_PATH", "CLAUDE_MEMORY_BRIDGE",
+  "CLAUDE_MEMORY_LINE_BUDGET", "CLAUDE_PROJECT_PATH", "AGENTMEMORY_SUPPRESS_COST_WARNING",
+]);
+
+const COMPOSE_RESERVED_ENV = new Set([
+  "III_URL",
+  "III_ENGINE_URL",
+  "III_ENGINE_PORT",
+  "III_REST_PORT",
+  "III_VIEWER_PORT",
+  "III_NAMESPACE",
+  "III_COMPOSE_NAMESPACE",
+  "III_COMPOSE_FILE",
+  "III_COMPOSE_DIR",
+  "III_CONFIG_NAME",
+  "III_WORKER_NAME",
+]);
+
+function yamlString(value: string): string {
+  if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) {
+    throw new Error("A Compose path or configuration value contains an unsupported control character.");
+  }
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function localWorkerDirectory(value: string, cwd: string, projectRoot: string): string {
+  if (isAbsolute(value)) return resolve(value);
+  const fromCwd = resolve(cwd, value);
+  const fromProject = resolve(projectRoot, value);
+  if (fromCwd === fromProject) return fromCwd;
+  if (!fromCwd.startsWith(`${resolve(projectRoot)}/`)) return fromCwd;
+  return fromProject;
+}
+
+function localWorkerProjectDir(paths: ReturnType<typeof composeProjectPaths>, name: string): string {
+  return join(paths.directory, "local-workers", name);
+}
+
+export interface ComposeProjectOptions {
+  ports: EngineRuntimePorts;
+  dataDir: string;
+  projectRoot: string;
+  nodeBin: string;
+  homeDir: string;
+  envFile?: string;
+  workerBinDir?: string;
+  workerBinDirIsAbsolute?: boolean;
+  redisUrl?: string;
+  workerEnvironment?: NodeJS.ProcessEnv;
+  cwd?: string;
+  stateBackend?: StateBackendOptions;
+  startupTimeoutMs?: number;
+  linux?: boolean;
+  disableRestartPolicy?: boolean;
+}
+
+export function renderWorkerCompose(options: ComposeProjectOptions): string {
+  const { restPort, viewerPort, enginePort } = options.ports;
+  const paths = composeProjectPaths(options.dataDir);
+  const namespace = composeNamespace(restPort);
+  const workerBinDir = options.workerBinDir
+    ? options.workerBinDirIsAbsolute
+      ? resolve(options.workerBinDir)
+      : localWorkerDirectory(options.workerBinDir, options.cwd ?? process.cwd(), options.projectRoot)
+    : null;
+  const startupSeconds = Math.ceil((options.startupTimeoutMs ?? 300_000) / 1000);
+  if (!Number.isSafeInteger(startupSeconds) || startupSeconds < 1 || startupSeconds * 1000 > MAX_STARTUP_TIMEOUT_MS + 999) {
+    throw new Error("Compose worker startup timeout must be between 1 and 3600000 milliseconds.");
+  }
+
+  const workerSource = (name: keyof typeof COMPOSE_WORKER_VERSIONS): string =>
+    workerBinDir
+      ? `path://${localWorkerProjectDir(paths, name)}`
+      : `package://api.workers.iii.dev/${name}`;
+  const workerScript = (name: keyof typeof COMPOSE_WORKER_VERSIONS): string =>
+    workerBinDir ? join(workerBinDir, name) : "";
+  const filteredEnvFile = options.envFile
+    ? join(paths.directory, ".agentmemory-filtered.env")
+    : undefined;
+  const lines = [
+    `namespace: ${namespace}`,
+    "startup_timeout: 60s",
+    "stop_timeout: 20s",
+    "required_default: true",
+    "engine:",
+    `  url: ws://127.0.0.1:${enginePort}`,
+    "  workers:",
+    "    configuration:",
+    "      adapter:",
+    "        name: fs",
+    "        config:",
+    `          directory: ${yamlString(paths.configDir)}`,
+    "    iii-worker-manager:",
+    "      host: 127.0.0.1",
+    `      port: ${enginePort}`,
+    "containers:",
+  ];
+
+  const stateScript = workerScript("state");
+  lines.push(
+    "  state:",
+    `    worker: ${yamlString(workerSource("state"))}`,
+    ...(!workerBinDir ? [`    version: ${yamlString(COMPOSE_WORKER_VERSIONS.state)}`] : []),
+    "    config_name: state",
+    ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(stateScript)}`] : []),
+    "    config_override:",
+    "      adapter:",
+    "        name: kv",
+    "        config:",
+  );
+  if (options.stateBackend?.kind === "redis") {
+    const redisUrl = options.redisUrl ?? options.stateBackend.redisUrl;
+    if (!redisUrl) {
+      throw new Error("AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL to be set (e.g. redis://localhost:6379).");
+    }
+    if (/[\u0000-\u001f\u007f]/.test(redisUrl)) {
+      throw new Error("AGENTMEMORY_REDIS_URL contains a control character; percent-encode it before using Redis.");
+    }
+    lines.splice(lines.length - 2, 2, "        name: redis", "        config:", `          redis_url: ${yamlString(redisUrl)}`);
+  } else {
+    lines.push(
+      "          store_method: file_based",
+      `          file_path: ${yamlString(join(options.dataDir, "state_store.db"))}`,
+      "          save_interval_ms: 2000",
+    );
+  }
+
+  const httpScript = workerScript("http");
+  lines.push(
+    "  http:",
+    `    worker: ${yamlString(workerSource("http"))}`,
+    ...(!workerBinDir ? [`    version: ${yamlString(COMPOSE_WORKER_VERSIONS.http)}`] : []),
+    "    config_name: http",
+    ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(httpScript)}`] : []),
+    "    config_override:",
+    "      host: 127.0.0.1",
+    `      port: ${restPort}`,
+    "      default_timeout: 180000",
+    "      cors:",
+    "        allowed_origins:",
+    `          - ${yamlString(`http://localhost:${restPort}`)}`,
+    `          - ${yamlString(`http://localhost:${viewerPort}`)}`,
+    `          - ${yamlString(`http://127.0.0.1:${restPort}`)}`,
+    `          - ${yamlString(`http://127.0.0.1:${viewerPort}`)}`,
+    "        allowed_methods: [GET, POST, PUT, DELETE, OPTIONS]",
+  );
+
+  lines.push(
+    "  agentmemory:",
+    `    worker: ${yamlString(`path://${options.projectRoot}`)}`,
+    "    start_after: [state, http]",
+    `    startup_timeout: ${startupSeconds}s`,
+    "    config_name: agentmemory",
+    "    scripts:",
+    `      run: ${yamlString(`${options.nodeBin} dist/index.mjs`)}`,
+  );
+  if (filteredEnvFile) lines.push(`    env_file: [${yamlString(filteredEnvFile)}]`);
+  const explicitWorkerEnvironment = Object.entries(options.workerEnvironment ?? {})
+    .filter(([key, value]) => value !== undefined && AGENTMEMORY_WORKER_ENV_ALLOWLIST.has(key) && !COMPOSE_RESERVED_ENV.has(key))
+    .sort(([left], [right]) => left.localeCompare(right));
+  lines.push(
+    "    environment:",
+    ...explicitWorkerEnvironment.map(([key, value]) => `      ${key}: ${yamlString(value!)}`),
+    `      HOME: ${yamlString(options.homeDir)}`,
+    `      PATH: ${yamlString(`${dirname(options.nodeBin)}:/usr/local/bin:/usr/bin:/bin`)}`,
+    `      AGENTMEMORY_DATA_DIR: ${yamlString(options.dataDir)}`,
+    `      AGENTMEMORY_RUNTIME_DIR: ${yamlString(options.dataDir)}`,
+    ...(filteredEnvFile ? [`      AGENTMEMORY_ENV_FILE: ${yamlString(filteredEnvFile)}`] : []),
+    ...(options.stateBackend?.kind === "redis" && options.redisUrl ? [`      AGENTMEMORY_REDIS_URL: ${yamlString(options.redisUrl)}`, "      AGENTMEMORY_STATE_BACKEND: 'redis'"] : []),
+    `      III_ENGINE_PORT: ${yamlString(String(enginePort))}`,
+    `      III_REST_PORT: ${yamlString(String(restPort))}`,
+    `      III_VIEWER_PORT: ${yamlString(String(viewerPort))}`,
+    "      III_TELEMETRY_ENABLED: 'false'",
+    ...(options.linux ?? process.platform === "linux" ? ["      MALLOC_ARENA_MAX: '2'"] : []),
+    "",
+  );
+  return lines.join("\n");
+}
+
+export function writeWorkerCompose(options: ComposeProjectOptions): { file: string; stateDir: string; logFile: string; text: string } {
+  const paths = composeProjectPaths(options.dataDir);
+  mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
+  mkdirSync(paths.configDir, { recursive: true, mode: 0o700 });
+  mkdirSync(paths.stateDir, { recursive: true, mode: 0o700 });
+  if (options.workerBinDir) {
+    const binDir = options.workerBinDirIsAbsolute
+      ? resolve(options.workerBinDir)
+      : localWorkerDirectory(options.workerBinDir, options.cwd ?? process.cwd(), options.projectRoot);
+    for (const name of Object.keys(COMPOSE_WORKER_VERSIONS) as Array<keyof typeof COMPOSE_WORKER_VERSIONS>) {
+      const projectDir = localWorkerProjectDir(paths, name);
+      mkdirSync(projectDir, { recursive: true, mode: 0o700 });
+      const manifest = [
+        "iii: v1",
+        `name: ${name}`,
+        "language: rust",
+        "scripts:",
+        `  start: ${yamlString(join(binDir, name))}`,
+        "",
+      ].join("\n");
+      writeFileSync(join(projectDir, "iii.worker.yaml"), manifest, { encoding: "utf8", mode: 0o600 });
+      chmodSync(join(projectDir, "iii.worker.yaml"), 0o600);
+    }
+  }
+  const text = renderWorkerCompose(options);
+  if (options.envFile) {
+    const filteredPath = join(paths.directory, ".agentmemory-filtered.env");
+    const entries = readFileSync(options.envFile, "utf8").split(/\r?\n/).filter((line) => {
+      const match = line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+      return !match || !COMPOSE_RESERVED_ENV.has(match[1]!);
+    });
+    writeFileSync(filteredPath, `${entries.join("\n")}\n`, { encoding: "utf8", mode: 0o600 });
+    chmodSync(filteredPath, 0o600);
+  }
+  writeFileSync(paths.file, text, { encoding: "utf8", mode: 0o600 });
+  chmodSync(paths.file, 0o600);
+  return { file: paths.file, stateDir: paths.stateDir, logFile: paths.logFile, text };
+}
