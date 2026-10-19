@@ -62,7 +62,7 @@ AGENTMEMORY_INJECT_CONTEXT=true
 
 ## Ports
 
-REST is the anchor at 3111. Streams = N+1 (3112), viewer = N+2 (3113), engine = N+46023 (49134). Relocate the whole block with `--port <N>` or `--instance <N>`.
+REST is the anchor at 3111; viewer = N+2 (3113), engine = N+46023 (49134). There is no stream port: the viewer feed is SSE on REST. Relocate the whole block with `--port <N>` or `--instance <N>`.
 
 ## See also
 
