@@ -61,6 +61,27 @@ describe("stored API secret", () => {
     expect(readFileSync(secretFilePath(), "utf-8").trim()).toBe(first.secret);
   });
 
+  it("uses an existing canonical secret for a second instance client", () => {
+    const canonicalPath = join(home, ".agentmemory", "secret");
+    mkdirSync(join(home, ".agentmemory"), { recursive: true });
+    writeFileSync(canonicalPath, "canonical-instance-secret\n");
+    const customDataDir = join(home, "instance-2");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+
+    const server = ensureServerSecret();
+    expect(server).toEqual({ secret: "canonical-instance-secret", source: "file" });
+    expect(readFileSync(join(customDataDir, "secret"), "utf-8").trim()).toBe(server.secret);
+    expect(resolveClientSecret("http://localhost:3211", { AGENTMEMORY_DATA_DIR: customDataDir })).toBe(server.secret);
+  });
+
+  it("creates the local and canonical secret files for an instance without a canonical secret", () => {
+    const customDataDir = join(home, "instance-3");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+    const { secret } = ensureServerSecret();
+    expect(readFileSync(join(customDataDir, "secret"), "utf-8").trim()).toBe(secret);
+    expect(readFileSync(join(home, ".agentmemory", "secret"), "utf-8").trim()).toBe(secret);
+  });
+
   it("keeps a custom data-dir secret readable by clients without that override", () => {
     const customDataDir = join(home, "custom-state");
     process.env.AGENTMEMORY_DATA_DIR = customDataDir;

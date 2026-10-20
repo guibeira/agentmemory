@@ -77,7 +77,12 @@ function legacyDataDirSecretPath(env: NodeJS.ProcessEnv = process.env): string |
 }
 
 export function readStoredSecret(env: NodeJS.ProcessEnv = process.env): string {
-  return readSecretFile(secretFilePath()) || (legacyDataDirSecretPath(env) ? readSecretFile(legacyDataDirSecretPath(env)!) : "");
+  const canonicalPath = canonicalSecretPath();
+  const localPath = secretFilePath();
+  const legacyPath = legacyDataDirSecretPath(env);
+  return readSecretFile(canonicalPath) ||
+    (localPath === canonicalPath ? "" : readSecretFile(localPath)) ||
+    (legacyPath && legacyPath !== canonicalPath && legacyPath !== localPath ? readSecretFile(legacyPath) : "");
 }
 
 export function explicitSecret(env: NodeJS.ProcessEnv = process.env): string {
@@ -142,7 +147,10 @@ export function ensureServerSecret(env: NodeJS.ProcessEnv = process.env): {
   const localPath = secretFilePath();
   const canonicalPath = canonicalSecretPath();
   const canonical = localPath === canonicalPath ? "" : readSecretFile(canonicalPath);
-  if (canonical) return { secret: canonical, source: "file" };
+  if (canonical) {
+    writeSecretIfAbsent(localPath, canonical);
+    return { secret: canonical, source: "file" };
+  }
 
   const legacyPath = legacyDataDirSecretPath(env);
   const legacy = readSecretFile(localPath) || (legacyPath ? readSecretFile(legacyPath) : "");

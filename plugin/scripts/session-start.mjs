@@ -60,7 +60,10 @@ function legacyDataDirSecretPath(env = process.env) {
 	return path === secretFilePath() ? null : path;
 }
 function readStoredSecret(env = process.env) {
-	return readSecretFile(secretFilePath()) || (legacyDataDirSecretPath(env) ? readSecretFile(legacyDataDirSecretPath(env)) : "");
+	const canonicalPath = canonicalSecretPath();
+	const localPath = secretFilePath();
+	const legacyPath = legacyDataDirSecretPath(env);
+	return readSecretFile(canonicalPath) || (localPath === canonicalPath ? "" : readSecretFile(localPath)) || (legacyPath && legacyPath !== canonicalPath && legacyPath !== localPath ? readSecretFile(legacyPath) : "");
 }
 function isLoopbackUrl(url) {
 	let hostname;
@@ -78,6 +81,9 @@ function resolveClientSecret(baseUrl, env = process.env) {
 	if (env.AGENTMEMORY_CREDENTIAL_MODE === "explicit") return "";
 	if (!isLoopbackUrl(baseUrl)) return "";
 	return readEnvFileSecret() || readStoredSecret(env);
+}
+function canonicalSecretPath() {
+	return join(homedir(), ".agentmemory", "secret");
 }
 //#endregion
 //#region src/hooks/_project.ts
