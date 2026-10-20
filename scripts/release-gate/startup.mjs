@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
+import { parse as parseYaml } from "yaml";
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -367,7 +368,7 @@ async function main() {
     i.config({ worker: false });
     const binary = join(i.runtime, "bin/iii"); const launchPid = join(i.dir, "launched-compose.pid");
     writeFileSync(binary, `#!${process.execPath}\nconst {writeFileSync}=require('node:fs');\nif(process.argv.includes('--version')) { console.log('iii ${installed.dependencies["iii-sdk"]}'); process.exit(0); }\nwriteFileSync(${JSON.stringify(launchPid)},String(process.pid));\nsetInterval(()=>{},1000);\n`); chmodSync(binary, 0o755);
-    Object.assign(d, await expectFailure(i, [], { AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "300" }, { message: "0.3s" }));
+    Object.assign(d, await expectFailure(i, [], { AGENTMEMORY_ENGINE_READY_TIMEOUT_MS: "300" }, { message: "The engine process started but the REST API never responded." }));
     const pid = Number(readFileSync(launchPid, "utf8")); i.ownedPids.add(pid); await poll("owned Compose engine timeout cleanup", () => !alive(pid), 5_000);
     assert(!existsSync(join(i.runtime, "engine-state.json")));
     d.transport = "version-compatible iii fixture accepting compose but never opening the engine port; actual installed CLI";
@@ -494,6 +495,28 @@ async function main() {
     await i.ready(10_000, false, true); assert.notEqual(state.composePid, child.pid, "Doctor did not detach the Compose runtime");
     d.doctorExitCode = result.code; d.composePid = state.composePid; d.transport = "doctor stale-lifecycle repair starts the standard managed Compose project";
   });
+  await scenario("trace-storage-integrity", async (i, d) => {
+    i.start(); await i.ready(120_000);
+    const lifecycle = JSON.parse(readFileSync(join(i.runtime, "engine-state.json"), "utf8"));
+    assert.equal(lifecycle.kind, "compose");
+    const installedFiles = packageFiles();
+    const installedDigest = createHash("sha256").update(JSON.stringify(installedFiles)).digest("hex");
+    const configFile = join(i.data, "compose", "config", "iii-observability.yaml");
+    const entry = parseYaml(readFileSync(configFile, "utf8"));
+    assert.equal(entry.value.trace_storage.directory, join(i.data, "observability", "traces"));
+    assert(existsSync(entry.value.trace_storage.directory), "Trace storage directory was not provisioned in instance data");
+    const stop = await command(process.execPath, [cli, "stop", "--port", String(i.port)], i.env(), i.dir, 30_000);
+    d.stopped = true;
+    await poll("trace runtime shutdown", () => !alive(lifecycle.composePid), 10_000);
+    const finalFiles = packageFiles();
+    const finalDigest = createHash("sha256").update(JSON.stringify(finalFiles)).digest("hex");
+    assert.equal(finalDigest, installedDigest, "Installed package files changed after starting and stopping the managed runtime");
+    assert.deepEqual(finalFiles, installedFiles, "Installed package gained or lost files after starting and stopping the managed runtime");
+    assert.equal(createHash("sha256").update(readFileSync(tarball)).digest("hex"), artifactSha, "Packed artifact changed during the managed runtime smoke");
+    d.installedArtifactUnmodified = true; d.traceDirectory = entry.value.trace_storage.directory;
+    d.stopOutput = stop.slice(-300);
+  });
+
   await scenario("demo", async (i, d) => {
     const at = Date.now();
     const child = i.start(["demo", "--serve"], { AGENTMEMORY_READY_TIMEOUT_MS: "15000" });

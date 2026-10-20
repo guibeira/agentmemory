@@ -123,7 +123,7 @@ function ensureEngineTraceStorageConfig(configDir: string, dataDir: string): voi
     ? existingStorage as Record<string, unknown>
     : {};
   const existingDirectory = storage.directory;
-  if (typeof existingDirectory === "string" && existingDirectory !== defaultTraceDirectory) return;
+  if (typeof existingDirectory === "string" && existingDirectory.trim() !== "" && existingDirectory !== defaultTraceDirectory) return;
 
   storage.directory = traceDirectory;
   value.trace_storage = storage;
@@ -282,6 +282,7 @@ export function writeWorkerCompose(options: ComposeProjectOptions): { file: stri
   mkdirSync(paths.configDir, { recursive: true, mode: 0o700 });
   mkdirSync(paths.stateDir, { recursive: true, mode: 0o700 });
   ensureEngineTraceStorageConfig(paths.configDir, options.dataDir);
+  mkdirSync(join(options.dataDir, "observability", "traces"), { recursive: true, mode: 0o700 });
   if (options.workerBinDir) {
     const binDir = options.workerBinDirIsAbsolute
       ? resolve(options.workerBinDir)
