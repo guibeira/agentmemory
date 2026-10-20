@@ -875,7 +875,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Deploy</h2>
 
-Docker is supported for self-hosting from this repository, not as a CLI startup mode. One-click templates use [`deploy/Dockerfile`](deploy/Dockerfile) and [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml), pin the same iii 0.24.6 runtime workers, and store state and the generated secret on a persistent `/data` volume. See [`deploy/README.md`](deploy/README.md) for setup and security details.
+Docker is supported for self-hosting from this repository, not as a CLI startup mode. One-click templates use [`deploy/Dockerfile`](deploy/Dockerfile) and [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml), pin the same iii 0.24.6 runtime workers, and store state, traces, and the generated secret on a persistent `/data` volume. Docker Compose uses the existing `iii-data` named volume by default; set `AGENTMEMORY_DATA_DIR` to a host path to use a bind mount instead. The existing file-based store from 0.22.1 is read directly at `/data/state_store.db` without migration or conversion. REST CORS allows the local REST and viewer origins by default; set `REST_ALLOWED_ORIGINS` to a comma-separated list of exact origins when a trusted browser origin needs access. See [`deploy/README.md`](deploy/README.md) for setup and security details.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1506,7 +1506,7 @@ The local runtime uses three listeners. The iii engine WebSocket is for internal
 
 `--port <N>` sets the REST port and derives the viewer `N+2` and engine WebSocket `N+46023` when not explicitly set. Use `--instance N` for an isolated runtime.
 
-The self-host deployment publishes REST and viewer, defaulting to `127.0.0.1:3111` and `127.0.0.1:3113`; the host ports can be changed with `AGENTMEMORY_REST_PORT` and `AGENTMEMORY_VIEWER_PORT`.
+The self-host deployment publishes REST and viewer, defaulting to `127.0.0.1:3111` and `127.0.0.1:3113`; the host ports can be changed with `AGENTMEMORY_REST_PORT` and `AGENTMEMORY_VIEWER_PORT`. REST CORS allows `http://localhost` and `http://127.0.0.1` on both the configured REST and viewer ports by default; set Docker's `REST_ALLOWED_ORIGINS` to a comma-separated list of exact origins to allow additional trusted browser origins.
 
 ### Config File
 
