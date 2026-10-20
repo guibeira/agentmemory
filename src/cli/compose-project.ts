@@ -1,5 +1,6 @@
-import { chmodSync, readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, mkdirSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { parse, stringify } from "yaml";
 import { MAX_STARTUP_TIMEOUT_MS } from "./readiness.js";
 
 export interface EngineRuntimePorts {
@@ -94,6 +95,44 @@ function localWorkerDirectory(value: string, cwd: string, projectRoot: string): 
 
 function localWorkerProjectDir(paths: ReturnType<typeof composeProjectPaths>, name: string): string {
   return join(paths.directory, "local-workers", name);
+}
+
+function ensureEngineTraceStorageConfig(configDir: string, dataDir: string): void {
+  const configFile = join(configDir, "iii-observability.yaml");
+  const traceDirectory = resolve(dataDir, "observability", "traces");
+  const defaultTraceDirectory = "./data/observability/traces";
+  let entry: Record<string, unknown>;
+  if (existsSync(configFile)) {
+    const parsed: unknown = parse(readFileSync(configFile, "utf8"));
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error(`Invalid persisted iii-observability configuration at ${configFile}.`);
+    }
+    entry = parsed as Record<string, unknown>;
+    if (entry.id !== "iii-observability") {
+      throw new Error(`Unexpected configuration id in ${configFile}; refusing to replace it.`);
+    }
+  } else {
+    entry = { id: "iii-observability", name: "Observability", description: "", schema: {} };
+  }
+
+  const value = entry.value && typeof entry.value === "object" && !Array.isArray(entry.value)
+    ? entry.value as Record<string, unknown>
+    : {};
+  const existingStorage = value.trace_storage;
+  const storage = existingStorage && typeof existingStorage === "object" && !Array.isArray(existingStorage)
+    ? existingStorage as Record<string, unknown>
+    : {};
+  const existingDirectory = storage.directory;
+  if (typeof existingDirectory === "string" && existingDirectory !== defaultTraceDirectory) return;
+
+  storage.directory = traceDirectory;
+  value.trace_storage = storage;
+  entry.value = value;
+  const temporaryFile = `${configFile}.tmp`;
+  writeFileSync(temporaryFile, stringify(entry), { encoding: "utf8", mode: 0o600 });
+  chmodSync(temporaryFile, 0o600);
+  renameSync(temporaryFile, configFile);
+  chmodSync(configFile, 0o600);
 }
 
 export interface ComposeProjectOptions {
@@ -242,6 +281,7 @@ export function writeWorkerCompose(options: ComposeProjectOptions): { file: stri
   mkdirSync(paths.directory, { recursive: true, mode: 0o700 });
   mkdirSync(paths.configDir, { recursive: true, mode: 0o700 });
   mkdirSync(paths.stateDir, { recursive: true, mode: 0o700 });
+  ensureEngineTraceStorageConfig(paths.configDir, options.dataDir);
   if (options.workerBinDir) {
     const binDir = options.workerBinDirIsAbsolute
       ? resolve(options.workerBinDir)

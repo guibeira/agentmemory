@@ -2,6 +2,7 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writ
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { parse } from "yaml";
 import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, writeWorkerCompose } from "../src/cli/compose-project.js";
 
 const root = mkdtempSync(join(tmpdir(), "agentmemory-compose-"));
@@ -95,6 +96,63 @@ describe("Worker Compose project", () => {
       expect(manifest).toContain(`/workers-local/${name}'`);
     }
     expect(written.text).toContain(`worker: '${rootUrl}/data/compose/local-workers/state'`);
+  });
+
+  it("seeds persistent engine trace storage in the data directory", () => {
+    writeWorkerCompose(options());
+    const configFile = join(root, "data", "compose", "config", "iii-observability.yaml");
+    const entry = parse(readFileSync(configFile, "utf8")) as {
+      id: string;
+      value: { trace_storage: { directory: string } };
+    };
+    expect(entry.id).toBe("iii-observability");
+    expect(entry.value.trace_storage.directory).toBe(join(root, "data", "observability", "traces"));
+    expect(statSync(configFile).mode & 0o777).toBe(0o600);
+  });
+
+  it("stores engine traces under the instance data dir and preserves user observability settings", () => {
+    const configDir = join(root, "data", "compose", "config");
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(join(configDir, "iii-observability.yaml"), [
+      "id: iii-observability",
+      "name: Observability",
+      "description: custom settings",
+      "schema: {}",
+      "value:",
+      "  service_name: agentmemory-test",
+      "  trace_storage:",
+      "    directory: ./data/observability/traces",
+      "    max_disk_bytes: 67108864",
+      "",
+    ].join("\n"));
+
+    writeWorkerCompose(options());
+    const entry = parse(readFileSync(join(configDir, "iii-observability.yaml"), "utf8")) as {
+      value: { service_name: string; trace_storage: { directory: string; max_disk_bytes: number } };
+    };
+    expect(entry.value.service_name).toBe("agentmemory-test");
+    expect(entry.value.trace_storage).toEqual({
+      directory: join(root, "data", "observability", "traces"),
+      max_disk_bytes: 67108864,
+    });
+  });
+
+  it("leaves a deliberately customized engine trace directory alone", () => {
+    const configDir = join(root, "data", "compose", "config");
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(join(configDir, "iii-observability.yaml"), [
+      "id: iii-observability",
+      "value:",
+      "  trace_storage:",
+      "    directory: /mnt/traces",
+      "",
+    ].join("\n"));
+
+    writeWorkerCompose(options());
+    const entry = parse(readFileSync(join(configDir, "iii-observability.yaml"), "utf8")) as {
+      value: { trace_storage: { directory: string } };
+    };
+    expect(entry.value.trace_storage.directory).toBe("/mnt/traces");
   });
 
   it("writes the project and runtime state only inside the data dir with owner-only file permissions", () => {
