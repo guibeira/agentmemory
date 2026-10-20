@@ -281,14 +281,9 @@ async function scenario(name, fn) {
 async function delayedConfigured(instance, details, { delayMs, earlyPid = false, adopt = false, args = [] } = {}) {
   const config = instance.config({ delayMs, earlyPid });
   const at = Date.now();
-  if (adopt) {
-    await instance.startEngine(config);
-    instance.start(["--no-engine", ...args]);
-    await instance.ready(delayMs + 180_000);
-  } else {
-    instance.start(args);
-    await instance.ready(delayMs + 25_000);
-  }
+  if (adopt) await instance.startEngine(config);
+  instance.start(args);
+  await instance.ready(delayMs + (adopt ? 180_000 : 25_000));
   details.readyMs = Date.now() - at; details.delayMs = delayMs; details.transport = "iii 0.24.6 Worker Compose with installed packaged app worker";
   assert(details.readyMs >= delayMs - 5000, `Ready before configured worker delay: ${details.readyMs}`);
   const starts = instance.wrapperStarts(); assert.equal(starts.length, 1, "Configured worker launched more than once");
