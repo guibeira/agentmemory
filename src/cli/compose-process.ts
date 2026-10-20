@@ -32,7 +32,6 @@ export function readMacProcessExecutable(pid: number): string {
   return "";
 }
 
-/** Compare canonical filesystem paths, allowing a configured executable symlink. */
 export function sameResolvedExecutable(actual: string, expected: string, windows = false): boolean {
   try {
     const actualPath = realpathSync(actual);
@@ -45,7 +44,6 @@ export function sameResolvedExecutable(actual: string, expected: string, windows
   }
 }
 
-/** Read the executable path for Unix process identity checks. */
 export function readUnixProcessExecutable(pid: number, os: "darwin" | "linux"): string {
   if (!Number.isSafeInteger(pid) || pid <= 0) return "";
   if (os === "darwin") return readMacProcessExecutable(pid);
