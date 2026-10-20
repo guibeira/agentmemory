@@ -1,4 +1,4 @@
-import { chmodSync, closeSync, mkdirSync, openSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createConnection } from "node:net";
@@ -19,20 +19,13 @@ export function composeRegistryFailureMessage(logText: string, workerBinDir?: st
   const patterns = [
     /REGISTRY_UNREACHABLE|REGISTRY_ERROR|PACKAGE_DOWNLOAD_FAILED/i,
     /cannot reach the registry/i,
-    /registry (?:returned|responded|response).*HTTP (?:5\d\d|504)|HTTP (?:5\d\d|504).*registry/i,
+    /registry (?:returned|responded|response)[^\n]*HTTP 5\d\d|HTTP 5\d\d[^\n]*registry/i,
     /failed to resolve (?:a )?package|package resolution (?:failed|unavailable)|could not resolve .*registry/i,
     /could not download https:\/\/api\.workers\.iii\.dev\/download\//i,
-    /compose exited with code 1/i,
-    /container '(?:state|http)':/i,
-    /Downloads (?:Checking|Downloading|Pending)\s*\(\d+\/\d+\).*failed/i,
-    /exited unexpectedly[^\n]*(?:status|code|exit)[^\n]*1/i,
-    /(?:state|http)\s*:\s*failed[^\n]*/i,
   ];
   if (!patterns.some((pattern) => pattern.test(logText))) return null;
-  const fallback = workerBinDir
-    ? `Configured local workers directory: ${workerBinDir}.`
-    : "";
-  return `Worker registry unavailable while resolving state/http; retry later or set AGENTMEMORY_WORKER_BIN_DIR. ${workerBinDir ? fallback : ""}`;
+  const localWorkers = workerBinDir ? ` Configured local workers directory: ${workerBinDir}.` : "";
+  return `Worker registry unavailable while resolving state/http; retry later or set AGENTMEMORY_WORKER_BIN_DIR.${localWorkers}`;
 }
 
 export function composeStateRegistryFailure(dataDir: string, file: string): string | null {
@@ -171,12 +164,13 @@ export async function composeCall<T>(options: {
   }
 }
 
-export function startComposeDaemon(runtime: ComposeRuntime): { child: ChildProcess; file: string; namespace: string; stateDir: string; logFile: string } {
+export function startComposeDaemon(runtime: ComposeRuntime): { child: ChildProcess; file: string; namespace: string; stateDir: string; logFile: string; logStartOffset: number } {
   const project = writeWorkerCompose({ ...runtime, envFile: runtime.envFile });
   const logFile = runtime.logFile;
   mkdirSync(dirname(logFile), { recursive: true, mode: 0o700 });
   chmodSync(dirname(logFile), 0o700);
   const fd = openSync(logFile, "a", 0o600);
+  const logStartOffset = fstatSync(fd).size;
   writeFileSync(fd, `\n[${new Date().toISOString()}] Starting Worker Compose\n`);
   const environment = composeEnvironment(runtime.env, project.stateDir);
   const child = spawn(runtime.iiiBin, ["compose", "--namespace", composeNamespace(runtime.ports.restPort), "--up", "--file", project.file], {
@@ -194,7 +188,27 @@ export function startComposeDaemon(runtime: ComposeRuntime): { child: ChildProce
     namespace: composeNamespace(runtime.ports.restPort),
     stateDir: project.stateDir,
     logFile,
+    logStartOffset,
   };
+}
+
+export function readComposeLogFromOffset(file: string, offset: number): string {
+  const fd = openSync(file, "r");
+  try {
+    const size = fstatSync(fd).size;
+    let position = Math.min(Math.max(0, offset), size);
+    const chunks: Buffer[] = [];
+    while (position < size) {
+      const chunk = Buffer.allocUnsafe(Math.min(16 * 1024, size - position));
+      const count = readSync(fd, chunk, 0, chunk.length, position);
+      if (count === 0) break;
+      chunks.push(chunk.subarray(0, count));
+      position += count;
+    }
+    return Buffer.concat(chunks).toString("utf8");
+  } finally {
+    closeSync(fd);
+  }
 }
 
 export function writeComposeState(path: string, state: {
@@ -207,6 +221,7 @@ export function writeComposeState(path: string, state: {
   file: string;
   stateDir: string;
   logFile: string;
+  logStartOffset?: number;
   binPath: string;
   enginePid?: number;
   workerBinDir?: string;

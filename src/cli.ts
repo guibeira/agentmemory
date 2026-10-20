@@ -97,7 +97,7 @@ import { runCaptureCommand } from "./cli/capture.js";
 import { runCompressionCommand } from "./cli/compression.js";
 import { runGraphIndexCommand } from "./cli/graph-index.js";
 import { bearerHeaders, resolveClientSecret } from "./secret-store.js";
-import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, probeComposeEngine, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
+import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, probeComposeEngine, readComposeLogFromOffset, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
 import { COMPOSE_WORKER_VERSIONS, composeNamespace } from "./cli/compose-project.js";
 import { legacyDockerStateMessage, type LegacyDockerEngineState } from "./cli/legacy-docker-state.js";
 
@@ -614,6 +614,7 @@ type ComposeEngineState = {
   file: string;
   stateDir: string;
   logFile: string;
+  logStartOffset?: number;
   binPath: string;
   composePid?: number;
   enginePid?: number;
@@ -710,7 +711,7 @@ async function startWorkerForEngineState(background = false): Promise<void> {
         const state = readEngineState();
         if (state?.kind === "compose") {
           try {
-            const failure = composeRegistryFailureMessage(readFileSync(state.logFile, "utf8"), state.workerBinDir);
+            const failure = composeRegistryFailureMessage(readComposeLogFromOffset(state.logFile, state.logStartOffset ?? 0), state.workerBinDir);
             if (failure) startupFailure = { kind: "engine-crashed", stderr: failure };
           } catch {}
         }
@@ -723,7 +724,7 @@ async function startWorkerForEngineState(background = false): Promise<void> {
       let registryFailure = state?.kind === "compose" ? composeStateRegistryFailure(dataDirResolution.dataDir, state.file) : null;
       if (state?.kind === "compose" && !registryFailure) {
         registryFailure = (() => {
-          try { return composeRegistryFailureMessage(readFileSync(state.logFile, "utf8"), state.workerBinDir); } catch { return null; }
+          try { return composeRegistryFailureMessage(readComposeLogFromOffset(state.logFile, state.logStartOffset ?? 0), state.workerBinDir); } catch { return null; }
         })();
       }
       if (state?.kind === "compose" && await isEngineRunning()) {
@@ -746,7 +747,13 @@ async function startWorkerForEngineState(background = false): Promise<void> {
             state.workerFailure = failures.join("\n");
             writeComposeState(engineStatePath(), { ...state, workerVersions: state.workerVersions ?? (state.workerBinDir ? { local: true } : COMPOSE_WORKER_VERSIONS) });
             const aggregate = composeRegistryFailureMessage(state.workerFailure, state.workerBinDir);
-            registryFailure = aggregate ? `${aggregate} Compose reported: ${state.workerFailure}` : registryFailure;
+            if (aggregate) {
+              registryFailure = `${aggregate} Compose reported: ${state.workerFailure}`;
+            } else {
+              const logTail = readComposeLogFromOffset(state.logFile, state.logStartOffset ?? 0)
+                .trim().split(/\r?\n/).slice(-12).join("\n");
+              registryFailure = `Worker Compose failed: ${state.workerFailure}${logTail ? `\nRecent Compose output:\n${logTail}` : ""}`;
+            }
           }
         } catch {}
       }
@@ -1079,7 +1086,7 @@ function readComposeStartupLogs(): { path: string; text: string } | null {
   const state = readEngineState();
   if (state?.kind !== "compose") return null;
   try {
-    const text = readFileSync(state.logFile, "utf8").trim();
+    const text = readComposeLogFromOffset(state.logFile, state.logStartOffset ?? 0).trim();
     return { path: state.logFile, text: redactCredentialUrls(text.slice(-16 * 1024)) };
   } catch {
     return { path: state.logFile, text: "(Compose log file could not be read.)" };
@@ -1232,6 +1239,7 @@ async function startIiiBin(iiiBin: string): Promise<boolean> {
     file: compose.file,
     stateDir: compose.stateDir,
     logFile: compose.logFile,
+    logStartOffset: compose.logStartOffset,
     binPath: iiiBin,
     composePid: compose.child.pid,
     ...(workerBinDir ? { workerBinDir: resolve(process.cwd(), workerBinDir) } : {}),
@@ -1698,7 +1706,11 @@ async function main() {
       if (stateFailure) registryFailure = `Worker registry unavailable while resolving state/http; retry later or set AGENTMEMORY_WORKER_BIN_DIR. Compose reported: ${stateFailure}`;
       else registryFailure = logFailure;
     }
-    const shortFailure = registryFailure || startupFailure?.stderr || startupTimeoutMessage("engine", startupTimeouts().engineMs);
+    const composeLogTail = composeLog?.text.trim().split(/\r?\n/).slice(-12).join("\n");
+    const shortFailure = registryFailure || startupFailure?.stderr ||
+      (composeState?.kind === "compose" && composeLogTail
+        ? `Worker Compose startup failed. Recent Compose output:\n${composeLogTail}`
+        : startupTimeoutMessage("engine", startupTimeouts().engineMs));
     s.stop(shortFailure);
     printComposeStartupLogs();
 

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const temp = mkdtempSync(join(tmpdir(), "compose-state-error-"));
 afterEach(() => rmSync(temp, { recursive: true, force: true }));
-import { composeEnvironment, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, startComposeDaemon, type ComposeStatus } from "../src/cli/compose-control.js";
+import { composeEnvironment, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, readComposeLogFromOffset, startComposeDaemon, type ComposeStatus } from "../src/cli/compose-control.js";
 
 describe("Compose control plane", () => {
   it("does not leak arbitrary machine credentials to the Compose daemon", () => {
@@ -38,8 +38,29 @@ describe("Compose control plane", () => {
     const compose502 = composeRegistryFailureMessage("error[PACKAGE_DOWNLOAD_FAILED]: container 'http': could not download https://api.workers.iii.dev/download/http/0.22.6/x86_64-unknown-linux-gnu: HTTP status server error (504 Gateway Timeout) for url (https://api.workers.iii.dev/download/http/0.22.6/x86_64-unknown-linux-gnu)");
     expect(compose502).toContain("Worker registry unavailable while resolving state/http");
     expect(composeRegistryFailureMessage("package resolution failed: registry HTTP 504")).not.toBeNull();
-    expect(composeRegistryFailureMessage("Compose exited with code 1")).not.toBeNull();
-    expect(composeRegistryFailureMessage("state: failed; last_error=exited unexpectedly: status: exit code: 1")).not.toBeNull();
+    expect(composeRegistryFailureMessage("Compose exited with code 1")).toBeNull();
+    expect(composeRegistryFailureMessage("container 'state': invalid Redis URL")).toBeNull();
+    expect(composeRegistryFailureMessage("port 3111 is already in use")).toBeNull();
+    expect(composeRegistryFailureMessage("state: failed; last_error=exited unexpectedly: status: exit code: 1")).toBeNull();
+    expect(composeRegistryFailureMessage("error[PACKAGE_DOWNLOAD_FAILED]: registry returned HTTP 503")).not.toBeNull();
+  });
+
+  it("leaves ordinary worker errors available for their own diagnostic", () => {
+    const detail = "http: invalid Redis URL\nRecent Compose output:\nworker exited with code 1";
+    expect(composeRegistryFailureMessage(detail)).toBeNull();
+    expect(detail).toContain("invalid Redis URL");
+    expect(detail).toContain("Recent Compose output:");
+  });
+
+  it("ignores registry failures from previous Compose log runs", () => {
+    mkdirSync(temp, { recursive: true });
+    const log = join(temp, "compose.log");
+    const oldRun = "error[REGISTRY_UNREACHABLE]: cannot reach the registry\n";
+    const currentRun = "Starting Worker Compose\nworker is ready\n";
+    writeFileSync(log, oldRun + currentRun);
+    const currentLog = readComposeLogFromOffset(log, Buffer.byteLength(oldRun));
+    expect(currentLog).toBe(currentRun);
+    expect(composeRegistryFailureMessage(currentLog)).toBeNull();
   });
 
   it("recognizes the real Compose state error after daemon logs have closed", () => {
