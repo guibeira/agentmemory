@@ -81,6 +81,7 @@ import {
 import { SHUTDOWN_HARD_EXIT_MS, registerStartupCleanup, runStartupCleanup } from "./shutdown.js";
 import { consoleArgs, defaultConsolePort, parseConsoleArgs } from "./cli/console.js";
 import { processStatIsRunning } from "./cli/process-state.js";
+import { readUnixProcessExecutable, sameResolvedExecutable } from "./cli/compose-process.js";
 import { renderSplash } from "./cli/splash.js";
 import { isFirstRun, readPrefs, resetPrefs, writePrefs } from "./cli/preferences.js";
 import { runOnboarding } from "./cli/onboarding.js";
@@ -1104,6 +1105,8 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
     let command = "";
     let executable = "";
     if (IS_WINDOWS) {
+      // Preserve the existing PowerShell CIM ExecutablePath check on Windows;
+      // if CIM does not provide a path, the process is not considered owned.
       const script = `$process = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}'; if ($process) { @{ command = $process.CommandLine; executable = $process.ExecutablePath } | ConvertTo-Json -Compress }`;
       const result = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
       const processInfo = JSON.parse(result) as { command?: string; executable?: string };
@@ -1111,12 +1114,10 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
       executable = processInfo.executable ?? "";
     } else if (platform() === "darwin") {
       command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-      const binPath = resolve(state.binPath);
-      if (!command.startsWith(`${binPath} compose `)) return false;
-      executable = binPath;
+      executable = readUnixProcessExecutable(pid, "darwin");
     } else {
       command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-      executable = readlinkSync(`/proc/${pid}/exe`);
+      executable = readUnixProcessExecutable(pid, "linux");
     }
     const expectedCommand = command.includes("compose") &&
       command.includes("compose --namespace") &&
@@ -1124,11 +1125,7 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
       command.includes(state.file);
     if (!expectedCommand) return false;
     if (!executable) return false;
-    const actualPath = resolve(executable);
-    const expectedPath = resolve(state.binPath);
-    return IS_WINDOWS
-      ? actualPath.toLowerCase() === expectedPath.toLowerCase()
-      : actualPath === expectedPath;
+    return sameResolvedExecutable(executable, state.binPath, IS_WINDOWS);
   } catch {
     return false;
   }
