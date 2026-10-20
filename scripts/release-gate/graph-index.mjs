@@ -328,7 +328,6 @@ try {
   await install();
   const primary = await profile("primary");
   await startEngine(primary, "legacy-seed");
-  await startWorker(primary, "legacy-seed-worker");
   const seedStart = performance.now();
   await state(primary, "state::set", { scope: "mem:memories", key: "mem_gate_source", value: {
     id: "mem_gate_source", type: "fact", title: "Fixture evidence", content: "Graph transport uses durable identity checks", sessionIds: [], concepts: [], files: [], sourceObservationIds: [],
