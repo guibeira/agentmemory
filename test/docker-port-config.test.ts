@@ -47,6 +47,13 @@ describe("Docker Worker Compose runtime", () => {
     expect(workerCompose).toContain("configuration:");
     expect(workerCompose).toContain("save_interval_ms: 2000");
     expect(workerCompose).toContain("file_path: /data/state_store.db");
+    expect(entrypoint).toContain("name: redis");
+    expect(entrypoint).toContain("AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL");
+    expect(workerCompose).toContain('OPENAI_API_KEY: "${OPENAI_API_KEY:-}"');
+    expect(workerCompose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
+    expect(compose).toContain('AGENTMEMORY_REDIS_URL: "${AGENTMEMORY_REDIS_URL:-}"');
+    expect(compose).toContain('AGENTMEMORY_STATE_BACKEND: "${AGENTMEMORY_STATE_BACKEND:-}"');
+    expect(compose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
   });
 
   it("sets host and viewer allowlists from runtime environment", () => {
