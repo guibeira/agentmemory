@@ -290,6 +290,7 @@ class Instance {
     for (const handle of this.handles) { handle.closeAllConnections?.(); handle.close(); }
     for (const name of ["worker", "iii"]) { const pid = this.pid(name); if (pid) this.ownedPids.add(pid); }
     for (const row of this.wrapperStarts()) this.ownedPids.add(row.pid);
+    try { const state = JSON.parse(readFileSync(join(this.runtime, "engine-state.json"), "utf8")); for (const pid of [state.composePid, state.enginePid]) if (Number.isInteger(pid) && pid > 0) this.ownedPids.add(pid); } catch {}
     for (const pid of [...this.ownedPids]) {
       try {
         const rows = execFileSync("ps", ["-eo", "pid=,ppid="], { encoding: "utf8" }).split(/\r?\n/).map((row) => row.trim().split(/\s+/).map(Number)).filter((row) => row.length === 2 && row.every(Number.isFinite));
@@ -300,7 +301,8 @@ class Instance {
       } catch {}
     }
     for (const pid of this.ownedPids) kill(pid);
-    await sleep(100);
+    const deadline = Date.now() + 10_000;
+    while ([...this.ownedPids].some((pid) => alive(pid)) && Date.now() < deadline) await sleep(100);
   }
 }
 async function scenario(name, fn) {
@@ -544,5 +546,5 @@ const unchanged = cliSha ? cliSha === sha(cli) && pkgSha === createHash("sha256"
 const summary = { ok: !fatal && unchanged && results.some((r) => r.status === "pass") && results.every((r) => r.status !== "fail"), version: installed?.version, enginePin: installed?.dependencies["iii-sdk"], tarball, tarballSha256: artifactSha, installedCliSha256: cliSha, installedPackageSha256: pkgSha, changedPackageFiles, installedArtifactUnmodified: unchanged, node: process.version, platform: `${platform()}-${arch()}`, durationMs: Date.now() - started, root: options.keep ? root : undefined, scenarios: results, fatal };
 writeFileSync(join(out, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
 log(`Summary: ${results.filter((r) => r.status === "pass").length}/${results.length} passed; ${join(out, "summary.json")}`);
-if (!options.keep && !out.startsWith(`${root}/`)) rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+if (!options.keep && !out.startsWith(`${root}/`)) rmSync(root, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
 process.exit(summary.ok ? 0 : 1);
