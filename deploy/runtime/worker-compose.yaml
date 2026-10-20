@@ -11,7 +11,7 @@ engine:
         config:
           directory: /data/config
     iii-worker-manager:
-      host: 0.0.0.0
+      host: 127.0.0.1
       port: 49134
 containers:
   state:
@@ -34,7 +34,7 @@ containers:
       port: 3111
       default_timeout: 180000
       cors:
-        allowed_origins: ["*"]
+        allowed_origins: ["__REST_ALLOWED_ORIGINS__"]
         allowed_methods: [GET, POST, PUT, DELETE, OPTIONS]
   agentmemory:
     worker: path://.

@@ -12,6 +12,7 @@ export III_TELEMETRY_ENABLED="${III_TELEMETRY_ENABLED:-false}"
 export AGENTMEMORY_VIEWER_HOST="${AGENTMEMORY_VIEWER_HOST:-0.0.0.0}"
 export VIEWER_ALLOWED_HOSTS="${VIEWER_ALLOWED_HOSTS:-localhost:3113,127.0.0.1:3113,[::1]:3113}"
 export VIEWER_ALLOWED_ORIGINS="${VIEWER_ALLOWED_ORIGINS:-http://localhost:3113,http://127.0.0.1:3113}"
+export REST_ALLOWED_ORIGINS="${REST_ALLOWED_ORIGINS:-http://localhost:3111,http://127.0.0.1:3111,http://localhost:3113,http://127.0.0.1:3113}"
 export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
 
 mkdir -p "$DATA_DIR"
@@ -27,29 +28,34 @@ if [ "$current_nofile" != unlimited ] && [ "$current_nofile" -lt 10240 ]; then
   ulimit -n 10240 2>/dev/null || ulimit -n "$(ulimit -H -n)" 2>/dev/null || true
 fi
 
-# The state backend is selected explicitly; the default remains the legacy file store.
-WORKER_COMPOSE_FILE="/opt/agentmemory/worker-compose.yaml"
-if [ "${AGENTMEMORY_STATE_BACKEND:-}" = redis ]; then
-  if [ -z "${AGENTMEMORY_REDIS_URL:-}" ]; then
-    echo "AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL" >&2
-    exit 1
-  fi
-  export AGENTMEMORY_REDIS_URL
-  node <<'NODE'
+# iii compose does not implicitly inherit the parent environment into workers;
+# worker-compose.yaml explicitly forwards the CLI allowlist.
+WORKER_COMPOSE_FILE="$DATA_DIR/worker-compose.runtime.yaml"
+export WORKER_COMPOSE_FILE REST_ALLOWED_ORIGINS AGENTMEMORY_STATE_BACKEND AGENTMEMORY_REDIS_URL
+if [ "${AGENTMEMORY_STATE_BACKEND:-}" = redis ] && [ -z "${AGENTMEMORY_REDIS_URL:-}" ]; then
+  echo "AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL" >&2
+  exit 1
+fi
+node <<'NODE'
 const fs = require("node:fs");
 const source = "/opt/agentmemory/worker-compose.yaml";
 const target = `${process.env.AGENTMEMORY_DATA_DIR}/worker-compose.runtime.yaml`;
-const input = fs.readFileSync(source, "utf8");
-const legacy = `        name: kv\n        config:\n          store_method: file_based\n          file_path: /data/state_store.db\n          save_interval_ms: 2000`;
-if (!input.includes(legacy)) throw new Error("Could not locate file-based state adapter config");
-const redisUrl = process.env.AGENTMEMORY_REDIS_URL;
-if (/[\u0000-\u001f\u007f]/.test(redisUrl)) throw new Error("AGENTMEMORY_REDIS_URL contains a control character");
-const adapter = `        name: redis\n        config:\n          redis_url: ${JSON.stringify(redisUrl)}`;
-fs.writeFileSync(target, input.replace(legacy, adapter), { mode: 0o600 });
+let input = fs.readFileSync(source, "utf8");
+const marker = '        allowed_origins: ["__REST_ALLOWED_ORIGINS__"]';
+if (!input.includes(marker)) throw new Error("Could not locate REST CORS allowlist marker");
+const origins = process.env.REST_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean);
+if (origins.length === 0 || origins.some((origin) => /[\u0000-\u001f\u007f]/.test(origin))) throw new Error("REST_ALLOWED_ORIGINS must contain comma-separated origins without control characters");
+input = input.replace(marker, `        allowed_origins:\n${origins.map((origin) => `          - ${JSON.stringify(origin)}`).join("\n")}`);
+if (process.env.AGENTMEMORY_STATE_BACKEND === "redis") {
+  const legacy = `        name: kv\n        config:\n          store_method: file_based\n          file_path: /data/state_store.db\n          save_interval_ms: 2000`;
+  if (!input.includes(legacy)) throw new Error("Could not locate file-based state adapter config");
+  const redisUrl = process.env.AGENTMEMORY_REDIS_URL;
+  if (!redisUrl || /[\u0000-\u001f\u007f]/.test(redisUrl)) throw new Error("AGENTMEMORY_REDIS_URL is required and must not contain control characters");
+  input = input.replace(legacy, `        name: redis\n        config:\n          redis_url: ${JSON.stringify(redisUrl)}`);
+}
+fs.writeFileSync(target, input, { mode: 0o600 });
 NODE
-  chown node:node "$DATA_DIR/worker-compose.runtime.yaml"
-  WORKER_COMPOSE_FILE="$DATA_DIR/worker-compose.runtime.yaml"
-fi
+chown node:node "$WORKER_COMPOSE_FILE"
 
 # Compose owns the 0.24.6 engine and supervises state, http, and agentmemory.
 exec gosu node:node /usr/local/bin/iii compose \

@@ -2,7 +2,7 @@
 
 agentmemory 0.9.30 runs on iii 0.24.6 with the `state` 0.22.20 and `http` 0.22.7 registry workers. All image builds use one [`Dockerfile`](Dockerfile), with engine and registry worker pins declared once. Update those build arguments together when promoting a release. Workers are fetched from the iii registry at startup; the `worker-compose.yaml` uses the same Worker Compose format as the CLI.
 
-The container runs `iii compose --up`: Compose owns the engine and supervises `state`, `http`, and the local `agentmemory` worker. There is no legacy embedded engine config, standalone stream, pubsub, or queue worker. The registry worker artifacts are pinned in the compose manifest. Engine and worker state, agentmemory state, generated secret, Compose cache, and logs live on the persistent `/data` volume.
+The container runs `iii compose --up`: Compose owns the engine and supervises `state`, `http`, and the local `agentmemory` worker. There is no legacy embedded engine config, standalone stream, pubsub, or queue worker. The registry worker artifacts are pinned in the compose manifest. Engine and worker state, agentmemory state, generated secret, Compose cache, and logs live on the persistent `/data` volume. For Docker Compose, the default volume name is `iii-data` (preserving the 0.22.1 install); set `AGENTMEMORY_DATA_DIR` to a host path to use a bind mount instead. The state worker continues to use `/data/state_store.db`, so the existing 0.22.1 file-based store is read in place without conversion or deletion.
 
 ## Ports
 
@@ -12,7 +12,7 @@ The container runs `iii compose --up`: Compose owns the engine and supervises `s
 | `3113` | agentmemory viewer | Browser UI and its authenticated REST proxy |
 | `49134` | iii engine | Internal worker WebSocket; never publish it |
 
-There is no stream/WebSocket viewer port. Keep the viewer behind TLS and set `VIEWER_ALLOWED_HOSTS` to the exact inbound `Host` values (with port where present) and `VIEWER_ALLOWED_ORIGINS` to its browser origins. It requires `AGENTMEMORY_SECRET` for API proxy calls; the viewer prompts for the bearer and keeps it in session storage. Do not expose the engine port.
+There is no stream/WebSocket viewer port. REST CORS defaults to `http://localhost` and `http://127.0.0.1` on both the REST and viewer ports; set `REST_ALLOWED_ORIGINS` to a comma-separated list of exact origins when a trusted browser origin needs access. Keep the viewer behind TLS and set `VIEWER_ALLOWED_HOSTS` to the exact inbound `Host` values (with port where present) and `VIEWER_ALLOWED_ORIGINS` to its browser origins. It requires `AGENTMEMORY_SECRET` for API proxy calls; the viewer prompts for the bearer and keeps it in session storage. The engine worker manager listens only on `127.0.0.1:49134` inside the container; do not expose the engine port.
 
 Local Compose binds REST and viewer to loopback. Example with test ports:
 
@@ -20,7 +20,7 @@ Local Compose binds REST and viewer to loopback. Example with test ports:
 AGENTMEMORY_REST_PORT=3611 AGENTMEMORY_VIEWER_PORT=3613 docker compose up --build -d
 ```
 
-Open `http://127.0.0.1:3613`, use the persisted secret in `docker compose exec agentmemory cat /data/secret`, and stop with `docker compose down`. `docker compose down -v` deletes the memories and secret. Set `III_VERSION`, `STATE_VERSION`, `HTTP_VERSION`, and `AGENTMEMORY_VERSION` to override the central defaults.
+Open `http://127.0.0.1:3613`, use the persisted secret in `docker compose exec agentmemory cat /data/secret`, and stop with `docker compose down`. `docker compose down -v` deletes the memories and secret. Set `AGENTMEMORY_SECRET` to provide an explicit REST bearer. To use Redis for state, set `AGENTMEMORY_STATE_BACKEND=redis` and `AGENTMEMORY_REDIS_URL=redis://...`; otherwise the persistent file-backed store is used. Set `III_VERSION`, `STATE_VERSION`, `HTTP_VERSION`, and `AGENTMEMORY_VERSION` to override the central defaults.
 
 ## Platform templates
 

@@ -24,9 +24,12 @@ describe("Docker Worker Compose runtime", () => {
   it("keeps engine and service listeners on the private Compose network", () => {
     expect(workerCompose).toContain("url: ws://127.0.0.1:49134");
     expect(workerCompose).toContain("port: 49134");
+    expect(workerCompose).toContain("      host: 127.0.0.1\n      port: 49134");
     expect(workerCompose).toContain('III_REST_PORT: "3111"');
     expect(workerCompose).toContain('III_VIEWER_PORT: "3113"');
     expect(workerCompose).toContain("port: 3111");
+    expect(workerCompose).toContain('allowed_origins: ["__REST_ALLOWED_ORIGINS__"]');
+    expect(entrypoint).toContain("REST_ALLOWED_ORIGINS must contain comma-separated origins");
     expect(workerCompose).toContain("state:");
     expect(workerCompose).toContain("http:");
     expect(workerCompose).toContain("agentmemory:");
@@ -47,13 +50,13 @@ describe("Docker Worker Compose runtime", () => {
     expect(workerCompose).toContain("configuration:");
     expect(workerCompose).toContain("save_interval_ms: 2000");
     expect(workerCompose).toContain("file_path: /data/state_store.db");
-    expect(entrypoint).toContain("name: redis");
-    expect(entrypoint).toContain("AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL");
-    expect(workerCompose).toContain('OPENAI_API_KEY: "${OPENAI_API_KEY:-}"');
-    expect(workerCompose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
-    expect(compose).toContain('AGENTMEMORY_REDIS_URL: "${AGENTMEMORY_REDIS_URL:-}"');
-    expect(compose).toContain('AGENTMEMORY_STATE_BACKEND: "${AGENTMEMORY_STATE_BACKEND:-}"');
     expect(compose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
+    expect(compose).toContain('AGENTMEMORY_STATE_BACKEND: "${AGENTMEMORY_STATE_BACKEND:-}"');
+    expect(compose).toContain('AGENTMEMORY_REDIS_URL: "${AGENTMEMORY_REDIS_URL:-}"');
+    expect(workerCompose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
+    expect(workerCompose).toContain('OPENAI_API_KEY: "${OPENAI_API_KEY:-}"');
+    expect(entrypoint).toContain("AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL");
+    expect(entrypoint).toContain("name: redis");
   });
 
   it("sets host and viewer allowlists from runtime environment", () => {
