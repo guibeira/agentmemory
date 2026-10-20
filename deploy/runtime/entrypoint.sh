@@ -46,6 +46,30 @@ if (!input.includes(marker)) throw new Error("Could not locate REST CORS allowli
 const origins = process.env.REST_ALLOWED_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean);
 if (origins.length === 0 || origins.some((origin) => /[\u0000-\u001f\u007f]/.test(origin))) throw new Error("REST_ALLOWED_ORIGINS must contain comma-separated origins without control characters");
 input = input.replace(marker, `        allowed_origins:\n${origins.map((origin) => `          - ${JSON.stringify(origin)}`).join("\n")}`);
+const { parse, stringify } = require("/opt/agentmemory/node_modules/yaml");
+const configPath = `${process.env.AGENTMEMORY_DATA_DIR}/config/iii-observability.yaml`;
+let entry;
+try {
+  entry = parse(fs.readFileSync(configPath, "utf8"));
+  if (!entry || typeof entry !== "object" || Array.isArray(entry) || entry.id !== "iii-observability") {
+    throw new Error(`Unexpected persisted observability configuration at ${configPath}`);
+  }
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
+  entry = { id: "iii-observability", name: "Observability", description: "", schema: {} };
+}
+const value = entry.value && typeof entry.value === "object" && !Array.isArray(entry.value) ? entry.value : {};
+const storage = value.trace_storage && typeof value.trace_storage === "object" && !Array.isArray(value.trace_storage) ? value.trace_storage : {};
+if (typeof storage.directory !== "string" || storage.directory === "" || storage.directory === "./data/observability/traces") {
+  storage.directory = `${process.env.AGENTMEMORY_DATA_DIR}/observability/traces`;
+  value.trace_storage = storage;
+  entry.value = value;
+  const temporary = `${configPath}.tmp`;
+  fs.writeFileSync(temporary, stringify(entry), { mode: 0o600 });
+  fs.renameSync(temporary, configPath);
+  fs.chmodSync(configPath, 0o600);
+}
+fs.mkdirSync(`${process.env.AGENTMEMORY_DATA_DIR}/observability/traces`, { recursive: true, mode: 0o700 });
 if (process.env.AGENTMEMORY_STATE_BACKEND === "redis") {
   const legacy = `        name: kv\n        config:\n          store_method: file_based\n          file_path: /data/state_store.db\n          save_interval_ms: 2000`;
   if (!input.includes(legacy)) throw new Error("Could not locate file-based state adapter config");
@@ -55,7 +79,7 @@ if (process.env.AGENTMEMORY_STATE_BACKEND === "redis") {
 }
 fs.writeFileSync(target, input, { mode: 0o600 });
 NODE
-chown node:node "$WORKER_COMPOSE_FILE"
+chown node:node "$DATA_DIR/config/iii-observability.yaml" "$WORKER_COMPOSE_FILE"
 
 # Compose owns the 0.24.6 engine and supervises state, http, and agentmemory.
 exec gosu node:node /usr/local/bin/iii compose \
