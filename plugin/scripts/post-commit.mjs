@@ -47,12 +47,21 @@ function readEnvFileSecret() {
 	}
 	return found;
 }
-function readStoredSecret() {
+function readSecretFile(path) {
 	try {
-		return usable(readFileSync(secretFilePath(), "utf-8"));
+		return usable(readFileSync(path, "utf-8"));
 	} catch {
 		return "";
 	}
+}
+function legacyDataDirSecretPath(env = process.env) {
+	const dataDir = env["AGENTMEMORY_DATA_DIR"];
+	if (!dataDir) return null;
+	const path = join(dataDir, "secret");
+	return path === secretFilePath() ? null : path;
+}
+function readStoredSecret(env = process.env) {
+	return readSecretFile(secretFilePath()) || (legacyDataDirSecretPath(env) ? readSecretFile(legacyDataDirSecretPath(env)) : "");
 }
 function isLoopbackUrl(url) {
 	let hostname;
@@ -69,7 +78,7 @@ function resolveClientSecret(baseUrl, env = process.env) {
 	if (fromEnv) return fromEnv;
 	if (env.AGENTMEMORY_CREDENTIAL_MODE === "explicit") return "";
 	if (!isLoopbackUrl(baseUrl)) return "";
-	return readEnvFileSecret() || readStoredSecret();
+	return readEnvFileSecret() || readStoredSecret(env);
 }
 //#endregion
 //#region src/hooks/_project.ts

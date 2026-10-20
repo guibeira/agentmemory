@@ -175,7 +175,7 @@ describe.skipIf(!engineBin && !workerRegistryReachable).each(["codex", "copilot"
     const [restPort, viewerPort, enginePort, metricsPort] = await unusedPorts();
     const base = `http://127.0.0.1:${restPort}`;
     const stateDir = join(sandbox, "state");
-    const secretPath = join(stateDir, "secret");
+    const secretPath = join(home, ".agentmemory", "secret");
     const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => ["PATH", "SYSTEMROOT", "LANG"].includes(key)));
     const path = engineBin ? `${dirname(engineBin)}${delimiter}${inherited.PATH ?? ""}` : inherited.PATH;
     const env: NodeJS.ProcessEnv = { ...inherited, PATH: path, HOME: home, USERPROFILE: home, TMPDIR: tmpdir(), TEMP: tmpdir(),

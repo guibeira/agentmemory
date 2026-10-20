@@ -12,6 +12,7 @@ import {
   secretFilePath,
 } from "../src/secret-store.js";
 import { resetHandleForTests, resolveHandle, setLivezProbe } from "../src/mcp/rest-proxy.js";
+import { resolveDataDir } from "../src/cli-data-dir.js";
 
 const KEY = "AGENTMEMORY_SECRET";
 
@@ -22,6 +23,7 @@ describe("stored API secret", () => {
     profile: process.env.USERPROFILE,
     value: process.env[KEY],
     url: process.env.AGENTMEMORY_URL,
+    dataDir: process.env.AGENTMEMORY_DATA_DIR,
   };
 
   beforeEach(() => {
@@ -30,6 +32,7 @@ describe("stored API secret", () => {
     process.env.USERPROFILE = home;
     delete process.env[KEY];
     delete process.env.AGENTMEMORY_URL;
+    delete process.env.AGENTMEMORY_DATA_DIR;
   });
 
   afterEach(() => {
@@ -40,6 +43,8 @@ describe("stored API secret", () => {
     else process.env[KEY] = saved.value;
     if (saved.url === undefined) delete process.env.AGENTMEMORY_URL;
     else process.env.AGENTMEMORY_URL = saved.url;
+    if (saved.dataDir === undefined) delete process.env.AGENTMEMORY_DATA_DIR;
+    else process.env.AGENTMEMORY_DATA_DIR = saved.dataDir;
     rmSync(home, { recursive: true, force: true });
   });
 
@@ -54,6 +59,40 @@ describe("stored API secret", () => {
     const second = ensureServerSecret();
     expect(second).toEqual({ secret: first.secret, source: "file" });
     expect(readFileSync(secretFilePath(), "utf-8").trim()).toBe(first.secret);
+  });
+
+  it("keeps a custom data-dir secret readable by clients without that override", () => {
+    const customDataDir = join(home, "custom-state");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+    const { secret } = ensureServerSecret();
+    expect(secretFilePath()).toBe(join(customDataDir, "secret"));
+    expect(readFileSync(secretFilePath(), "utf-8").trim()).toBe(secret);
+    expect(readFileSync(join(home, ".agentmemory", "secret"), "utf-8").trim()).toBe(secret);
+    delete process.env.AGENTMEMORY_DATA_DIR;
+    expect(resolveClientSecret("http://localhost:3211")).toBe(secret);
+    expect(resolveClientSecret("http://localhost:3211", { AGENTMEMORY_DATA_DIR: customDataDir })).toBe(secret);
+  });
+
+  it("shares the secret for a resolved --instance data directory", () => {
+    const instance = resolveDataDir({ args: ["--instance", "2"], env: {}, home, cwd: home, platform: "linux" });
+    expect(instance.dataDir).toBe(join(home, ".local", "share", "agentmemory", "instance-2"));
+    process.env.AGENTMEMORY_DATA_DIR = instance.dataDir;
+    const { secret } = ensureServerSecret();
+    expect(secretFilePath()).toBe(join(instance.dataDir, "secret"));
+    expect(readFileSync(join(home, ".agentmemory", "secret"), "utf-8").trim()).toBe(secret);
+    delete process.env.AGENTMEMORY_DATA_DIR;
+    expect(resolveClientSecret("http://localhost:3311")).toBe(secret);
+    expect(resolveClientSecret("http://localhost:3311", { AGENTMEMORY_DATA_DIR: instance.dataDir })).toBe(secret);
+  });
+
+  it("migrates an existing data-dir secret to the shared client-visible path", () => {
+    const customDataDir = join(home, "custom-state");
+    mkdirSync(customDataDir, { recursive: true });
+    writeFileSync(join(customDataDir, "secret"), "existing-custom-secret\n");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+    expect(ensureServerSecret()).toEqual({ secret: "existing-custom-secret", source: "file" });
+    delete process.env.AGENTMEMORY_DATA_DIR;
+    expect(resolveClientSecret("http://localhost:3211")).toBe("existing-custom-secret");
   });
 
   it("lets an explicit secret win over the stored one", () => {
