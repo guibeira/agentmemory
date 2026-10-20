@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tools.svg"><img src="assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-hooks.svg"><img src="assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-deps.svg"><img src="assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tests.svg"><img src="assets/tags/stat-tests.svg" alt="3,600+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tests.svg"><img src="assets/tags/stat-tests.svg" alt="3,700+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -984,7 +984,7 @@ Memories decay over time (Ebbinghaus curve). Frequently accessed memories streng
 | `PostToolUseFailure` | Error context |
 | `PreCompact` | Re-injects memory before compaction |
 | `SubagentStart/Stop` | Sub-agent lifecycle |
-| `Stop` | End-of-session summary |
+| `Stop` | Assistant's final reply of each turn (privacy-filtered) |
 | `SessionEnd` | Session complete marker |
 
 ### Key Capabilities
@@ -1077,7 +1077,7 @@ Three tool surfaces, smallest to largest: `AGENTMEMORY_TOOLS=core` trims visibil
 | `memory_vision_search` | Search image observations |
 | `memory_timeline` | Chronological observations |
 | `memory_profile` | Project profile (concepts, files, patterns) |
-| `memory_export` | Export all memory data |
+| `memory_export` | Export memory data, in pages or selected collections on a large store |
 | `memory_relations` | Query relationship graph |
 | `memory_commit_lookup` | Sessions behind a git commit |
 | `memory_commits` | Commits recorded for a session |
@@ -1366,7 +1366,7 @@ else
 fi
 ```
 
-`/agentmemory/export` also accepts `?maxSessions=` and `?offset=` for chunking a large corpus across several calls; `strategy` on import is `merge` (default-safe), `replace`, or `skip`.
+`/agentmemory/export` also accepts `?maxSessions=` and `?offset=` for chunking a large corpus across several calls, `?collectionLimit=` and `?collectionOffset=` to page memories, the graph and the other collections, and `?collections=` to return only the named ones; `strategy` on import is `merge` (default-safe), `replace`, or `skip`, and `replace` refuses a paged or selected export.
 
 ### What iii replaces
 
@@ -1379,7 +1379,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom plugin systems | `iii worker add <name>` |
 
-**245 source files · ~56,000 LOC · 3,600+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**246 source files · ~56,000 LOC · 3,600+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 
@@ -1793,7 +1793,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,600+ tests
+npm test                  # 3,700+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

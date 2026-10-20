@@ -1964,9 +1964,18 @@ export function registerApiTriggers(
       // real corpus (40 sessions × 34K observations × 8K memories) hit the
       // iii engine invocation timeout and `agentmemory status` reported 0.
       // Pass through the query-string pagination so callers can chunk.
+      const payload: {
+        maxSessions?: number;
+        offset?: number;
+        collectionLimit?: number;
+        collectionOffset?: number;
+        collections?: string;
+      } = {};
       const rawMax = req.query_params?.["maxSessions"];
       const rawOffset = req.query_params?.["offset"];
-      const payload: { maxSessions?: number; offset?: number } = {};
+      const rawCollectionLimit = req.query_params?.["collectionLimit"];
+      const rawCollectionOffset = req.query_params?.["collectionOffset"];
+      const rawCollections = req.query_params?.["collections"];
       if (typeof rawMax === "string") {
         const n = Number(rawMax);
         if (Number.isInteger(n) && n > 0) payload.maxSessions = n;
@@ -1974,6 +1983,17 @@ export function registerApiTriggers(
       if (typeof rawOffset === "string") {
         const n = Number(rawOffset);
         if (Number.isInteger(n) && n >= 0) payload.offset = n;
+      }
+      if (typeof rawCollectionLimit === "string") {
+        const n = Number(rawCollectionLimit);
+        if (Number.isInteger(n) && n > 0) payload.collectionLimit = n;
+      }
+      if (typeof rawCollectionOffset === "string") {
+        const n = Number(rawCollectionOffset);
+        if (Number.isInteger(n) && n >= 0) payload.collectionOffset = n;
+      }
+      if (typeof rawCollections === "string") {
+        payload.collections = rawCollections;
       }
       const result = await sdk.trigger({
         function_id: "mem::export",
@@ -3178,10 +3198,13 @@ export function registerApiTriggers(
     async (req: HttpRequest): Promise<Response> => {
       const authErr = checkAuth(req, secret);
       if (authErr) return authErr;
+      const listQuery = parseListQuery(req.query_params);
       const result = await sdk.trigger({ function_id: "mem::action-list", payload: {
         status: req.query_params?.["status"],
         project: req.query_params?.["project"],
         parentId: req.query_params?.["parentId"],
+        limit: listQuery.limit,
+        cursor: listQuery.cursor,
       } });
       return { status_code: 200, body: result };
     },

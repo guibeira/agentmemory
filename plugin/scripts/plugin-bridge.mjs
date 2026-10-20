@@ -97,6 +97,7 @@ function resolveEnvOrEmpty(name) {
 }
 //#endregion
 //#region src/mcp/transport.ts
+let activeStdioTransports = 0;
 var JsonRpcError = class extends Error {
 	constructor(code, message) {
 		super(message);
@@ -249,6 +250,7 @@ function createMessageParser(onMessage, writeErr = (msg) => process.stderr.write
 function createStdioTransport(handler) {
 	let parser = null;
 	let queue = Promise.resolve();
+	let active = false;
 	const writeResponse = (response) => {
 		const formatted = formatResponse(response, parser?.isFramed() ?? false);
 		if (typeof formatted === "string") {
@@ -260,6 +262,10 @@ function createStdioTransport(handler) {
 	const onData = (chunk) => parser?.push(chunk);
 	return {
 		start() {
+			if (active) return;
+			active = true;
+			activeStdioTransports += 1;
+			process.env["AGENTMEMORY_MCP_STDIO__"] = "1";
 			parser = createMessageParser((message) => {
 				queue = queue.then(() => processLine(message, handler, writeResponse));
 				queue.catch((err) => {
@@ -270,6 +276,11 @@ function createStdioTransport(handler) {
 		},
 		stop() {
 			process.stdin.off("data", onData);
+			if (active) {
+				active = false;
+				activeStdioTransports -= 1;
+				if (activeStdioTransports === 0) delete process.env["AGENTMEMORY_MCP_STDIO__"];
+			}
 			parser = null;
 		}
 	};

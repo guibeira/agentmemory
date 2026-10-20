@@ -11,6 +11,10 @@ import type {
   TeamConfig,
 } from "./types.js";
 
+// Import-side ceiling for observations in a single session (enforced by mem::import).
+// This is independent of MAX_OBS_PER_SESSION, which controls runtime writes.
+export const MAX_IMPORT_OBS_PER_SESSION = 5_000;
+
 function safeParseInt(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
   const parsed = parseInt(value, 10);
@@ -22,6 +26,7 @@ const ENV_FILE = process.env["AGENTMEMORY_ENV_FILE"] || join(homedir(), ".agentm
 
 let warnPremiumModelShown = false;
 let providerNoticeShown = false;
+let obsCapImportCeilingWarned = false;
 
 function writeProviderNoticeOnce(text: string): void {
   if (providerNoticeShown) return;
@@ -215,13 +220,28 @@ export function loadConfig(): AgentMemoryConfig {
       parseInt(env["III_ENGINE_PORT"] || "", 10) || restPort + 46023
     }`;
 
+  const maxObservationsPerSession = safeParseInt(env["MAX_OBS_PER_SESSION"], 500);
+  if (
+    !obsCapImportCeilingWarned &&
+    (maxObservationsPerSession === 0 || maxObservationsPerSession > MAX_IMPORT_OBS_PER_SESSION)
+  ) {
+    obsCapImportCeilingWarned = true;
+    const capDesc = maxObservationsPerSession === 0 ? "uncapped (0)" : String(maxObservationsPerSession);
+    process.stderr.write(
+      `[agentmemory] WARNING: MAX_OBS_PER_SESSION is ${capDesc}, above the ` +
+        `${MAX_IMPORT_OBS_PER_SESSION}-per-session import ceiling (MAX_IMPORT_OBS_PER_SESSION). ` +
+        `Sessions past that ceiling make every mem::export -> mem::import restore fail wholesale. ` +
+        `Keep MAX_OBS_PER_SESSION at or below ${MAX_IMPORT_OBS_PER_SESSION} if you rely on export/import backups.\n`,
+    );
+  }
+
   return {
     engineUrl,
     restPort,
     viewerPort,
     provider,
     tokenBudget: safeParseInt(env["TOKEN_BUDGET"], 2000),
-    maxObservationsPerSession: safeParseInt(env["MAX_OBS_PER_SESSION"], 500),
+    maxObservationsPerSession,
     compressionModel: provider.model,
     dataDir: DATA_DIR,
   };
