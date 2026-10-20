@@ -425,7 +425,7 @@ class Instance {
   processGroups() {
     let rows = [];
     try {
-      rows = execFileSync("ps", ["-eo", "pid=,ppid=,pgid=,args="], { encoding: "utf8" })
+      rows = execFileSync("ps", ["-eo", "pid=,ppid=,pgid=,command="], { encoding: "utf8" })
         .split(/\r?\n/).map((line) => {
           const match = line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/);
           return match ? { pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]), args: match[4] } : null;
@@ -645,7 +645,7 @@ class Instance {
     try {
       const composeState = JSON.parse(readFileSync(statePath, "utf8"));
       const port = this.port;
-      const rows = execFileSync("ps", ["-eo", "pid=,rss=,args="], { encoding: "utf8" }).split(/\r?\n/);
+      const rows = execFileSync("ps", ["-A", "-o", "pid=,rss=,command="], { encoding: "utf8" }).split(/\r?\n/);
       const components = {};
       for (const [name, record] of Object.entries(composeState.containers ?? {})) {
         const pid = record.pid;
@@ -653,11 +653,11 @@ class Instance {
         let processPid = pid;
         let processArgs = "";
         if (name === "agentmemory") {
-          const children = execFileSync("ps", ["--ppid", String(pid), "-o", "pid=,rss=,args="], { encoding: "utf8" }).trim();
-          const child = children.split(/\r?\n/).map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)).find((match) => match && /node.*dist\/index\.mjs/.test(match[3]));
+          const children = execFileSync("ps", ["-A", "-o", "pid=,ppid=,rss=,command="], { encoding: "utf8" }).trim();
+          const child = children.split(/\r?\n/).map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/)).find((match) => match && Number(match[2]) === Number(pid) && /node.*dist\/index\.mjs/.test(match[4]));
           if (child) {
             processPid = Number(child[1]);
-            processArgs = child[3];
+            processArgs = child[4];
           }
         }
         const row = rows.map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)).find((match) => match && Number(match[1]) === Number(processPid));
@@ -685,9 +685,13 @@ class Instance {
       }
     };
     walk(root);
+    const instanceSuffix = join(`agentmemory-${this.port}`, "state.json");
+    const instanceState = files.find((file) => file.endsWith(instanceSuffix));
+    if (instanceState) return instanceState;
     for (const file of files) {
       const state = JSON.parse(readFileSync(file, "utf8"));
-      if (state.compose_path === join(this.dataDir, "compose", "worker-compose.yaml")) return file;
+      const composePath = state.compose_path ?? state.composePath ?? state.file;
+      if (composePath && resolve(composePath) === resolve(join(this.dataDir, "compose", "worker-compose.yaml"))) return file;
     }
     throw new Error(`Compose state.json for ${this.name} was not found under ${root}`);
   }
@@ -711,14 +715,14 @@ class Instance {
         let pid = containerPid;
         let processArgs = "";
         if (name === "agentmemory") {
-          const children = execFileSync("ps", ["--ppid", String(containerPid), "-o", "pid=,rss=,args="], { encoding: "utf8" }).trim();
-          const child = children.split(/\r?\n/).map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)).find((match) => match && /node.*dist\/index\.mjs/.test(match[3]));
+          const children = execFileSync("ps", ["-A", "-o", "pid=,ppid=,rss=,command="], { encoding: "utf8" }).trim();
+          const child = children.split(/\r?\n/).map((line) => line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/)).find((match) => match && Number(match[2]) === Number(pid) && /node.*dist\/index\.mjs/.test(match[4]));
           if (child) {
             pid = Number(child[1]);
-            processArgs = child[3];
+            processArgs = child[4];
           }
         }
-        const fields = execFileSync("ps", ["-p", String(pid), "-o", "rss=,args="], { encoding: "utf8" }).trim().match(/^(\d+)\s+(.*)$/);
+        const fields = execFileSync("ps", ["-p", String(pid), "-o", "rss=,command="], { encoding: "utf8" }).trim().match(/^(\d+)\s+(.*)$/);
         if (!fields) continue;
         const rssKb = Number(fields[1]);
         result[name] = { pid, containerPid, rssKb, rssMiB: Math.round(rssKb / 1024 * 10) / 10, args: processArgs || fields[2] || "" };
@@ -739,9 +743,13 @@ class Instance {
         else if (entry.name === "state.json") files.push(path);
       } };
       walk(stateRoot);
+      const instanceState = files.map((path) => ({ path, state: JSON.parse(readFileSync(path, "utf8")) }))
+        .find(({ path }) => path.endsWith(join(`agentmemory-${this.port}`, "state.json")));
+      if (instanceState) return instanceState.state.containers?.agentmemory?.pid ?? null;
       for (const path of files) {
         const state = JSON.parse(readFileSync(path, "utf8"));
-        if (state.compose_path === join(this.dataDir, "compose", "worker-compose.yaml")) return state.containers?.agentmemory?.pid ?? null;
+        const composePath = state.compose_path ?? state.composePath ?? state.file;
+        if (composePath && resolve(composePath) === resolve(join(this.dataDir, "compose", "worker-compose.yaml"))) return state.containers?.agentmemory?.pid ?? null;
       }
     } catch {}
     return null;
