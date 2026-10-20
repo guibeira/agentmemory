@@ -1104,11 +1104,9 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
       executable = processInfo.executable ?? "";
     } else if (platform() === "darwin") {
       command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-      const files = execFileSync("lsof", ["-a", "-p", String(pid), "-d", "txt", "-Fn"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-      executable = files.split(/\r?\n/)
-        .filter((line) => line.startsWith("n"))
-        .map((line) => line.slice(1))
-        .find((path) => basename(path) === basename(state.binPath)) ?? "";
+      const binPath = resolve(state.binPath);
+      if (!command.startsWith(`${binPath} compose `)) return false;
+      executable = binPath;
     } else {
       command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
       executable = readlinkSync(`/proc/${pid}/exe`);
