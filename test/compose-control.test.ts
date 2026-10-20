@@ -18,7 +18,8 @@ describe("Compose control plane", () => {
       AGENTMEMORY_REDIS_URL: "redis://secret",
       MALLOC_ARENA_MAX: "10",
     }, "/tmp/state");
-    expect(env).toMatchObject({ HOME: "/tmp/home", PATH: "/bin", III_COMPOSE_STATE_DIR: "/tmp/state", III_TELEMETRY_ENABLED: "false", MALLOC_ARENA_MAX: "2" });
+    expect(env).toMatchObject({ HOME: "/tmp/home", PATH: "/bin", III_COMPOSE_STATE_DIR: "/tmp/state", III_TELEMETRY_ENABLED: "false" });
+    expect(env.MALLOC_ARENA_MAX).toBe(process.platform === "linux" ? "2" : "10");
     expect(env).not.toHaveProperty("ANTHROPIC_API_KEY");
     expect(env).not.toHaveProperty("III_URL");
     expect(env).not.toHaveProperty("AGENTMEMORY_REDIS_URL");
