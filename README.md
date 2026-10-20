@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tools.svg"><img src="assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-hooks.svg"><img src="assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-deps.svg"><img src="assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tests.svg"><img src="assets/tags/stat-tests.svg" alt="3,000+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tests.svg"><img src="assets/tags/stat-tests.svg" alt="3,600+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -1327,7 +1327,7 @@ AGENTMEMORY_REDIS_URL=redis://localhost:6379
 - The engine applies partial updates on Redis in a Lua script that turns empty arrays into empty objects. agentmemory applies those updates itself (read, change, write under a per-key lock) on Redis, so fields like `tags: []` stay arrays.
 - The legacy audit log check reads the old scope from Redis instead of looking for the file store's file on disk.
 
-After Redis restarts, **the live viewer feed may need agentmemory to restart** before events resume. Data is still saved and read normally. The health monitor sends a test event through Redis every 30 seconds; when it does not come back, `/agentmemory/status` and the viewer's Health page show "Live updates are not reaching the viewer" with the fix: restart agentmemory. If Redis is down, the status report shows "The state store is not answering" and how to check it (`redis-cli -u "$AGENTMEMORY_REDIS_URL" ping`). Listing a very large scope reads the whole hash in one `HGETALL`, the same cost as the file store holding it in memory.
+Viewer live events use SSE on the REST worker and are broadcast from the running agentmemory process; they do not use Redis pub/sub or a periodic Redis stream probe. Redis availability affects state reads and writes, not the viewer transport. If Redis is down, the status report shows "The state store is not answering" and how to check it (`redis-cli -u "$AGENTMEMORY_REDIS_URL" ping`). Listing a very large scope reads the whole hash in one `HGETALL`, the same cost as the file store holding it in memory.
 
 **Recommended Redis settings.** The default `save 3600 1 300 100 60 10000` snapshot policy can lose minutes of writes on a crash. Set `appendonly yes` for anything you'd mind losing. Set `maxmemory-policy noeviction`; `allkeys-lru` or similar silently drops memories once Redis hits its memory limit.
 
@@ -1379,7 +1379,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom plugin systems | `iii worker add <name>` |
 
-**242 source files · ~56,000 LOC · 3,400+ tests · 324 functions · 67 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**245 source files · ~56,000 LOC · 3,600+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 
@@ -1793,7 +1793,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,000+ tests
+npm test                  # 3,600+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

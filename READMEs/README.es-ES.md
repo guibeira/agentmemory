@@ -1446,7 +1446,7 @@ fi
 | Prometheus / Grafana | iii OTEL + monitor de salud |
 | Sistemas de plugins propios | `iii worker add <name>` |
 
-**245 ficheros de código · ~55,000 LOC · 3,400+ tests · 322 funciones · 65 scopes KV**, todo sobre tres primitivos. No hay `agentmemory plugin install`. El sistema de plugins es iii mismo.
+**245 ficheros de código · ~55,000 LOC · 3,600+ tests · 322 funciones · 65 scopes KV**, todo sobre tres primitivos. No hay `agentmemory plugin install`. El sistema de plugins es iii mismo.
 
 ---
 

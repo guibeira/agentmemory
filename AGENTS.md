@@ -4,7 +4,7 @@
 
 agentmemory is a persistent memory system for AI coding agents, built on iii-engine's three primitives (Worker/Function/Trigger). Everything goes through `registerFunction`/`registerTrigger`/`sdk.trigger()` — never bypass iii-engine with standalone SQLite or in-process alternatives.
 
-- **Engine**: iii-sdk 0.22.1 with @iii-dev/helpers 0.22.1 (WebSocket to iii-engine 0.22.1 on port 49134; the client type is `IIIClient`, HTTP requests are `HttpRequest` from `@iii-dev/helpers/http`)
+- **Engine**: iii-sdk 0.24.6 with @iii-dev/helpers 0.24.6 (Worker Compose-managed iii-engine 0.24.6 on port 49134; the client type is `IIIClient`, HTTP requests are `HttpRequest` from `@iii-dev/helpers/http`)
 - **State**: File-based SQLite via iii-engine's StateModule (`./data/state_store.db`)
 - **Build**: TypeScript → ESM via tsdown, output to `dist/`
 - **Test**: vitest (`npm test` excludes integration tests)
@@ -114,4 +114,4 @@ Hook scripts in `src/hooks/` are standalone Node.js scripts (no iii-sdk import).
 - 6 MCP resources, 3 MCP prompts
 - 12 hooks, 17 skills
 - 322+ iii functions
-- 3,400+ tests
+- 3,600+ tests

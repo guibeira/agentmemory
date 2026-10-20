@@ -82,15 +82,9 @@ Configuration is read from the environment and from `~/.agentmemory/.env` (no `e
 - `AGENTMEMORY_WORKER_ENV_ALLOWLIST`
 <!-- AUTOGEN:env END -->
 
-## Engine config
-
-- `AGENTMEMORY_III_CONFIG`: path to the engine config the CLI starts from. Lookup order: this variable, `./iii-config.yaml`, `~/.agentmemory/iii-config.yaml`, the bundled `iii-config.yaml`. The chosen file is rendered into `~/.agentmemory/data/iii-config.runtime.yaml` on every start; its `host:` values are kept as written.
-
-The bundled config binds `127.0.0.1`, also inside a container. To reach a containerized CLI through published ports, point `AGENTMEMORY_III_CONFIG` at a config that binds `0.0.0.0` (the packaged `iii-config.docker.yaml` does, and stores state under `/data`) and keep `AGENTMEMORY_SECRET` set. The repo's `docker-compose.yml` mounts `iii-config.docker.yaml` straight into the engine container and does not use this lookup. See the README section "Engine config and bind address".
-
 ## State backend
 
 - `AGENTMEMORY_STATE_BACKEND`: `file` (default) or `redis`. Anything else stops startup with an error.
 - `AGENTMEMORY_REDIS_URL`: required with `redis`, plain `redis://` only (the pinned engine has no TLS). The URL never appears in `/agentmemory/status` or the viewer.
 
-Switching backends starts from an empty store; move data with `/agentmemory/export` and `/agentmemory/import`. Run one Redis server per `--instance`: live viewer events travel over a Redis pub/sub channel that ignores the database index. After Redis restarts, restart agentmemory so live viewer updates resume; the Health page flags this. See the README section "Storage backend: file (default) vs redis".
+Switching backends starts from an empty store; move data with `/agentmemory/export` and `/agentmemory/import`. Run one Redis server per `--instance`. Viewer live events use SSE on the REST worker and are broadcast from the running agentmemory process; they do not use Redis pub/sub or a periodic Redis stream probe. Redis availability affects state reads and writes, not the viewer transport. See the README section "Storage backend: file (default) vs redis".

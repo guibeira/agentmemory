@@ -1437,7 +1437,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Hệ thống plugin tùy chỉnh | `iii worker add <name>` |
 
-**245 file source · ~55,000 LOC · 3,400+ test · 322 function · 65 KV scope**, tất cả trên ba primitive. Không có `agentmemory plugin install`. Hệ thống plugin chính là iii.
+**245 file source · ~55,000 LOC · 3,600+ test · 322 function · 65 KV scope**, tất cả trên ba primitive. Không có `agentmemory plugin install`. Hệ thống plugin chính là iii.
 
 ---
 
