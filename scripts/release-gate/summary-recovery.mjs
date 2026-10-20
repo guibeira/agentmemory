@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { appendFileSync, chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import http from "node:http";
@@ -199,6 +199,17 @@ function rememberPids() {
       if (Number.isSafeInteger(pid) && pid > 1 && pid !== process.pid) ownedPids.add(pid);
     } catch {}
   }
+  // Process loss takes the whole runtime: Compose, engine and workers. Killing only the
+  // recorded pids left the daemon ports open on macOS CI, so collect the tree explicitly.
+  try {
+    const state = JSON.parse(readFileSync(join(runtime, "engine-state.json"), "utf8"));
+    for (const pid of [state.composePid, state.enginePid]) if (Number.isSafeInteger(pid) && pid > 1 && pid !== process.pid) ownedPids.add(pid);
+  } catch {}
+  try {
+    const rows = execFileSync("ps", ["-eo", "pid=,ppid="], { encoding: "utf8" }).split(/\r?\n/).map((row) => row.trim().split(/\s+/).map(Number)).filter((row) => row.length === 2 && row.every(Number.isFinite));
+    let changed = true;
+    while (changed) { changed = false; for (const [child, parent] of rows) if (ownedPids.has(parent) && !ownedPids.has(child) && child !== process.pid) { ownedPids.add(child); changed = true; } }
+  } catch {}
 }
 async function startDaemon() {
   boot++;
