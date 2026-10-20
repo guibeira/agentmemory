@@ -35,8 +35,8 @@ describe("Docker Worker Compose runtime", () => {
 
   it("persists application state in a named volume and uses the shared image build", () => {
     expect(compose).toContain("dockerfile: deploy/Dockerfile");
-    expect(compose).toContain("- agentmemory-data:/data");
-    expect(compose).toContain("agentmemory-data:");
+    expect(compose).toContain("- ${AGENTMEMORY_DATA_DIR:-iii-data}:/data");
+    expect(compose).toContain("iii-data:");
     expect(compose).not.toMatch(/^\s+- \.\//m);
   });
 
@@ -46,6 +46,7 @@ describe("Docker Worker Compose runtime", () => {
     expect(entrypoint).toContain("--namespace agentmemory --up --file");
     expect(workerCompose).toContain("configuration:");
     expect(workerCompose).toContain("save_interval_ms: 2000");
+    expect(workerCompose).toContain("file_path: /data/state_store.db");
   });
 
   it("sets host and viewer allowlists from runtime environment", () => {

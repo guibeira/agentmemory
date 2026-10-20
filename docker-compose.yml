@@ -20,7 +20,7 @@ services:
       - "127.0.0.1:${AGENTMEMORY_REST_PORT:-3111}:3111"
       - "127.0.0.1:${AGENTMEMORY_VIEWER_PORT:-3113}:3113"
     volumes:
-      - agentmemory-data:/data
+      - ${AGENTMEMORY_DATA_DIR:-iii-data}:/data
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3111/agentmemory/livez').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -34,4 +34,4 @@ services:
         max-file: "3"
 
 volumes:
-  agentmemory-data:
+  iii-data:

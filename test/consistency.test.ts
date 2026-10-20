@@ -87,7 +87,7 @@ describe("Consistency checks", () => {
     const compose = readText("docker-compose.yml");
     const pkg = JSON.parse(readText("package.json"));
     const files: string[] = pkg.files ?? [];
-    expect(compose).toContain("- agentmemory-data:/data");
+    expect(compose).toContain("- ${AGENTMEMORY_DATA_DIR:-iii-data}:/data");
     expect(files).not.toContain("docker-compose.yml");
     expect(files).not.toContain("iii-config.yaml");
     expect(files).not.toContain("iii-config.docker.yaml");
