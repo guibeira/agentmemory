@@ -1,5 +1,4 @@
 import { stat, readFile } from "node:fs/promises";
-import { homedir } from "node:os";
 import { join } from "node:path";
 import type { AuditEntry, AuditMigrationState, AuditQueryResult } from "../types.js";
 import { KV, generateId } from "../state/schema.js";

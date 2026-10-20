@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, writeWorkerCompose } from "../src/cli/compose-project.js";
 
 const root = mkdtempSync(join(tmpdir(), "agentmemory-compose-"));
+const rootUrl = `path://${root.replaceAll("\\", "/")}`;
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 const options = (overrides: Record<string, unknown> = {}) => ({
   ports: { restPort: 3511, viewerPort: 3513, enginePort: 49534 },
@@ -38,7 +39,7 @@ describe("Worker Compose project", () => {
 
   it("uses local worker binaries when requested and emits explicit path worker commands", () => {
     const text = renderWorkerCompose(options({ workerBinDir: "/opt/am/workers-local" }));
-    expect(text).toContain("worker: 'path:///tmp/agentmemory-compose-");
+    expect(text).toContain(`worker: '${rootUrl}/data/compose/local-workers/state'`);
     expect(text).toContain("local-workers/state");
     expect(text).toContain("run: '/opt/am/workers-local/state'");
     expect(text).toContain("run: '/opt/am/workers-local/http'");
@@ -67,9 +68,9 @@ describe("Worker Compose project", () => {
     mkdirSync(join(root, "home"), { recursive: true });
     writeFileSync(envPath, "ANTHROPIC_API_KEY=fixture-secret\nIII_URL=ws://wrong\nIII_NAMESPACE=wrong\n");
     const written = writeWorkerCompose(options({ envFile: envPath }));
-    expect(written.text).toContain("env_file: ['/tmp/agentmemory-compose-");
+    expect(written.text).toContain(`env_file: ['${join(root, "data", "compose", ".agentmemory-filtered.env")}']`);
     expect(written.text).toContain(".agentmemory-filtered.env");
-    expect(written.text).toContain("AGENTMEMORY_ENV_FILE: '/tmp/agentmemory-compose-");
+    expect(written.text).toContain(`AGENTMEMORY_ENV_FILE: '${join(root, "data", "compose", ".agentmemory-filtered.env")}'`);
     expect(written.text).not.toContain("III_URL:");
     expect(readFileSync(join(root, "data", "compose", ".agentmemory-filtered.env"), "utf8")).toContain("ANTHROPIC_API_KEY=fixture-secret");
     expect(readFileSync(join(root, "data", "compose", ".agentmemory-filtered.env"), "utf8")).not.toContain("III_URL");
@@ -93,7 +94,7 @@ describe("Worker Compose project", () => {
       expect(manifest).toContain("start: '");
       expect(manifest).toContain(`/workers-local/${name}'`);
     }
-    expect(written.text).toContain("path:///tmp/agentmemory-compose-");
+    expect(written.text).toContain(`worker: '${rootUrl}/data/compose/local-workers/state'`);
   });
 
   it("writes the project and runtime state only inside the data dir with owner-only file permissions", () => {

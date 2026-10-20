@@ -1094,15 +1094,32 @@ function printComposeStartupLogs(): void {
 
 function composePidMatches(pid: number, state: ComposeEngineState): boolean {
   try {
-    const command = execFileSync("ps", ["-p", String(pid), "-o", "args="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    const executable = IS_WINDOWS ? "" : readlinkSync(`/proc/${pid}/exe`);
-    return Boolean(
-      command.includes("compose") &&
+    let command = "";
+    let executable = "";
+    if (IS_WINDOWS) {
+      const script = `$process = Get-CimInstance Win32_Process -Filter 'ProcessId = ${pid}'; if ($process) { @{ command = $process.CommandLine; executable = $process.ExecutablePath } | ConvertTo-Json -Compress }`;
+      const result = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      const processInfo = JSON.parse(result) as { command?: string; executable?: string };
+      command = processInfo.command ?? "";
+      executable = processInfo.executable ?? "";
+    } else if (platform() === "darwin") {
+      command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      const files = execFileSync("lsof", ["-a", "-p", String(pid), "-d", "txt", "-Fn"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+      executable = files.split(/\r?\n/).find((line) => line.startsWith("n"))?.slice(1) ?? "";
+    } else {
+      command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+      executable = readlinkSync(`/proc/${pid}/exe`);
+    }
+    const expectedCommand = command.includes("compose") &&
       command.includes("compose --namespace") &&
       command.includes(state.namespace) &&
-      command.includes(state.file) &&
-      executable && resolve(executable) === resolve(state.binPath),
-    );
+      command.includes(state.file);
+    if (!expectedCommand || !executable) return false;
+    const actualPath = resolve(executable);
+    const expectedPath = resolve(state.binPath);
+    return IS_WINDOWS
+      ? actualPath.toLowerCase() === expectedPath.toLowerCase()
+      : actualPath === expectedPath;
   } catch {
     return false;
   }
@@ -1111,7 +1128,7 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
 function composeChildProcesses(state: ComposeEngineState): Array<{ pid: number; pgid: number; args: string }> {
   if (IS_WINDOWS || !state.composePid) return [];
   try {
-    const rows = execFileSync("ps", ["-eo", "pid=,ppid=,pgid=,args="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
+    const rows = execFileSync("ps", ["-eo", "pid=,ppid=,pgid=,command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })
       .split(/\r?\n/)
       .map((row) => {
         const match = row.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/);
@@ -1142,8 +1159,7 @@ function composeChildPids(state: ComposeEngineState): number[] {
 }
 
 function composeEnginePid(state: ComposeEngineState): number | undefined {
-  const label = `iii:e:${state.namespace}`;
-  return composeChildProcesses(state).find(({ args }) => args.includes(label))?.pid;
+  return composeChildProcesses(state).find(({ args }) => args.includes(" --config ") && args.includes(state.namespace))?.pid;
 }
 
 async function terminateComposeChildren(state: ComposeEngineState): Promise<boolean> {
