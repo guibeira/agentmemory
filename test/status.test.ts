@@ -9,12 +9,13 @@ import {
   singleFlight,
   type StatusInputs,
 } from "../src/functions/status.js";
+import { III_PINNED_VERSION } from "../src/version.js";
 
 function inputs(overrides: Partial<StatusInputs> = {}): StatusInputs {
   return {
     now: new Date("2026-09-24T12:00:00.000Z"),
     version: "0.9.29",
-    enginePinnedVersion: "0.22.1",
+    enginePinnedVersion: III_PINNED_VERSION,
     uptimeSeconds: 125,
     stateBackend: "file",
     ports: { rest: 3111, viewer: 3113 },
@@ -63,7 +64,7 @@ describe("evaluateStatus", () => {
     expect(report.status).toBe("ok");
     expect(report.problems).toEqual([]);
     expect(report.graph?.ageSeconds).toBe(60);
-    expect(report.service.enginePinnedVersion).toBe("0.22.1");
+    expect(report.service.enginePinnedVersion).toBe(III_PINNED_VERSION);
   });
 
   it("surfaces the active state backend, never the URL", () => {

@@ -7,10 +7,11 @@ import { renderWorkerCompose } from "../src/cli/compose-project.js";
 const read = (path: string) => readFileSync(join(import.meta.dirname, "..", path), "utf-8");
 
 describe("engine state flush timing", () => {
-  it("derives the interval from persisted legacy state config before the runtime file", () => {
+  it("derives the interval from the Compose state config before the runtime file", () => {
     const paths = engineStateConfigPaths("/home/u/.agentmemory", "/data/iii-config.runtime.yaml");
     expect(paths[0]).toBe("/home/u/.agentmemory/compose/worker-compose.yaml");
     expect(paths).toContain("/home/u/.agentmemory/compose/config/state.yaml");
+    expect(paths.some((path) => path.includes("iii-state.yaml"))).toBe(false);
     expect(paths.at(-1)).toBe("/data/iii-config.runtime.yaml");
     const persisted = "id: iii-state\\nvalue:\\n  adapter:\\n    config:\\n      save_interval_ms: 2000\\n      store_method: file_based\\n";
     expect(engineSaveIntervalMs([persisted])).toBe(2000);

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { III_PINNED_VERSION } from "../src/version.js";
 
 vi.mock("../src/logger.js", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -279,7 +280,7 @@ describe("status on the redis backend", () => {
     return {
       now: new Date("2026-09-28T00:00:00.000Z"),
       version: "0.0.0",
-      enginePinnedVersion: "0.22.1",
+      enginePinnedVersion: III_PINNED_VERSION,
       uptimeSeconds: 10,
       stateBackend: "redis",
       ports: { rest: 3111, viewer: 3113 },

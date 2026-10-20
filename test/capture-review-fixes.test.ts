@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from "vitest";
+import { III_PINNED_VERSION } from "../src/version.js";
 import { spawn } from "node:child_process";
 import { createServer, type Server } from "node:http";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, statSync, utimesSync, writeFileSync } from "node:fs";
@@ -133,7 +134,7 @@ function statusInputs(capture: CaptureStatus | null | undefined): StatusInputs {
   return {
     now: new Date("2026-10-02T12:00:00.000Z"),
     version: "0.9.30",
-    enginePinnedVersion: "0.22.1",
+    enginePinnedVersion: III_PINNED_VERSION,
     uptimeSeconds: 60,
     stateBackend: "file",
     ports: { rest: 3111, viewer: 3113 },

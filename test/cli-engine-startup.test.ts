@@ -105,6 +105,7 @@ describe("fresh native engine startup", () => {
     expect(engineBody).toMatch(
       /try \{\s*stateBackendKind = getStateBackend\(\);\s*\} catch \(err\) \{\s*p\.log\.error\(err instanceof Error \? err\.message : String\(err\)\);\s*process\.exit\(1\);\s*\}/,
     );
+    // The retired Docker-mode environment switch must not return to CLI startup.
     expect(engineBody).not.toContain("AGENTMEMORY_USE_DOCKER");
   });
 

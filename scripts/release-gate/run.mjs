@@ -1174,7 +1174,7 @@ async function main() {
   });
 
   await scenario("deadletter", async (d) => {
-    // Agentmemory capture inbox/dead-letter recovery is independent of iii-queue.
+    // Agentmemory capture inbox/dead-letter recovery is independent of queue workers.
     await ensureUp(instA);
     await instA.stop();
     await instA.start({ MAX_OBS_PER_SESSION: "2" });

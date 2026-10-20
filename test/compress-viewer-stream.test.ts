@@ -38,7 +38,7 @@ function mockKV() {
 }
 
 describe("compress emits updates over the worker-owned SSE hub", () => {
-  it("broadcasts the compressed observation without calling iii-stream", async () => {
+  it("broadcasts the compressed observation without a legacy stream worker", async () => {
     const trigger = vi.fn(async () => undefined);
     const kv = mockKV();
 

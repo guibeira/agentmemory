@@ -6,6 +6,7 @@
 // driven by clack — exercising it would require a TTY and is out of scope.
 
 import { describe, it, expect } from "vitest";
+import { III_PINNED_VERSION } from "../src/version.js";
 import {
   buildDiagnostics,
   DIAGNOSTIC_IDS,
@@ -24,7 +25,7 @@ function stubCtx(overrides: Partial<DoctorContext> = {}): DoctorContext {
     envPath: "/tmp/test/.agentmemory/.env",
     pidfilePath: "/tmp/test/.agentmemory/iii.pid",
     enginePath: "/tmp/test/.agentmemory/engine-state.json",
-    pinnedVersion: "0.11.2",
+    pinnedVersion: III_PINNED_VERSION,
     ...overrides,
   };
 }
@@ -37,7 +38,7 @@ function stubEffects(overrides: Partial<DoctorEffects> = {}): DoctorEffects {
     pidfilePidIsAlive: () => null,
     findIiiBinary: () => "/Users/test/.local/bin/iii",
     localBinIiiPath: () => "/Users/test/.local/bin/iii",
-    iiiBinaryVersion: () => "0.11.2",
+    iiiBinaryVersion: () => III_PINNED_VERSION,
     viewerReachable: async () => true,
     runInit: async () => ({ ok: true, message: "wrote .env" }),
     openEditor: async () => ({ ok: true, message: "saved" }),
@@ -120,7 +121,7 @@ describe("doctor v2 diagnostic catalog", () => {
     const status = await check.check(stubCtx());
     expect(status.ok).toBe(false);
     expect(status.detail).toContain("0.99.99");
-    expect(status.detail).toContain("0.11.2");
+    expect(status.detail).toContain(III_PINNED_VERSION);
   });
 
   it("engine-version-mismatch passes when iii matches pinned version", async () => {

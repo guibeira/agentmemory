@@ -23,6 +23,7 @@ describe("native Worker Compose runtime configuration", () => {
     expect(rendered).toContain("port: 49234");
     expect(rendered).toContain("file_path: '/tmp/agentmemory/state_store.db'");
     expect(rendered).toContain("namespace: agentmemory-3211");
+    // The generated Compose project no longer emits the legacy engine config.
     expect(rendered).not.toContain("iii-config.yaml");
   });
 

@@ -14,7 +14,7 @@ const entrypoint = readFileSync(
 );
 
 describe("Docker Worker Compose runtime", () => {
-  it("publishes configurable loopback REST and viewer ports", () => {
+  it("publishes REST and viewer ports but not the retired stream port 3112", () => {
     expect(compose).toContain('"127.0.0.1:${AGENTMEMORY_REST_PORT:-3111}:3111"');
     expect(compose).toContain('"127.0.0.1:${AGENTMEMORY_VIEWER_PORT:-3113}:3113"');
     expect(compose).not.toContain("49134:");

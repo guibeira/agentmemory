@@ -89,6 +89,7 @@ describe("Consistency checks", () => {
     const files: string[] = pkg.files ?? [];
     expect(compose).toContain("- ${AGENTMEMORY_DATA_DIR:-iii-data}:/data");
     expect(files).not.toContain("docker-compose.yml");
+    // Neither removed legacy config template is part of the published package.
     expect(files).not.toContain("iii-config.yaml");
     expect(files).not.toContain("iii-config.docker.yaml");
   });

@@ -73,7 +73,7 @@ describe("startup configuration", () => {
   });
 });
 
-describe("configured worker ownership", () => {
+describe("legacy native-engine worker ownership detection", () => {
   const config = (command: string) => `workers:\n  - name: iii-exec\n    config:\n      exec:\n        - ${command}\n  - name: iii-http\n    config:\n      port: 3111\n`;
   let engineCwd: string;
   let emptyCwd: string;
@@ -155,7 +155,7 @@ describe("configured worker ownership", () => {
   });
 });
 
-describe("readiness deadlines", () => {
+describe("readiness deadlines and legacy native-engine compatibility", () => {
   it("aborts a hung probe at the remaining budget, without a trailing retry sleep", async () => {
     fakeTime();
     let signal: AbortSignal | undefined;
