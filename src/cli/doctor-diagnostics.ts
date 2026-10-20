@@ -217,11 +217,11 @@ export function buildDiagnostics(effects: DoctorEffects): Diagnostic[] {
       id: "engine-version-mismatch",
       message: "iii binary on PATH doesn't match the version agentmemory pins to.",
       fixPreview:
-        "Verify the ii-engine binary recorded for the managed Worker Compose project.",
+        "Reinstall the pinned iii-engine and restart the managed Worker Compose project.",
       moreInfo:
         "agentmemory manages its pinned iii engine and workers through Worker Compose; " +
         "a foreign process on PATH is not the instance binary. " +
-        "use a different worker model. Running a mismatched binary surfaces as EPIPE " +
+        "Running a mismatched binary surfaces as EPIPE " +
         "reconnect loops and empty search results.",
       check: async (ctx) => {
         const bin = effects.findIiiBinary();
