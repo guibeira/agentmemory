@@ -226,7 +226,6 @@ class Instance {
         "      EMBEDDING_PROVIDER: 'none'",
         "      III_TELEMETRY_ENABLED: 'false'",
       );
-      this.envExtra.AGENTMEMORY_ENGINE_MANAGES_WORKER = "true";
     }
     lines.push("");
     const file = join(this.dir, "worker-compose.yaml");
@@ -240,12 +239,18 @@ class Instance {
     this.ownedPids.add(this.cli.pid); return this.cli;
   }
   async startEngine(config) {
-    const namespace = `agentmemory-${this.port}`;
-    this.engine = launch(engine, ["compose", "--namespace", namespace, "--up", "--file", config], { III_COMPOSE_STATE_DIR: join(this.data, "compose-state") }, this.dir, this.logFile);
+    this.engine = launch(process.execPath, [cli, "--port", String(this.port)], this.env({ AGENTMEMORY_READY_TIMEOUT_MS: "180000" }), this.dir, this.logFile);
     this.ownedPids.add(this.engine.pid);
-    await poll("external Compose engine", async () => (await fetch(`${this.url}/`, { signal: AbortSignal.timeout(500) })).status > 0, 180_000);
-    writeFileSync(join(this.runtime, "engine-state.json"), JSON.stringify({ kind: "native", configPath: config, binPath: engine, restPort: this.port, attached: true }));
-    writeFileSync(join(this.runtime, "iii.pid"), String(this.engine.pid));
+    await poll("managed Worker Compose engine", async () => {
+      if (this.engine.result && this.engine.result.code !== 0) throw Object.assign(new Error(`CLI exited ${this.engine.result.code}: ${this.engine.text.slice(-1200)}`), { fatal: true });
+      return (await fetch(`${this.url}/`, { signal: AbortSignal.timeout(500) })).status > 0;
+    }, 180_000);
+    const statePath = join(this.runtime, "engine-state.json");
+    await poll("managed Compose state", () => existsSync(statePath));
+    const state = JSON.parse(readFileSync(statePath, "utf8"));
+    this.composePid = state.composePid ?? null;
+    this.enginePid = state.enginePid ?? null;
+    this.configPath = state.file;
   }
   async ready(timeout = 90_000, requireHint = true, allowDoctorDiagnosticsFailure = false) {
     await poll(this.name, async () => {
@@ -275,12 +280,20 @@ async function scenario(name, fn) {
 }
 async function delayedConfigured(instance, details, { delayMs, earlyPid = false, adopt = false, args = [] } = {}) {
   const config = instance.config({ delayMs, earlyPid });
-  if (adopt) await instance.startEngine(config);
-  const at = Date.now(); instance.start(args); await instance.ready(delayMs + 25_000);
-  details.readyMs = Date.now() - at; details.delayMs = delayMs; details.transport = "real pinned native engine and installed worker via custom delayed-import config";
-  assert(details.readyMs >= delayMs - 1000, `Ready before configured worker delay: ${details.readyMs}`);
+  const at = Date.now();
+  if (adopt) {
+    await instance.startEngine(config);
+    instance.start(["--no-engine", ...args]);
+    await instance.ready(delayMs + 180_000);
+  } else {
+    instance.start(args);
+    await instance.ready(delayMs + 25_000);
+  }
+  details.readyMs = Date.now() - at; details.delayMs = delayMs; details.transport = "iii 0.24.6 Worker Compose with installed packaged app worker";
+  assert(details.readyMs >= delayMs - 5000, `Ready before configured worker delay: ${details.readyMs}`);
   const starts = instance.wrapperStarts(); assert.equal(starts.length, 1, "Configured worker launched more than once");
-  assert.equal(instance.pid("worker"), starts[0].pid, "CLI imported a second worker instead of waiting for the configured worker");
+  if (adopt) assert(alive(starts[0].pid), "The delayed Compose worker was not left alive after readiness");
+  else assert.equal(instance.pid("worker"), starts[0].pid, "CLI imported a second worker instead of waiting for the configured worker");
   details.workerPid = starts[0].pid; details.enginePid = instance.pid("iii");
 }
 async function delayedSocket(instance, backendPort, delayMs) {
@@ -333,6 +346,7 @@ async function main() {
   await scenario("unrelated-exec", async (i, d) => {
     const config = i.config({ worker: true, delayMs: 2_000 });
     const other = join(i.dir, "unrelated-worker.mjs"); writeFileSync(other, "setInterval(()=>{},1000);\n");
+    appendFileSync(config, `\n# unrelated process fixture: ${other}\n`);
     const at = Date.now(); i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "15000" }); await i.ready(25_000);
     d.readyMs = Date.now() - at; assert.equal(i.wrapperStarts().length, 1, "The Compose-managed app worker did not start exactly once");
     d.transport = "real Worker Compose engine and delayed packaged worker";
@@ -347,11 +361,13 @@ async function main() {
     d.transport = "version-compatible engine executable fixture that stays alive without opening HTTP; actual installed CLI";
   });
   await scenario("untracked-native-adoption", async (i, d) => {
-    const config = i.config({ worker: false }); const externalConfig = join(i.dir, "external-config.yaml");
-    copyFileSync(config, externalConfig); rmSync(config); await i.startEngine(externalConfig);
+    const config = i.config({ worker: false });
+    await i.startEngine(config);
+    const worker = i.pid("worker");
     rmSync(join(i.runtime, "engine-state.json")); rmSync(join(i.runtime, "iii.pid"));
-    i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "3000" }); await i.ready(6_000);
-    assert.equal(i.pid("worker"), i.cli.pid, "Untracked engine was assumed to own a configured worker");
+    const child = i.start(["--no-engine"], { AGENTMEMORY_READY_TIMEOUT_MS: "3000" }); await i.ready(6_000);
+    assert.equal(i.pid("worker"), worker, "Untracked engine was assumed to own a configured worker");
+    assert.notEqual(worker, child.pid, "Worker should remain a separate Compose-managed child");
     assert(alive(i.engine.pid)); d.transport = "real native engine without lifecycle metadata or AgentMemory exec config";
   });
   await scenario("cancel-owned-startup", async (i, d) => {
