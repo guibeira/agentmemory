@@ -641,8 +641,8 @@ class Instance {
   }
 
   async refreshContainerRssSnapshot() {
-    const statePath = this.stateStoreFile();
     try {
+      const statePath = this.stateStoreFile();
       const composeState = JSON.parse(readFileSync(statePath, "utf8"));
       const port = this.port;
       const rows = execFileSync("ps", ["-A", "-o", "pid=,rss=,command="], { encoding: "utf8" }).split(/\r?\n/);
@@ -774,8 +774,12 @@ class Instance {
     return Date.now() - t0;
   }
 
+  composeActive() {
+    return [this.composePid, this.enginePid].some((pid) => pid && alive(pid));
+  }
   async shutdown() {
-    if (!this.cli || this.cliExit) return;
+    // The CLI can exit 0 while the detached Compose daemon keeps running.
+    if (!this.cli || (this.cliExit && !this.composeActive())) return;
     try {
       await this.stop();
     } catch (err) {
@@ -944,7 +948,7 @@ async function scenario(name, fn) {
 
 async function ensureUp(inst, extraEnv = {}) {
   if (inst.cli && (await request("GET", `${inst.base}/livez`, undefined, 2000).then((r) => r.status === 200).catch(() => false))) return;
-  if (inst.cli && !inst.cliExit) await inst.forceKill().catch(() => {});
+  if (inst.cli && (!inst.cliExit || inst.composeActive())) await inst.forceKill().catch(() => {});
   await inst.start(extraEnv);
 }
 
