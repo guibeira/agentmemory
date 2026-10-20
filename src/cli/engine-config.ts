@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 
 export const ENGINE_DEFAULT_SAVE_INTERVAL_MS = 5000;
 export const AGENTMEMORY_STATE_SAVE_INTERVAL_MS = 2000;
@@ -35,9 +35,6 @@ export function engineStateConfigPaths(engineCwd: string, runtimePath: string): 
   return [...new Set([
     join(engineCwd, "compose", "worker-compose.yaml"),
     join(engineCwd, "compose", "config", "state.yaml"),
-    join(engineCwd, "config", "iii-state.yaml"),
-    join(dirname(runtimePath), "config", "iii-state.yaml"),
-    join(engineCwd, "data", "configuration", "iii-state.yaml"),
     runtimePath,
   ])];
 }

@@ -20,33 +20,6 @@ export const III_RELEASE_SHA256: ChecksumTable = {
     "iii-x86_64-pc-windows-msvc.zip": "ba121e7c11134614f4e3d69cebaefd945ed0c9b4d71518a543c7d76bc06f0784",
     "iii-aarch64-pc-windows-msvc.zip": "8f3c6b75ffc281146d964ce57b38f853c68355394bd8221380a93127b6b0985f",
   },
-  "0.24.6-rc.5": {
-    "iii-aarch64-apple-darwin.tar.gz": "a89090a13227e498041de84a2c092933b64785f89890e2fe5fc60fa235a9d90e",
-    "iii-x86_64-apple-darwin.tar.gz": "dba64a1aaece436d4a7095de5a4a9715ca59f8507b9c7685e563811a7dd2083b",
-    "iii-x86_64-unknown-linux-gnu.tar.gz": "f37fd9514adbc4a7e24c169d508aca6dc21122c2b740d0d5afef47a6b0810a0f",
-    "iii-aarch64-unknown-linux-gnu.tar.gz": "66824670a5382b38605e6ee9126ef0673bb879eb5407a6d605b7c5c967293a67",
-    "iii-armv7-unknown-linux-gnueabihf.tar.gz": "a477830c7e5612ff7702db70cbb1ae9298d9516e365c1086bce99ecebcad7021",
-    "iii-x86_64-pc-windows-msvc.zip": "904735a306a926c7ba0d16403611d1e29eae93bbca862feacfed298d70ab8b54",
-    "iii-aarch64-pc-windows-msvc.zip": "14f77c10c3152e5ac11936e2b70a42820951b7a58144120bb7e09d3623d8298f",
-  },
-  "0.24.6-rc.4": {
-    "iii-aarch64-apple-darwin.tar.gz": "8441c800713b96ce59f9c050310a506563ea1f6fe136b392040356f10ca78452",
-    "iii-x86_64-apple-darwin.tar.gz": "c711dfa11b2652d0b70ce93931e74b0586a150b736c2d16e16c799e0b1a1dd3d",
-    "iii-x86_64-unknown-linux-gnu.tar.gz": "4f4c925367127b936f3ae4095d4282d21e0a90de66697963960a0510f20d48b9",
-    "iii-aarch64-unknown-linux-gnu.tar.gz": "418c8a38f4f30f7618a40d3973d4e9e7f08a62fc56c889ed28ec28272e1622cc",
-    "iii-armv7-unknown-linux-gnueabihf.tar.gz": "4b49380e018433b65470074686d326e7e1d4d07478319861704591178a53a3bf",
-    "iii-x86_64-pc-windows-msvc.zip": "cd701649310858638c8d6b2e6f4cd91484fa3e2147afd0940ede9f2210de015e",
-    "iii-aarch64-pc-windows-msvc.zip": "250ec98f03f3b8379630114e0ac2231d3827d4abda397706878881a08357ebe3",
-  },
-  "0.22.1": {
-    "iii-aarch64-apple-darwin.tar.gz": "2b309019b909a896cae874dc947e2cdf877b4f3c51dd026b79850af858517fa4",
-    "iii-x86_64-apple-darwin.tar.gz": "6d33940db2d3ad6a9aef9837aa5b89bf5c5e4acd0679e8178fec258af229d7e1",
-    "iii-x86_64-unknown-linux-gnu.tar.gz": "34d4bd2ec1873e6114bb836be7db9cb3f410d0d63353d240917f0bc9c30df13b",
-    "iii-aarch64-unknown-linux-gnu.tar.gz": "87efc60210c1580ef2e11b13c679a4dad91917a9d80f737c5ba7e3475b3ca413",
-    "iii-armv7-unknown-linux-gnueabihf.tar.gz": "af5dfc45149678c647e5adaca55c055428eebfa73d65884b052c30c98abcfd19",
-    "iii-x86_64-pc-windows-msvc.zip": "d862bf7cf1e864f3290c8a6fc17c308c6ecac097cb2666e4a739efc0040aae96",
-    "iii-aarch64-pc-windows-msvc.zip": "4777a48cee3fc1a742daee929e3d943df09e4ddd3357d27a33d31c9dc9e520ac",
-  },
 };
 
 export function expectedIiiSha256(

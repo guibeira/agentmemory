@@ -136,13 +136,10 @@ if (args.includes("--version") || args.includes("-V")) {
 // Pinned iii-engine version. The engine, the iii-sdk and the @iii-dev/helpers
 // packages in package.json must stay on the same release: the worker speaks
 // that engine's wire protocol and the unpinned installer tracks `latest`.
-// 0.22.x is the last line before 0.23 removes the config.yaml worker
-// lifecycle this CLI relies on; it keeps HTTP routes owned by the
-// reconnecting worker (no REST 404s after an engine reconnect). The engine
-// still boots its iii- prefixed builtins from config.yaml (the unprefixed
-// http/state/queue/pubsub/cron names resolve to the standalone registry
-// workers, which is the 0.23 migration, not this one). Bump this
-// constant and the two package.json dependencies together.
+// Worker Compose supervises registry workers `state` and `http` alongside
+// the local agentmemory worker; the CLI relies on this lifecycle to keep
+// HTTP routes owned by the reconnecting worker. Bump this constant and
+// the two package.json dependencies together.
 // AGENTMEMORY_III_VERSION overrides the pin for anyone running a
 // self-managed engine.
 const IIPINNED_DEFAULT_VERSION = III_PINNED_VERSION;
@@ -175,7 +172,7 @@ function iiiReleaseAsset(): string | null {
 function iiiReleaseUrl(): string | null {
   const asset = iiiReleaseAsset();
   if (!asset) return null;
-  // Tag name is monorepo-prefixed: `iii/v0.22.1`. Slash is URL-encoded
+  // Tag names are monorepo-prefixed: `iii/v<version>`. Slash is URL-encoded
   // by GitHub when serving the download path, hence `iii/v...` not `iii%2Fv...`.
   return `https://github.com/iii-hq/iii/releases/download/iii/v${IIPINNED_VERSION}/${asset}`;
 }
@@ -254,7 +251,7 @@ Options:
                      iii engine (N+46023) derive from N for side-by-side instances.
   --instance <N>     Shortcut for --port (3111 + N*100) to run multiple
                      daemons side-by-side without env gymnastics.
-                     --instance 1 -> 3211/3212/3213/49234, etc. (max N=50)
+                     --instance 1 -> 3211/3213/49234, etc. (max N=50)
   --data-dir <path>  Store iii-engine state outside the current repo
 
 Environment:
@@ -317,8 +314,8 @@ if (portValue) {
 // `--instance N` picks a 100-port block off the 3111 base so multiple
 // agentmemory daemons can coexist on one host without env-var
 // gymnastics. `--instance 0` keeps the canonical 3111/3113/49134
-// quartet; `--instance 1` → 3211/3212/3213/49234; etc. REST acts as the
-// anchor — streams/viewer/engine derive from it via fixed offsets below
+// ports; `--instance 1` → 3211/3213/49234; etc. REST acts as the
+// anchor — viewer and engine derive from it via fixed offsets below
 // unless an env explicitly pins each one.
 const instanceValue = cliArgValue("--instance");
 const hasInstanceArgument = args.some(
@@ -3220,8 +3217,8 @@ async function runConnectCmd(): Promise<void> {
 async function runImportJsonl(): Promise<void> {
   // Long-form flags that take a value. Their value tokens must be
   // consumed alongside the flag so they don't leak into positional
-  // args (e.g. `--port 3112 import-jsonl` would otherwise turn
-  // 3112 into pathArg).
+  // args (e.g. `--port 3114 import-jsonl` would otherwise turn
+  // 3114 into pathArg).
   const VALUE_FLAGS = new Set(["--port", "--tools", "--data-dir"]);
   let maxFiles: number | undefined;
   const tail = args.slice(1);

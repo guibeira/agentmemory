@@ -30,6 +30,8 @@ export function startupTimeouts(env: NodeJS.ProcessEnv = process.env): {
   };
 }
 
+// Used only for unattached native engine state persisted by legacy installs;
+// new installs use Worker Compose.
 export function configStartsAgentmemoryWorker(raw: string, workerEntry: string, engineCwd?: string): boolean {
   const lines = raw.split(/\r?\n/);
   let workerIndent: number | undefined;
