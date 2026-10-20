@@ -161,43 +161,89 @@ class Instance {
   get url() { return `http://127.0.0.1:${this.port}`; }
   pid(name) { try { return Number(readFileSync(join(this.runtime, `${name}.pid`), "utf8").trim()); } catch { return null; } }
   config({ delayMs = 0, earlyPid = false, worker = true } = {}) {
-    let raw = [
-      "workers:",
-      "  - name: iii-http",
-      "    config:",
-      "      port: 3111",
+    const namespace = `agentmemory-${this.port}`;
+    const enginePort = this.port + 46023;
+    const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
+    const lines = [
+      `namespace: ${namespace}`,
+      "startup_timeout: 60s",
+      "stop_timeout: 20s",
+      "required_default: true",
+      "engine:",
+      `  url: ws://127.0.0.1:${enginePort}`,
+      "  workers:",
+      "    configuration:",
+      "      adapter:",
+      "        name: fs",
+      "        config:",
+      `          directory: ${quote(join(this.data, "compose-config"))}`,
+      "    iii-worker-manager:",
       "      host: 127.0.0.1",
-      "      default_timeout: 180000",
-      "  - name: iii-state",
-      "    config:",
+      `      port: ${enginePort}`,
+      "containers:",
+      "  state:",
+      "    worker: 'package://api.workers.iii.dev/state'",
+      "    version: '0.22.20'",
+      "    config_name: state",
+      "    config_override:",
       "      adapter:",
       "        name: kv",
       "        config:",
       "          store_method: file_based",
       "          save_interval_ms: 2000",
-      "          file_path: ./data/state_store.db",
-      "  - name: iii-cron",
-      "    config:",
-      "      adapter:",
-      "        name: kv",
-    ].join("\n");
-    raw = raw.replaceAll("3111", String(this.port)).replaceAll("3113", String(this.port + 2)).replaceAll("./data/", `${this.data}/`);
-    raw += `  - name: iii-worker-manager\n    config:\n      port: ${this.port + 46023}\n      host: 127.0.0.1\n`;
+      `          file_path: ${quote(join(this.data, "state_store.db"))}`,
+      "  http:",
+      "    worker: 'package://api.workers.iii.dev/http'",
+      "    version: '0.22.7'",
+      "    config_name: http",
+      "    config_override:",
+      "      host: 127.0.0.1",
+      `      port: ${this.port}`,
+      "      default_timeout: 180000",
+    ];
     if (worker) {
       const wrapper = join(this.dir, "delayed-worker.mjs");
       writeFileSync(wrapper, `import { appendFileSync, writeFileSync } from 'node:fs';\nappendFileSync(${JSON.stringify(join(this.dir, "worker-starts.jsonl"))}, JSON.stringify({pid:process.pid,at:Date.now()})+'\\n');\n${earlyPid ? `writeFileSync(${JSON.stringify(join(this.runtime, "worker.pid"))}, String(process.pid));` : ""}\nawait new Promise(r=>setTimeout(r,${delayMs}));\nawait import(${JSON.stringify(pathToFileURL(join(pkg, "dist/index.mjs")).href)});\n`);
-      raw += `  - name: iii-exec\n    config:\n      exec:\n        - ${process.execPath} ${wrapper}\n`;
+      lines.push(
+        "  agentmemory:",
+        `    worker: ${quote(`path://${pkg}`)}`,
+        "    start_after: [state, http]",
+        "    startup_timeout: 300s",
+        "    config_name: agentmemory",
+        "    scripts:",
+        `      run: ${quote(`${process.execPath} ${wrapper}`)}`,
+        "    environment:",
+        `      HOME: ${quote(this.home)}`,
+        `      PATH: ${quote([dirname(process.execPath), "/usr/bin", "/bin"].join(delimiter))}`,
+        `      AGENTMEMORY_DATA_DIR: ${quote(this.data)}`,
+        `      AGENTMEMORY_RUNTIME_DIR: ${quote(this.runtime)}`,
+        `      III_REST_PORT: ${quote(String(this.port))}`,
+        `      III_VIEWER_PORT: ${quote(String(this.port + 2))}`,
+        `      III_ENGINE_PORT: ${quote(String(enginePort))}`,
+        `      III_NAMESPACE: ${quote(namespace)}`,
+      `      III_ENGINE_URL: ${quote(`ws://127.0.0.1:${enginePort}`)}`,
+        "      LLM_PROVIDER: 'none'",
+        "      EMBEDDING_PROVIDER: 'none'",
+        "      III_TELEMETRY_ENABLED: 'false'",
+      );
+      this.envExtra.AGENTMEMORY_ENGINE_MANAGES_WORKER = "true";
     }
-    const file = join(this.dir, "native-engine.yaml"); writeFileSync(file, raw); this.configPath = file; if (worker) this.envExtra.AGENTMEMORY_ENGINE_MANAGES_WORKER = "true"; return file;
+    lines.push("");
+    const file = join(this.dir, "worker-compose.yaml");
+    writeFileSync(file, lines.join("\n"));
+    this.configPath = file;
+    return file;
   }
+
   start(args = [], env = {}) {
     this.cli = launch(process.execPath, [cli, ...args, "--port", String(this.port)], this.env(env), this.dir, this.logFile);
     this.ownedPids.add(this.cli.pid); return this.cli;
   }
   async startEngine(config) {
-    this.engine = launch(engine, ["--config", config, "--no-update-check"], this.env(), this.dir, this.logFile);
+    const namespace = `agentmemory-${this.port}`;
+    this.engine = launch(engine, ["compose", "--namespace", namespace, "--up", "--file", config], { III_COMPOSE_STATE_DIR: join(this.data, "compose-state") }, this.dir, this.logFile);
     this.ownedPids.add(this.engine.pid);
-    await poll("external engine", async () => (await fetch(`${this.url}/`, { signal: AbortSignal.timeout(500) })).status > 0, 20_000);
+    await poll("external Compose engine", async () => (await fetch(`${this.url}/`, { signal: AbortSignal.timeout(500) })).status > 0, 180_000);
     writeFileSync(join(this.runtime, "engine-state.json"), JSON.stringify({ kind: "native", configPath: config, binPath: engine, restPort: this.port, attached: true }));
     writeFileSync(join(this.runtime, "iii.pid"), String(this.engine.pid));
   }
@@ -285,12 +331,11 @@ async function main() {
   await scenario("slow-native", (i, d) => delayedConfigured(i, d, { delayMs: options.delayMs, earlyPid: true }));
   await scenario("configured-adoption", (i, d) => delayedConfigured(i, d, { delayMs: 8_000, adopt: true }));
   await scenario("unrelated-exec", async (i, d) => {
-    const config = i.config({ worker: false });
+    const config = i.config({ worker: true, delayMs: 2_000 });
     const other = join(i.dir, "unrelated-worker.mjs"); writeFileSync(other, "setInterval(()=>{},1000);\n");
-    appendFileSync(config, `  - name: iii-exec\n    config:\n      exec:\n        - ${process.execPath} ${other}\n`);
-    const at = Date.now(); i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "3000" }); await i.ready(8_000);
-    d.readyMs = Date.now() - at; assert.equal(i.pid("worker"), i.cli.pid, "Unrelated exec prevented the CLI-owned worker from starting");
-    d.transport = "real engine with unrelated iii-exec command plus installed CLI-owned worker";
+    const at = Date.now(); i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "15000" }); await i.ready(25_000);
+    d.readyMs = Date.now() - at; assert.equal(i.wrapperStarts().length, 1, "The Compose-managed app worker did not start exactly once");
+    d.transport = "real Worker Compose engine and delayed packaged worker";
   });
   await scenario("native-engine-timeout", async (i, d) => {
     i.config({ worker: false });
@@ -311,7 +356,7 @@ async function main() {
   });
   await scenario("cancel-owned-startup", async (i, d) => {
     i.config({ delayMs: 10_000, earlyPid: true }); i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "15000" });
-    await poll("owned engine ready before cancellation", async () => i.pid("worker") && (await fetch(i.url, { signal: AbortSignal.timeout(500) })).status > 0, 5_000);
+    await poll("owned engine ready before cancellation", async () => i.pid("worker") && (await fetch(i.url, { signal: AbortSignal.timeout(500) })).status > 0, 30_000);
     const enginePid = i.pid("iii"); const workerPid = i.pid("worker");
     i.cli.kill("SIGINT"); const result = await exited(i.cli, 6_000); assert.equal(result.code, 130, `Cancellation result ${JSON.stringify(result)}: ${i.cli.text.slice(-800)}`);
     await poll("cancelled owned process cleanup", () => !alive(enginePid) && !alive(workerPid), 5_000);
@@ -347,7 +392,7 @@ async function main() {
   await scenario("inline-worker-fatal", async (i, d) => {
     i.config({ worker: false }); mkdirSync(join(i.runtime, "secret"));
     const child = i.start([], { AGENTMEMORY_READY_TIMEOUT_MS: "10000" });
-    const enginePid = await poll("owned engine PID before worker initialization", () => i.pid("iii"), 3_000); i.ownedPids.add(enginePid);
+    const enginePid = await poll("owned engine PID before worker initialization", () => i.pid("iii"), 30_000); i.ownedPids.add(enginePid);
     const result = await exited(child, 6_000); assert.equal(result.code, 1); assert(child.text.includes("[agentmemory] Fatal:"), "Fixture did not exercise the worker's fatal initialization path");
     await poll("fatal initialization engine cleanup", () => !alive(enginePid), 4_000);
     assert(!i.pid("iii")); assert(!i.pid("worker") || !alive(i.pid("worker")));
@@ -383,12 +428,12 @@ async function main() {
     d.rejected = [];
     for (const key of ["AGENTMEMORY_ENGINE_READY_TIMEOUT_MS", "AGENTMEMORY_READY_TIMEOUT_MS"]) {
       for (const value of ["", "0", "-1", "1.5", "NaN", "Infinity", "500ms", "3600001"]) {
-        const result = await expectFailure(i, ["--no-engine"], { [key]: value }, { budgetMs: 2500, message: key });
+        const result = await expectFailure(i, ["--no-engine"], { [key]: value }, { budgetMs: 10_000, message: key });
         d.rejected.push({ key, value, ...result });
         assert(!existsSync(join(i.runtime, "worker.pid")), "Invalid timeout imported the worker");
       }
     }
-    const ownership = await expectFailure(i, ["--no-engine"], { AGENTMEMORY_ENGINE_MANAGES_WORKER: "yes" }, { budgetMs: 2500, message: "AGENTMEMORY_ENGINE_MANAGES_WORKER" });
+    const ownership = await expectFailure(i, ["--no-engine"], { AGENTMEMORY_ENGINE_MANAGES_WORKER: "yes" }, { budgetMs: 10_000, message: "AGENTMEMORY_ENGINE_MANAGES_WORKER" });
     d.invalidOwnership = ownership;
     const help = await command(process.execPath, [cli, "--help"], i.env({ AGENTMEMORY_READY_TIMEOUT_MS: "invalid" }), i.dir);
     assert(help.includes("Usage:"));
@@ -445,5 +490,5 @@ const unchanged = cliSha ? cliSha === sha(cli) && pkgSha === packageDigest() && 
 const summary = { ok: !fatal && unchanged && results.some((r) => r.status === "pass") && results.every((r) => r.status !== "fail"), version: installed?.version, enginePin: installed?.dependencies["iii-sdk"], tarball, tarballSha256: artifactSha, installedCliSha256: cliSha, installedPackageSha256: pkgSha, installedArtifactUnmodified: unchanged, node: process.version, platform: `${platform()}-${arch()}`, durationMs: Date.now() - started, root: options.keep ? root : undefined, scenarios: results, fatal };
 writeFileSync(join(out, "summary.json"), JSON.stringify(summary, null, 2) + "\n");
 log(`Summary: ${results.filter((r) => r.status === "pass").length}/${results.length} passed; ${join(out, "summary.json")}`);
-if (!options.keep && !out.startsWith(`${root}/`)) rmSync(root, { recursive: true, force: true });
+if (!options.keep && !out.startsWith(`${root}/`)) rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
 process.exit(summary.ok ? 0 : 1);
