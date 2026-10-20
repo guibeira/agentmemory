@@ -1105,7 +1105,10 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
     } else if (platform() === "darwin") {
       command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
       const files = execFileSync("lsof", ["-a", "-p", String(pid), "-d", "txt", "-Fn"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-      executable = files.split(/\r?\n/).find((line) => line.startsWith("n"))?.slice(1) ?? "";
+      executable = files.split(/\r?\n/)
+        .filter((line) => line.startsWith("n"))
+        .map((line) => line.slice(1))
+        .find((path) => basename(path) === basename(state.binPath)) ?? "";
     } else {
       command = execFileSync("ps", ["-p", String(pid), "-o", "command="], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
       executable = readlinkSync(`/proc/${pid}/exe`);
@@ -1114,7 +1117,8 @@ function composePidMatches(pid: number, state: ComposeEngineState): boolean {
       command.includes("compose --namespace") &&
       command.includes(state.namespace) &&
       command.includes(state.file);
-    if (!expectedCommand || !executable) return false;
+    if (!expectedCommand) return false;
+    if (!executable) return false;
     const actualPath = resolve(executable);
     const expectedPath = resolve(state.binPath);
     return IS_WINDOWS
