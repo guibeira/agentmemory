@@ -7745,8 +7745,11 @@
       if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
       wsReconnectTimer = null;
       conn.nextRetryAt = 0;
-      if (liveAbortController) liveAbortController.abort();
-      else connectWs();
+      if (liveAbortController) {
+        liveAbortController.abort();
+        liveAbortController = null;
+      }
+      connectWs();
     }
 
     function parseSseFrame(frame) {

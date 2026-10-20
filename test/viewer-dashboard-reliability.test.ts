@@ -121,6 +121,13 @@ describe("viewer streams instead of polling", () => {
     expect(viewer).toMatch(/addEventListener\('visibilitychange'[\s\S]{0,300}reconnectNow\(\);/);
   });
 
+  it("manual reconnect aborts the active SSE connection and starts a replacement", () => {
+    const reconnect = extractFunction("reconnectNow");
+    expect(reconnect).toMatch(/liveAbortController\.abort\(\);/);
+    expect(reconnect).toMatch(/liveAbortController = null;/);
+    expect(reconnect).toMatch(/connectWs\(\);/);
+  });
+
   it("shows an explicit reconnecting and offline state and marks data stale", () => {
     const render = extractFunction("renderConnection");
     expect(render).toMatch(/'reconnecting'/);
