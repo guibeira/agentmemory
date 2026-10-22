@@ -1,12 +1,24 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { homedir, tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import { delimiter } from "node:os";
 import { setTimeout as sleep } from "node:timers/promises";
+import { III_PINNED_VERSION } from "../src/version.js";
+import { COMPOSE_WORKER_VERSIONS } from "../src/cli/compose-project.js";
 import { afterAll, describe, expect, it } from "vitest";
 
-const engine = process.env.AM_R3_TEST_III ?? "/home/doggao/iii/agentmemory/.run/upgrade/bin/iii";
-const workerBin = "/home/doggao/iii/agentmemory/.src/workers-pinned/target/release";
+const engine = [
+  process.env.AGENTMEMORY_TEST_III,
+  ...(process.env.PATH ?? "").split(delimiter).filter(Boolean).map((directory) => join(directory, process.platform === "win32" ? "iii.exe" : "iii")),
+  join(homedir(), ".agentmemory", "bin", process.platform === "win32" ? "iii.exe" : "iii"),
+].filter((candidate): candidate is string => Boolean(candidate)).map((candidate) => resolve(candidate)).find((candidate) => {
+  try {
+    const result = spawnSync(candidate, ["--version"], { encoding: "utf8", timeout: 3000 });
+    return result.status === 0 && result.stdout.trim() === III_PINNED_VERSION;
+  } catch { return false; }
+});
+const workerBinDir = process.env.AGENTMEMORY_TEST_LOCAL_WORKER_DIR;
 const roots: string[] = [];
 const children: ChildProcess[] = [];
 const childLogs = new WeakMap<ChildProcess, string>();
@@ -26,11 +38,17 @@ function prepare(stateRestart: string, appRestart = "{ condition: on-failure, de
   const root = mkdtempSync(join(tmpdir(), "am-r3-supervision-it-")); roots.push(root);
   const data = join(root, "data"); mkdirSync(join(data, "config"), { recursive: true });
   const namespace = `amr3test${rest}`; const compose = join(root, "worker-compose.yaml");
-  for (const name of ["state", "http"]) {
+  const workerSource = (name: keyof typeof COMPOSE_WORKER_VERSIONS) => workerBinDir
+    ? `path://${join(data, "local-workers", name)}`
+    : `package://api.workers.iii.dev/${name}`;
+  for (const name of ["state", "http"] as const) {
     const workerDir = join(data, "local-workers", name); mkdirSync(workerDir, { recursive: true });
-    writeFileSync(join(workerDir, "iii.worker.yaml"), `iii: v1\nname: ${name}\nlanguage: rust\nscripts:\n  start: ${quote(join(workerBin, name))}\n`);
+    if (workerBinDir) {
+      const bin = join(workerBinDir, name);
+      writeFileSync(join(workerDir, "iii.worker.yaml"), `iii: v1\nname: ${name}\nlanguage: rust\nscripts:\n  start: ${quote(bin)}\n`);
+    }
   }
-  writeFileSync(compose, `namespace: ${namespace}\nstartup_timeout: 60s\nrequired_default: true\nengine:\n  url: ws://127.0.0.1:${enginePort}\n  workers:\n    configuration:\n      adapter:\n        name: fs\n        config:\n          directory: ${quote(join(data, "config"))}\n    iii-worker-manager:\n      host: 127.0.0.1\n      port: ${enginePort}\ncontainers:\n  state:\n    worker: ${quote(`path://${join(data, "local-workers/state")}`)}\n    config_name: state\n    restart: ${stateRestart}\n    config_override:\n      adapter:\n        name: kv\n        config: { store_method: file_based, file_path: ${quote(join(data, "state_store.db"))}, save_interval_ms: 100 }\n  http:\n    worker: ${quote(`path://${join(data, "local-workers/http")}`)}\n    config_name: http\n    restart: { condition: on-failure, delay: 500ms, max_delay: 1s, max_attempts: 5, window: 60s }\n    config_override: { host: 127.0.0.1, port: ${http} }\n  agentmemory:\n    worker: ${quote("path://.")}\n    working_dir: ${quote(process.cwd())}\n    start_after: [state, http]\n    startup_timeout: 90s\n    config_name: agentmemory\n    restart: ${appRestart}\n    scripts:\n      run: ${quote(`${process.execPath} ${join(process.cwd(), "dist/index.mjs")}`)}\n    environment:\n      HOME: ${quote(join(root, "home"))}\n      AGENTMEMORY_RUNTIME_DIR: ${quote(join(root, "home", ".agentmemory"))}\n      AGENTMEMORY_DATA_DIR: ${quote(data)}\n      III_ENGINE_PORT: ${quote(String(enginePort))}\n      III_REST_PORT: ${quote(String(rest))}\n      III_VIEWER_PORT: ${quote(String(freePort()))}\n      EMBEDDING_PROVIDER: 'none'\n      LLM_PROVIDER: 'none'\n      III_TELEMETRY_ENABLED: 'false'\n      RUST_LOG: 'error'\n`);
+  writeFileSync(compose, `namespace: ${namespace}\nstartup_timeout: 60s\nrequired_default: true\nengine:\n  url: ws://127.0.0.1:${enginePort}\n  workers:\n    configuration:\n      adapter:\n        name: fs\n        config:\n          directory: ${quote(join(data, "config"))}\n    iii-worker-manager:\n      host: 127.0.0.1\n      port: ${enginePort}\ncontainers:\n  state:\n    worker: ${quote(workerSource("state"))}\n${workerBinDir ? "" : `    version: ${COMPOSE_WORKER_VERSIONS.state}\n`}    config_name: state\n    restart: ${stateRestart}\n    config_override:\n      adapter:\n        name: kv\n        config: { store_method: file_based, file_path: ${quote(join(data, "state_store.db"))}, save_interval_ms: 100 }\n  http:\n    worker: ${quote(workerSource("http"))}\n${workerBinDir ? "" : `    version: ${COMPOSE_WORKER_VERSIONS.http}\n`}    config_name: http\n    restart: { condition: on-failure, delay: 500ms, max_delay: 1s, max_attempts: 5, window: 60s }\n    config_override: { host: 127.0.0.1, port: ${http} }\n  agentmemory:\n    worker: ${quote("path://.")}\n    working_dir: ${quote(process.cwd())}\n    start_after: [state, http]\n    startup_timeout: 90s\n    config_name: agentmemory\n    restart: ${appRestart}\n    scripts:\n      run: ${quote(`${process.execPath} ${join(process.cwd(), "dist/index.mjs")}`)}\n    environment:\n      HOME: ${quote(join(root, "home"))}\n      AGENTMEMORY_RUNTIME_DIR: ${quote(join(root, "home", ".agentmemory"))}\n      AGENTMEMORY_DATA_DIR: ${quote(data)}\n      III_ENGINE_PORT: ${quote(String(enginePort))}\n      III_REST_PORT: ${quote(String(rest))}\n      III_VIEWER_PORT: ${quote(String(freePort()))}\n      EMBEDDING_PROVIDER: 'none'\n      LLM_PROVIDER: 'none'\n      III_TELEMETRY_ENABLED: 'false'\n      RUST_LOG: 'error'\n`);
   const result = { root, data, compose, namespace }; return { ...result, rest, http, enginePort };
 }
 function stateFile(project: { data: string; namespace: string }): string | null {
@@ -61,7 +79,8 @@ async function waitFor(project: { data: string; namespace: string }, predicate: 
   throw new Error(`timed out waiting for compose state for ${project.namespace}: ${childLogs.get(children.at(-1)!) ?? ""}`);
 }
 function start(project: { compose: string; namespace: string; data: string }): ChildProcess {
-  const child = spawn(engine, ["compose", "--namespace", project.namespace, "--up", "--file", project.compose], { env: { ...cleanEnv(), III_COMPOSE_STATE_DIR: join(project.data, "compose-state"), III_BUNDLE_WORKERS_DISABLED: "1" }, stdio: ["ignore", "ignore", "pipe"], detached: true });
+  if (!engine) throw new Error(`iii ${III_PINNED_VERSION} is not available`);
+  const child = spawn(engine, ["compose", "--namespace", project.namespace, "--up", "--file", project.compose], { env: { ...cleanEnv(), III_COMPOSE_STATE_DIR: join(project.data, "compose-state"), III_BUNDLE_WORKERS_DISABLED: "1", HOME: join(project.root, "home") }, stdio: ["ignore", "ignore", "pipe"], detached: true });
   children.push(child); childLogs.set(child, ""); child.stderr?.on("data", (chunk) => childLogs.set(child, `${childLogs.get(child) ?? ""}${chunk}`)); return child;
 }
 function killTree(pid: number): void {
@@ -70,7 +89,7 @@ function killTree(pid: number): void {
 }
 afterAll(() => { for (const child of children) if (child.pid) killTree(child.pid); for (const root of roots) rmSync(root, { recursive: true, force: true }); });
 
-describe.runIf(process.platform === "linux" && process.env.AM_R3_SKIP_LIVE_TESTS !== "1")("iii-compose v0.24.6 worker supervision", () => {
+describe.skipIf(!engine || process.platform !== "linux" || process.env.AM_R3_SKIP_LIVE_TESTS === "1")("iii-compose v0.24.6 worker supervision", () => {
   it("marks a worker failed after bounded restarts and reports the exhausted budget", async () => {
     const project = prepare("{ condition: on-failure, delay: 500ms, max_delay: 500ms, max_attempts: 1, window: 60s }");
     const child = start(project);
@@ -109,6 +128,9 @@ describe.runIf(process.platform === "linux" && process.env.AM_R3_SKIP_LIVE_TESTS
       const marker = `r3-state-memory-${Date.now()}`;
       const saved = await fetch(`${base}/agentmemory/remember`, { method: "POST", headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" }, body: JSON.stringify({ content: `${marker}: keep this after the state worker restarts`, type: "fact", project: "r3-compose-supervision-test" }) });
       expect(saved.status).toBe(201);
+      // Let the file-backed state adapter flush the acknowledged write before
+      // simulating abrupt loss of the state process.
+      await sleep(500);
       const initial = JSON.parse(readFileSync(stateFile(project)!, "utf8")); const oldPid = initial.containers.state.pid;
       process.kill(oldPid, "SIGKILL");
       const recovered = await waitFor(project, (s) => s.containers?.state?.status === "ready" && s.containers.state.pid !== oldPid, 30_000);
@@ -116,10 +138,12 @@ describe.runIf(process.platform === "linux" && process.env.AM_R3_SKIP_LIVE_TESTS
       for (let i = 0; i < 20; i++) {
         const response = await fetch(`${base}/agentmemory/memories?latest=true&project=r3-compose-supervision-test`, { headers: { authorization: `Bearer ${secret}` } });
         const body = await response.json();
-        if (JSON.stringify(body).includes(marker)) { expect(body.memories?.some((memory: { content?: string }) => memory.content?.includes(marker))).toBe(true); return; }
+        if (response.ok && JSON.stringify(body).includes(marker)) { expect(body.memories?.some((memory: { content?: string }) => memory.content?.includes(marker))).toBe(true); return; }
+        if (!response.ok) throw new Error(`memory list failed ${response.status}: ${JSON.stringify(body)}`);
         await sleep(250);
       }
-      throw new Error("saved memory was not recallable after state worker recovery");
+      const response = await fetch(`${base}/agentmemory/memories?project=r3-compose-supervision-test`, { headers: { authorization: `Bearer ${secret}` } });
+      throw new Error(`saved memory was not recallable after state worker recovery (HTTP ${response.status}): ${JSON.stringify(await response.json())}`);
     } finally { if (child.pid) killTree(child.pid); }
   }, 120_000);
 });
