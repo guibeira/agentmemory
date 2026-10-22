@@ -60,6 +60,8 @@ try {
   entry = { id: "iii-observability", name: "Observability", description: "", schema: {} };
 }
 const value = entry.value && typeof entry.value === "object" && !Array.isArray(entry.value) ? entry.value : {};
+if (value.sampling_ratio === undefined) value.sampling_ratio = 0.1;
+if (value.logs_console_output === undefined) value.logs_console_output = false;
 const storage = value.trace_storage && typeof value.trace_storage === "object" && !Array.isArray(value.trace_storage) ? value.trace_storage : {};
 if (typeof storage.directory !== "string" || storage.directory === "" || storage.directory === "./data/observability/traces") {
   storage.directory = `${process.env.AGENTMEMORY_DATA_DIR}/observability/traces`;

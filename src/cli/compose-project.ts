@@ -163,15 +163,22 @@ function ensureEngineTraceStorageConfig(configDir: string, dataDir: string): voi
   const value = entry.value && typeof entry.value === "object" && !Array.isArray(entry.value)
     ? entry.value as Record<string, unknown>
     : {};
+  let changed = false;
+  if (value.sampling_ratio === undefined) { value.sampling_ratio = 0.1; changed = true; }
+  if (value.logs_console_output === undefined) { value.logs_console_output = false; changed = true; }
   const existingStorage = value.trace_storage;
   const storage = existingStorage && typeof existingStorage === "object" && !Array.isArray(existingStorage)
     ? existingStorage as Record<string, unknown>
     : {};
   const existingDirectory = storage.directory;
-  if (typeof existingDirectory === "string" && existingDirectory.trim() !== "" && existingDirectory !== defaultTraceDirectory) return;
-
-  storage.directory = traceDirectory;
-  value.trace_storage = storage;
+  if (typeof existingDirectory === "string" && existingDirectory.trim() !== "" && existingDirectory !== defaultTraceDirectory) {
+    if (!changed) return;
+  } else {
+    storage.directory = traceDirectory;
+    changed = true;
+  }
+  if (!changed) return;
+  if (existingDirectory === undefined || existingDirectory === defaultTraceDirectory || existingDirectory === "") value.trace_storage = storage;
   entry.value = value;
   const temporaryFile = `${configFile}.tmp`;
   writeFileSync(temporaryFile, stringify(entry), { encoding: "utf8", mode: 0o600 });

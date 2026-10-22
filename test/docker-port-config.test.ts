@@ -65,6 +65,12 @@ describe("Docker Worker Compose runtime", () => {
     expect(entrypoint).toContain("name: redis");
   });
 
+  it("seeds observability defaults while retaining explicit persisted values", () => {
+    expect(entrypoint).toContain("value.sampling_ratio = 0.1");
+    expect(entrypoint).toContain("value.logs_console_output = false");
+    expect(entrypoint).toContain("entry.value = value");
+  });
+
   it("sets host and viewer allowlists from runtime environment", () => {
     expect(workerCompose).toContain('AGENTMEMORY_VIEWER_HOST: "${AGENTMEMORY_VIEWER_HOST:-0.0.0.0}"');
     expect(workerCompose).toContain("VIEWER_ALLOWED_HOSTS:");
