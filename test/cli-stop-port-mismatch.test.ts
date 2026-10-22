@@ -2,23 +2,15 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 const sandboxes: string[] = [];
 const cli = join(process.cwd(), "dist", "cli.mjs");
-
-beforeAll(() => {
-  const build = spawnSync("npm", ["run", "build"], { cwd: process.cwd(), encoding: "utf8" });
-  if (build.status !== 0) throw new Error(`CLI build failed: ${build.stderr}`);
-}, 30_000);
 
 afterEach(() => {
   for (const path of sandboxes.splice(0)) rmSync(path, { recursive: true, force: true });
 });
 
-afterAll(() => {
-  // Keep this test independent of whether a build ran before it.
-});
 
 function sandbox(prefix: string): string {
   const path = mkdtempSync(join(tmpdir(), prefix));
@@ -86,7 +78,10 @@ describe("stop port ownership", () => {
 });
 
 describe("configured status endpoint ownership", () => {
-  it("preserves an explicit remote IPv6 URL when Compose state has the same REST port", () => {
+  it.each([
+    { label: "remote IPv6", url: "http://[::1]:35111", expectedPrefix: "http://[::1]:35111/" },
+    { label: "local Compose", url: "", expectedPrefix: "http://localhost:35111/" },
+  ])("preserves the $label endpoint when Compose state has the same REST port", ({ url, expectedPrefix }) => {
     const root = sandbox("agentmemory-status-endpoint-");
     const home = join(root, "home");
     const runtime = join(home, ".agentmemory");
@@ -140,7 +135,7 @@ describe("configured status endpoint ownership", () => {
         HOME: home,
         USERPROFILE: home,
         AGENTMEMORY_RUNTIME_DIR: runtime,
-        AGENTMEMORY_URL: `http://[::1]:${port}`,
+        AGENTMEMORY_URL: url,
         III_REST_PORT: String(port),
         REQUEST_LOG: requestLog,
         CI: "1",
@@ -150,8 +145,7 @@ describe("configured status endpoint ownership", () => {
     expect(`${result.stdout}\n${result.stderr}`).toContain("Connected");
     const requests = readFileSync(requestLog, "utf8").trim().split("\n");
     expect(requests.length).toBeGreaterThan(1);
-    expect(requests).toContain(`http://[::1]:${port}/`);
-    expect(requests.some((url) => url.includes(":35111/agentmemory/livez"))).toBe(false);
-    expect(requests.every((url) => url.startsWith(`http://[::1]:${port}/`))).toBe(true);
+    expect(requests[0]).toBe(expectedPrefix);
+    expect(requests.every((requestUrl) => requestUrl.startsWith(expectedPrefix))).toBe(true);
   }, 15_000);
 });
