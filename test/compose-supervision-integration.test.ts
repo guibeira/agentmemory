@@ -89,7 +89,7 @@ function killTree(pid: number): void {
 }
 afterAll(() => { for (const child of children) if (child.pid) killTree(child.pid); for (const root of roots) rmSync(root, { recursive: true, force: true }); });
 
-describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMORY_TEST_III === "1")("iii-compose v0.24.6 worker supervision", () => {
+describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMORY_SKIP_LIVE_TESTS === "1")("iii-compose v0.24.6 worker supervision", () => {
   it("marks a worker failed after bounded restarts and reports the exhausted budget", async () => {
     const project = prepare("{ condition: on-failure, delay: 500ms, max_delay: 500ms, max_attempts: 1, window: 60s }");
     const child = start(project);
@@ -125,8 +125,8 @@ describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMO
       await waitFor(project, (s) => s.containers?.agentmemory?.status === "ready" && s.containers?.state?.status === "ready");
       const secret = readFileSync(join(project.data, "secret"), "utf8").trim();
       const base = `http://127.0.0.1:${project.rest}`;
-      const marker = `r3-state-memory-${Date.now()}`;
-      const saved = await fetch(`${base}/agentmemory/remember`, { method: "POST", headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" }, body: JSON.stringify({ content: `${marker}: keep this after the state worker restarts`, type: "fact", project: "r3-compose-supervision-test" }) });
+      const marker = `supervision-state-memory-${Date.now()}`;
+      const saved = await fetch(`${base}/agentmemory/remember`, { method: "POST", headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" }, body: JSON.stringify({ content: `${marker}: keep this after the state worker restarts`, type: "fact", project: "compose-supervision-test" }) });
       expect(saved.status).toBe(201);
       // Let the file-backed state adapter flush the acknowledged write before
       // simulating abrupt loss of the state process.
@@ -136,13 +136,13 @@ describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMO
       const recovered = await waitFor(project, (s) => s.containers?.state?.status === "ready" && s.containers.state.pid !== oldPid, 30_000);
       expect(recovered.containers.state.pid).not.toBe(oldPid);
       for (let i = 0; i < 20; i++) {
-        const response = await fetch(`${base}/agentmemory/memories?latest=true&project=r3-compose-supervision-test`, { headers: { authorization: `Bearer ${secret}` } });
+        const response = await fetch(`${base}/agentmemory/memories?latest=true&project=compose-supervision-test`, { headers: { authorization: `Bearer ${secret}` } });
         const body = await response.json();
         if (response.ok && JSON.stringify(body).includes(marker)) { expect(body.memories?.some((memory: { content?: string }) => memory.content?.includes(marker))).toBe(true); return; }
         if (!response.ok) throw new Error(`memory list failed ${response.status}: ${JSON.stringify(body)}`);
         await sleep(250);
       }
-      const response = await fetch(`${base}/agentmemory/memories?project=r3-compose-supervision-test`, { headers: { authorization: `Bearer ${secret}` } });
+      const response = await fetch(`${base}/agentmemory/memories?project=compose-supervision-test`, { headers: { authorization: `Bearer ${secret}` } });
       throw new Error(`saved memory was not recallable after state worker recovery (HTTP ${response.status}): ${JSON.stringify(await response.json())}`);
     } finally { if (child.pid) killTree(child.pid); }
   }, 120_000);
