@@ -910,14 +910,13 @@ loopback bên trong container; README của mỗi template đều ghi lại
 pattern SSH-tunnel để chạm tới nó.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Di chuyển các cài đặt Docker cũ do CLI quản lý
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+CLI hiện tại không còn khởi chạy hay quản lý các triển khai Docker. Nếu tìm thấy bản ghi vòng đời Docker cũ, CLI sẽ giữ nguyên metadata và in ra chính xác lệnh `docker stop ...`; hãy chạy lệnh đó trước khi di chuyển. Đừng khởi chạy runtime mới khi volume vẫn còn được gắn vào container cũ.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Giữ lại và sao lưu volume lưu trữ lâu dài cũ (thường là `iii-data`), hoặc sao chép nội dung `/data` sang một bind mount. Worker state đọc trực tiếp tệp `/data/state_store.db` hiện có, không cần xuất hay chuyển đổi. Runtime cũ dùng UID/GID `65532:65532`; image mới thực hiện một lần việc di chuyển quyền sở hữu đệ quy sang `node:node` (`1000:1000`) và ghi `/data/.ownership-migrated-node-v1`. Sau khi di chuyển, đừng gắn volume trở lại runtime cũ.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Runtime cũ cũng lưu bearer secret được tạo ra trong `/data/.hmac`. Image mới giữ nguyên secret này trong quá trình di chuyển; `AGENTMEMORY_SECRET` được đặt tường minh sẽ được ưu tiên. Khởi chạy dự án Compose mới từ thư mục gốc của repository bằng lệnh `docker compose up --build -d`. Nếu tên volume cũ có tiền tố của dự án thay vì là `iii-data`, hãy chủ động dùng lại hoặc đổi tên volume đó—đừng vô tình khởi tạo một volume trống. Kiểm tra `/agentmemory/livez` và xác nhận có thể tìm thấy cả memory cũ lẫn mới. Tránh chạy `docker compose down -v` trừ khi bạn chủ ý xóa dữ liệu.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Tại sao chọn agentmemory" height="32" /></picture></h2>

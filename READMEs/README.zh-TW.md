@@ -903,14 +903,13 @@ Render 的一鍵部署按鈕需要倉庫根目錄下有 `render.yaml`,而我們�
 只有連接埠 `3111` 會對外發布。容器內 `3113` 上的檢視器仍綁定在 loopback;每個範本的 README 都記載了連接它所需的 SSH 通道模式。
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### 遷移由 CLI 管理的舊版 Docker 安裝
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+目前的 CLI 不會啟動或管理 Docker 部署。如果找到舊版 Docker 生命週期記錄，CLI 會保留中繼資料並印出確切的 `docker stop ...` 指令；請在遷移前執行該指令。舊容器仍掛載著該磁碟區時，請勿啟動新的執行環境。
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+保留並備份舊的持久性磁碟區（通常是 `iii-data`），或將 `/data` 的內容複製到 bind mount。state worker 會直接讀取現有的 `/data/state_store.db`，不需匯出或轉換。舊執行環境使用 UID/GID `65532:65532`；新映像會一次性遞迴遷移所有權至 `node:node`（`1000:1000`），並寫入 `/data/.ownership-migrated-node-v1`。完成此遷移後，請勿再將該磁碟區掛載回舊執行環境。
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+舊執行環境也會將產生的 bearer secret 儲存在 `/data/.hmac`。新映像會在遷移期間保留此 secret；明確設定的 `AGENTMEMORY_SECRET` 優先。請在儲存庫根目錄執行 `docker compose up --build -d`，啟動新的 Compose 專案。如果舊磁碟區的名稱帶有專案前綴而非 `iii-data`，請明確重複使用或重新命名該磁碟區，切勿意外初始化空磁碟區。檢查 `/agentmemory/livez`，並確認新舊記憶都能找到。除非確實要刪除資料，否則請勿執行 `docker compose down -v`。
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Why agentmemory" height="32" /></picture></h2>

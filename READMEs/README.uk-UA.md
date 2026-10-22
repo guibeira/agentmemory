@@ -911,14 +911,13 @@ Docker підтримується для self-hosting із репозиторі�
 схему SSH-тунелю для доступу до нього.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Перенесення застарілих Docker-інсталяцій, керованих CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Поточна CLI більше не запускає Docker-розгортання й не керує ними. Якщо вона знайде застарілий запис життєвого циклу Docker, то збереже метадані й виведе точну команду `docker stop ...`; виконайте її перед перенесенням. Не запускайте нове середовище виконання, поки том підключено до старого контейнера.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Збережіть і створіть резервну копію старого постійного тому (зазвичай `iii-data`) або скопіюйте вміст `/data` у bind mount. Воркер state читає наявний `/data/state_store.db` безпосередньо, без експорту чи перетворення. У старому середовищі виконання використовувалися UID/GID `65532:65532`; новий образ одноразово рекурсивно змінює власника на `node:node` (`1000:1000`) і створює файл `/data/.ownership-migrated-node-v1`. Після цього перенесення не підключайте том назад до старого середовища виконання.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Старе середовище виконання також зберігало створений bearer secret у `/data/.hmac`. Новий образ зберігає цей секрет під час перенесення; явно заданий `AGENTMEMORY_SECRET` має пріоритет. Запустіть новий проєкт Compose з кореня репозиторію командою `docker compose up --build -d`. Якщо назва старого тому має префікс проєкту замість `iii-data`, явно повторно використайте або перейменуйте його — не ініціалізуйте випадково порожній том. Перевірте `/agentmemory/livez` і переконайтеся, що знаходяться як старі, так і нові спогади. Не виконуйте `docker compose down -v`, якщо видалення даних не є навмисним.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Чому agentmemory" height="32" /></picture></h2>

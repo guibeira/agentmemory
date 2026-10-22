@@ -905,14 +905,13 @@ Render کے ون-کلک ڈیپلائی بٹن کو repository کی root میں `
 صرف پورٹ `3111` publish کی جاتی ہے۔ `3113` پر ویور container کے اندر loopback سے bound رہتا ہے؛ ہر template کا README اس تک پہنچنے کے لیے SSH-tunnel پیٹرن دستاویز کرتا ہے۔
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### CLI کے زیرِ انتظام پرانی Docker تنصیبات کی منتقلی
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+موجودہ CLI اب Docker deployments شروع یا ان کا انتظام نہیں کرتی۔ اگر اسے Docker lifecycle کا کوئی پرانا ریکارڈ ملے تو یہ metadata محفوظ رکھتی ہے اور عین `docker stop ...` command دکھاتی ہے؛ منتقلی سے پہلے یہ command چلائیں۔ جب تک پرانے container کے ساتھ volume منسلک ہو، نیا runtime شروع نہ کریں۔
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+پرانا persistent volume (عموماً `iii-data`) محفوظ رکھیں اور اس کا backup بنائیں، یا `/data` کا مواد کسی bind mount میں نقل کریں۔ state worker موجودہ `/data/state_store.db` کو براہِ راست پڑھتا ہے، اسے export یا convert کرنے کی ضرورت نہیں۔ پرانا runtime UID/GID `65532:65532` استعمال کرتا تھا؛ نئی image ایک بار پورے درخت کی ownership کو `node:node` (`1000:1000`) میں منتقل کرتی ہے اور `/data/.ownership-migrated-node-v1` لکھتی ہے۔ اس منتقلی کے بعد volume کو دوبارہ پرانے runtime سے منسلک نہ کریں۔
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+پرانا runtime اپنا بنایا ہوا bearer secret بھی `/data/.hmac` میں محفوظ کرتا تھا۔ نئی image منتقلی کے دوران اس secret کو برقرار رکھتی ہے؛ واضح طور پر مقرر کیا گیا `AGENTMEMORY_SECRET` ترجیح رکھتا ہے۔ repository کی جڑ سے `docker compose up --build -d` چلا کر نیا Compose project شروع کریں۔ اگر پرانے volume کے نام میں `iii-data` کے بجائے project prefix ہو تو اسے واضح طور پر دوبارہ استعمال کریں یا اس کا نام تبدیل کریں—غلطی سے خالی volume شروع نہ کریں۔ `/agentmemory/livez` چیک کریں اور تصدیق کریں کہ پرانی اور نئی دونوں memories تلاش کی جا سکتی ہیں۔ جب تک data حذف کرنا مقصود نہ ہو `docker compose down -v` نہ چلائیں۔
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="agentmemory کیوں" height="32" /></picture></h2>

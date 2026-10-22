@@ -910,14 +910,13 @@ container ang viewer sa `3113`; nakadokumento sa README ng bawat template ang
 SSH-tunnel pattern para maabot ito.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Paglipat mula sa mga legacy na Docker install na pinamahalaan ng CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Hindi na nagsisimula o namamahala ng mga Docker deployment ang kasalukuyang CLI. Kung makakita ito ng legacy na Docker lifecycle record, pananatilihin nito ang metadata at ipi-print ang eksaktong command na `docker stop ...`; patakbuhin ang command na iyon bago mag-migrate. Huwag simulan ang bagong runtime habang nakakabit pa ang volume sa lumang container.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Panatilihin at i-back up ang lumang persistent volume (karaniwang `iii-data`), o kopyahin ang laman ng `/data` papunta sa isang bind mount. Direktang binabasa ng state worker ang umiiral na `/data/state_store.db`, nang walang export o conversion. Gumamit ang lumang runtime ng UID/GID na `65532:65532`; minsanang nagsasagawa ang bagong image ng recursive ownership migration papunta sa `node:node` (`1000:1000`) at isinusulat ang `/data/.ownership-migrated-node-v1`. Huwag nang ikabit muli ang volume sa lumang runtime pagkatapos ng migration na ito.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Nakaimbak din sa lumang runtime ang ginawa nitong bearer secret sa `/data/.hmac`. Pinananatili ng bagong image ang secret na ito habang nagmi-migrate; mananaig ang tahasang itinakdang `AGENTMEMORY_SECRET`. Simulan ang bagong Compose project mula sa root ng repository gamit ang `docker compose up --build -d`. Kung may project prefix ang pangalan ng lumang volume sa halip na `iii-data`, tahasang gamitin itong muli o palitan ang pangalan nito—huwag aksidenteng gumawa at gumamit ng walang-lamang volume. Suriin ang `/agentmemory/livez` at tiyaking mahahanap ang dati at bagong mga memory. Iwasan ang `docker compose down -v` maliban kung sinasadya mong burahin ang data.
 ---
 
 

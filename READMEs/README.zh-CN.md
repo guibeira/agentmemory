@@ -910,14 +910,13 @@ Render 的一键部署按钮需要仓库根目录下有 `render.yaml`,而我们�
 回环地址上;每个模板的 README 都记录了用于访问它的 SSH 隧道模式。
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### 迁移由 CLI 管理的旧版 Docker 安装
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+当前 CLI 不会启动或管理 Docker 部署。如果它发现旧版 Docker 生命周期记录，会保留元数据并打印准确的 `docker stop ...` 命令；迁移前请运行该命令。旧容器仍挂载着该卷时，不要启动新运行时。
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+保留并备份旧的持久卷（通常为 `iii-data`），或将 `/data` 的内容复制到 bind mount。state worker 会直接读取现有的 `/data/state_store.db`，无需导出或转换。旧运行时使用 UID/GID `65532:65532`；新镜像会一次性递归迁移所有权至 `node:node`（`1000:1000`），并写入 `/data/.ownership-migrated-node-v1`。完成此迁移后，不要再将该卷挂载回旧运行时。
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+旧运行时还会将生成的 bearer secret 存储在 `/data/.hmac` 中。新镜像会在迁移期间保留此 secret；显式设置的 `AGENTMEMORY_SECRET` 优先。请在仓库根目录运行 `docker compose up --build -d`，启动新的 Compose 项目。如果旧卷的名称带有项目名前缀而不是 `iii-data`，请明确复用或重命名该卷，避免误用新建的空卷。检查 `/agentmemory/livez`，并确认能够找到新旧两类记忆。除非确实要删除数据，否则不要运行 `docker compose down -v`。
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="为什么选择 agentmemory" height="32" /></picture></h2>

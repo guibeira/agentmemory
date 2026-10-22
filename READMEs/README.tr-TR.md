@@ -910,14 +910,13 @@ loopback'e bağlı kalır; her şablonun README'si, ona erişmek için
 SSH-tüneli desenini belgeler.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### CLI tarafından yönetilen eski Docker kurulumlarını taşıma
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Mevcut CLI artık Docker dağıtımlarını başlatmaz veya yönetmez. Eski bir Docker yaşam döngüsü kaydı bulursa meta verileri korur ve tam `docker stop ...` komutunu yazdırır; taşımadan önce bu komutu çalıştırın. Eski container'da volume hâlâ bağlıyken yeni runtime'ı başlatmayın.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Eski kalıcı volume'ü (genellikle `iii-data`) saklayıp yedekleyin veya `/data` içeriğini bir bind mount'a kopyalayın. State worker, mevcut `/data/state_store.db` dosyasını dışa aktarma veya dönüştürme yapmadan doğrudan okur. Eski runtime `65532:65532` UID/GID değerlerini kullanıyordu; yeni image, sahipliği tek seferlik ve özyinelemeli olarak `node:node` (`1000:1000`) değerlerine taşır ve `/data/.ownership-migrated-node-v1` dosyasını yazar. Bu taşıma işleminden sonra volume'ü eski runtime'a yeniden bağlamayın.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Eski runtime, oluşturduğu bearer secret'ı `/data/.hmac` dosyasında da saklıyordu. Yeni image taşıma sırasında bu secret'ı korur; açıkça ayarlanmış bir `AGENTMEMORY_SECRET` önceliklidir. Yeni Compose projesini depo kök dizininden `docker compose up --build -d` komutuyla başlatın. Eski volume'ün adı `iii-data` yerine proje öneki içeriyorsa onu açıkça yeniden kullanın veya yeniden adlandırın; yanlışlıkla boş bir volume oluşturup başlatmayın. `/agentmemory/livez` adresini kontrol edin ve hem eski hem de yeni belleklerin bulunabildiğini doğrulayın. Verileri silmek istemiyorsanız `docker compose down -v` komutunu kullanmayın.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Why agentmemory" height="32" /></picture></h2>
