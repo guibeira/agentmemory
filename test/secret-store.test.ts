@@ -116,6 +116,63 @@ describe("stored API secret", () => {
     expect(resolveClientSecret("http://localhost:3211")).toBe("existing-custom-secret");
   });
 
+  it("uses the canonical winning secret when first starts race across data directories", async () => {
+    const barrier = join(home, "secret-link-barrier");
+    mkdirSync(barrier, { recursive: true });
+    const canonicalPath = join(home, ".agentmemory", "secret");
+    const childScript = `
+      import fs from "node:fs";
+      import { syncBuiltinESMExports } from "node:module";
+      import { resolve } from "node:path";
+      const originalLink = fs.linkSync.bind(fs);
+      fs.linkSync = (source, target) => {
+        if (target === process.env.CANONICAL_SECRET) {
+          fs.writeFileSync(resolve(process.env.SECRET_BARRIER, process.env.BARRIER_MARKER), "ready");
+          const deadline = Date.now() + 10000;
+          while (Date.now() < deadline && !["a", "b"].every((name) => fs.existsSync(resolve(process.env.SECRET_BARRIER, name)))) {
+            Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+          }
+          if (!["a", "b"].every((name) => fs.existsSync(resolve(process.env.SECRET_BARRIER, name)))) throw new Error("barrier timed out");
+        }
+        return originalLink(source, target);
+      };
+      syncBuiltinESMExports();
+      const { ensureServerSecret, resolveClientSecret } = await import(${JSON.stringify(new URL("../src/secret-store.ts", import.meta.url).href)});
+      const server = ensureServerSecret();
+      console.log(JSON.stringify({ server: server.secret, client: resolveClientSecret("http://127.0.0.1:3111") }));
+    `;
+    const run = (name: "a" | "b") => new Promise<{ server: string; client: string }>((resolve, reject) => {
+      const child = spawn(process.execPath, ["--import", "tsx", "--input-type=module", "-e", childScript], {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          HOME: home,
+          USERPROFILE: home,
+          AGENTMEMORY_DATA_DIR: join(home, `data-${name}`),
+          CANONICAL_SECRET: canonicalPath,
+          SECRET_BARRIER: barrier,
+          BARRIER_MARKER: name,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      let stdout = "";
+      let stderr = "";
+      child.stdout.setEncoding("utf8").on("data", (chunk: string) => stdout += chunk);
+      child.stderr.setEncoding("utf8").on("data", (chunk: string) => stderr += chunk);
+      child.on("error", reject);
+      child.on("exit", (code) => {
+        if (code !== 0) reject(new Error(`secret race child ${name} failed (${code}): ${stderr}`));
+        else {
+          try { resolve(JSON.parse(stdout.trim()) as { server: string; client: string }); }
+          catch (error) { reject(error); }
+        }
+      });
+    });
+    const results = await Promise.all([run("a"), run("b")]);
+    for (const result of results) expect(result.server).toBe(result.client);
+    expect(results[0]!.server).toBe(results[1]!.server);
+  });
+
   it("lets an explicit secret win over the stored one", () => {
     ensureServerSecret();
     process.env[KEY] = "explicit-value";

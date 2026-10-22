@@ -5,6 +5,7 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  renameSync,
   unlinkSync,
   writeSync,
 } from "node:fs";
@@ -115,6 +116,24 @@ function canonicalSecretPath(): string {
   return join(homedir(), ".agentmemory", "secret");
 }
 
+function writeSecretFile(path: string, secret: string): void {
+  mkdirSync(join(path, ".."), { recursive: true, mode: 0o700 });
+  const staging = `${path}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+  const fd = openSync(staging, "wx", 0o600);
+  try {
+    writeSync(fd, `${secret}\n`);
+  } finally {
+    closeSync(fd);
+  }
+  try {
+    chmodSync(staging, 0o600);
+    renameSync(staging, path);
+    chmodSync(path, 0o600);
+  } finally {
+    try { unlinkSync(staging); } catch {}
+  }
+}
+
 function writeSecretIfAbsent(path: string, secret: string): string {
   mkdirSync(join(path, ".."), { recursive: true, mode: 0o700 });
   const staging = `${path}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
@@ -148,15 +167,20 @@ export function ensureServerSecret(env: NodeJS.ProcessEnv = process.env): {
   const canonicalPath = canonicalSecretPath();
   const canonical = localPath === canonicalPath ? "" : readSecretFile(canonicalPath);
   if (canonical) {
-    writeSecretIfAbsent(localPath, canonical);
+    if (localPath !== canonicalPath && readSecretFile(localPath) !== canonical) {
+      writeSecretFile(localPath, canonical);
+    }
     return { secret: canonical, source: "file" };
   }
 
   const legacyPath = legacyDataDirSecretPath(env);
   const legacy = readSecretFile(localPath) || (legacyPath ? readSecretFile(legacyPath) : "");
   const candidate = legacy || randomBytes(32).toString("hex");
-  const secret = writeSecretIfAbsent(localPath, candidate);
-  if (localPath !== canonicalPath) writeSecretIfAbsent(canonicalPath, secret);
+  const localSecret = writeSecretIfAbsent(localPath, candidate);
+  const secret = localPath === canonicalPath
+    ? localSecret
+    : writeSecretIfAbsent(canonicalPath, localSecret);
+  if (localPath !== canonicalPath && localSecret !== secret) writeSecretFile(localPath, secret);
   return { secret, source: legacy ? "file" : "generated" };
 }
 
