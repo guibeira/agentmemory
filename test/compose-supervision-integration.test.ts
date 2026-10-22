@@ -35,9 +35,9 @@ function freePort(): number {
 const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
 function prepare(stateRestart: string, appRestart = "{ condition: on-failure, delay: 500ms, max_delay: 1s, max_attempts: 5, window: 60s }") {
   const rest = freePort(); const http = rest; const enginePort = freePort();
-  const root = mkdtempSync(join(tmpdir(), "am-r3-supervision-it-")); roots.push(root);
+  const root = mkdtempSync(join(tmpdir(), "agentmemory-supervision-")); roots.push(root);
   const data = join(root, "data"); mkdirSync(join(data, "config"), { recursive: true });
-  const namespace = `amr3test${rest}`; const compose = join(root, "worker-compose.yaml");
+  const namespace = `amsupervision${rest}`; const compose = join(root, "worker-compose.yaml");
   const workerSource = (name: keyof typeof COMPOSE_WORKER_VERSIONS) => workerBinDir
     ? `path://${join(data, "local-workers", name)}`
     : `package://api.workers.iii.dev/${name}`;
@@ -89,7 +89,7 @@ function killTree(pid: number): void {
 }
 afterAll(() => { for (const child of children) if (child.pid) killTree(child.pid); for (const root of roots) rmSync(root, { recursive: true, force: true }); });
 
-describe.skipIf(!engine || process.platform !== "linux" || process.env.AM_R3_SKIP_LIVE_TESTS === "1")("iii-compose v0.24.6 worker supervision", () => {
+describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMORY_TEST_III === "1")("iii-compose v0.24.6 worker supervision", () => {
   it("marks a worker failed after bounded restarts and reports the exhausted budget", async () => {
     const project = prepare("{ condition: on-failure, delay: 500ms, max_delay: 500ms, max_attempts: 1, window: 60s }");
     const child = start(project);
