@@ -11,6 +11,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
+// A fixed port can collide with a service already running on the host.
+function freePortSync(): number {
+  const probe = spawnSync(process.execPath, ["-e", "const s=require('net').createServer().listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})"], { encoding: "utf-8" });
+  const port = Number(probe.stdout.trim());
+  if (!Number.isInteger(port) || port <= 0) throw new Error("failed to allocate a free REST port");
+  return port;
+}
+
 const sandboxes: string[] = [];
 function sandbox(): string {
   const path = mkdtempSync(join(tmpdir(), "agentmemory-lifecycle-"));
@@ -54,6 +62,7 @@ function runInstanceRemove(instanceArgs = ["--instance", "1"]) {
 }
 
 function runNativeRemoveWithWorkerFailure() {
+  const port = freePortSync();
   const root = sandbox();
   const home = join(root, "home");
   const runtimeDir = join(home, ".agentmemory");
@@ -72,7 +81,7 @@ function runNativeRemoveWithWorkerFailure() {
     JSON.stringify({
       kind: "native",
       configPath: join(root, "iii-config.runtime.yaml"),
-      restPort: 3111,
+      restPort: port,
     }),
   );
   writeFileSync(
@@ -102,6 +111,8 @@ process.kill = (pid, signal) => {
       "remove",
       "--force",
       "--keep-data",
+      "--port",
+      String(port),
     ],
     {
       cwd: process.cwd(),
