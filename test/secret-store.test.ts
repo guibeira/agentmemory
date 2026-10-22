@@ -173,6 +173,38 @@ describe("stored API secret", () => {
     expect(results[0]!.server).toBe(results[1]!.server);
   });
 
+  it("migrates a legacy platform .hmac from the data directory without regenerating it", () => {
+    const customDataDir = join(home, "platform-data");
+    mkdirSync(customDataDir, { recursive: true });
+    writeFileSync(join(customDataDir, ".hmac"), "legacy-platform-secret\n");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+    const migrated = ensureServerSecret();
+    expect(migrated.source).toBe("file");
+    expect(migrated.secret).toBe("legacy-platform-secret");
+    expect(readFileSync(join(customDataDir, "secret"), "utf-8").trim()).toBe(migrated.secret);
+    expect(readFileSync(join(home, ".agentmemory", "secret"), "utf-8").trim()).toBe(migrated.secret);
+  });
+
+  it("migrates a legacy platform .hmac in the data directory parent", () => {
+    const customDataDir = join(home, "platform", "data");
+    mkdirSync(join(home, "platform"), { recursive: true });
+    writeFileSync(join(home, "platform", ".hmac"), "legacy-parent-secret\n");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+    const migrated = ensureServerSecret();
+    expect(migrated.source).toBe("file");
+    expect(migrated.secret).toBe("legacy-parent-secret");
+  });
+
+  it("preserves explicit secret overrides over a legacy platform .hmac", () => {
+    const customDataDir = join(home, "platform-data");
+    mkdirSync(customDataDir, { recursive: true });
+    writeFileSync(join(customDataDir, ".hmac"), "legacy-platform-secret\n");
+    process.env.AGENTMEMORY_DATA_DIR = customDataDir;
+    process.env[KEY] = "explicit-override";
+    expect(ensureServerSecret()).toEqual({ secret: "explicit-override", source: "env" });
+    expect(readFileSync(join(customDataDir, ".hmac"), "utf-8").trim()).toBe("legacy-platform-secret");
+  });
+
   it("lets an explicit secret win over the stored one", () => {
     ensureServerSecret();
     process.env[KEY] = "explicit-value";

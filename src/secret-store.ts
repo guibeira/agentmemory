@@ -70,20 +70,20 @@ function readSecretFile(path: string): string {
   }
 }
 
-function legacyDataDirSecretPath(env: NodeJS.ProcessEnv = process.env): string | null {
+function legacyDataDirSecretPaths(env: NodeJS.ProcessEnv = process.env): string[] {
   const dataDir = env["AGENTMEMORY_DATA_DIR"];
-  if (!dataDir) return null;
-  const path = join(dataDir, "secret");
-  return path === secretFilePath() ? null : path;
+  if (!dataDir) return [];
+  const paths = [join(dataDir, "secret"), join(dataDir, ".hmac"), join(dataDir, "..", ".hmac")];
+  return [...new Set(paths.filter((path) => path !== secretFilePath()))];
 }
 
 export function readStoredSecret(env: NodeJS.ProcessEnv = process.env): string {
   const canonicalPath = canonicalSecretPath();
   const localPath = secretFilePath();
-  const legacyPath = legacyDataDirSecretPath(env);
+  const legacyPaths = legacyDataDirSecretPaths(env);
   return readSecretFile(canonicalPath) ||
     (localPath === canonicalPath ? "" : readSecretFile(localPath)) ||
-    (legacyPath && legacyPath !== canonicalPath && legacyPath !== localPath ? readSecretFile(legacyPath) : "");
+    legacyPaths.map(readSecretFile).find(Boolean) || "";
 }
 
 export function explicitSecret(env: NodeJS.ProcessEnv = process.env): string {
@@ -173,8 +173,7 @@ export function ensureServerSecret(env: NodeJS.ProcessEnv = process.env): {
     return { secret: canonical, source: "file" };
   }
 
-  const legacyPath = legacyDataDirSecretPath(env);
-  const legacy = readSecretFile(localPath) || (legacyPath ? readSecretFile(legacyPath) : "");
+  const legacy = readSecretFile(localPath) || legacyDataDirSecretPaths(env).map(readSecretFile).find(Boolean) || "";
   const candidate = legacy || randomBytes(32).toString("hex");
   const localSecret = writeSecretIfAbsent(localPath, candidate);
   const secret = localPath === canonicalPath
