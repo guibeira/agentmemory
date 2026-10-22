@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">배포</h2>
 
-Docker는 이 저장소에서 직접 self-host할 때 지원되며 CLI 시작 모드는 아닙니다. 원클릭 템플릿은 [`deploy/Dockerfile`](deploy/Dockerfile)과 [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml)을 사용하고 iii 0.24.6 런타임을 고정하며, 상태·trace·생성된 secret을 영구 `/data` 볼륨에 저장합니다. Docker Compose는 기본적으로 `iii-data` 명명 볼륨을 사용합니다. bind mount에는 `AGENTMEMORY_DATA_DIR`을 호스트 경로로 설정하십시오. 0.22.1에서 사용하던 기존 파일 기반 저장소는 마이그레이션이나 변환 없이 `/data/state_store.db`에서 직접 읽습니다. REST CORS는 기본적으로 로컬 REST 및 뷰어 origin을 허용합니다. 신뢰하는 브라우저 origin을 허용하려면 쉼표로 구분된 정확한 origin을 `REST_ALLOWED_ORIGINS`에 설정하십시오. 설정 및 보안은 [`deploy/README.md`](deploy/README.md)를 참고하십시오.
+Docker는 이 저장소에서 직접 self-host할 때 지원되며 CLI 시작 모드는 아닙니다. 원클릭 템플릿은 [`deploy/Dockerfile`](../deploy/Dockerfile)과 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용하고 iii 0.24.6 런타임을 고정하며, 상태·trace·생성된 secret을 영구 `/data` 볼륨에 저장합니다. Docker Compose는 기본적으로 `iii-data` 명명 볼륨을 사용합니다. bind mount에는 `AGENTMEMORY_DATA_DIR`을 호스트 경로로 설정하십시오. 0.22.1에서 사용하던 기존 파일 기반 저장소는 마이그레이션이나 변환 없이 `/data/state_store.db`에서 직접 읽습니다. REST CORS는 기본적으로 로컬 REST 및 뷰어 origin을 허용합니다. 신뢰하는 브라우저 origin을 허용하려면 쉼표로 구분된 정확한 origin을 `REST_ALLOWED_ORIGINS`에 설정하십시오. 설정 및 보안은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -905,7 +905,7 @@ Render의 원클릭 배포 버튼은 저장소 루트에 `render.yaml`이 있어
   통해 자신의 VPS에 셀프 호스팅합니다. 동일한 Docker
   Compose 스택을 사용하며, 호스트와 데이터를 직접 소유합니다.
 
-REST는 `3111`, 뷰어는 `3113`에서 제공되며 별도의 보호된 경로를 지원하는 플랫폼 템플릿에서만 뷰어를 따로 게시합니다. 실시간 업데이트는 REST endpoint `/agentmemory/viewer/events`에서 bearer 인증 SSE를 사용합니다. 엔진 WebSocket `49134`는 내부용이므로 게시하면 안 됩니다. 플랫폼별 안내는 [`deploy/README.md`](deploy/README.md)를 참고하십시오.
+REST는 `3111`, 뷰어는 `3113`에서 제공되며 별도의 보호된 경로를 지원하는 플랫폼 템플릿에서만 뷰어를 따로 게시합니다. 실시간 업데이트는 REST endpoint `/agentmemory/viewer/events`에서 bearer 인증 SSE를 사용합니다. 엔진 WebSocket `49134`는 내부용이므로 게시하면 안 됩니다. 플랫폼별 안내는 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 ---
 
@@ -1308,7 +1308,7 @@ workers:
 
 ### CLI 런타임 및 bind 주소
 
-`agentmemory`(또는 하위 명령 없는 패키지)를 실행하면 선택한 데이터 디렉터리 아래 격리 manifest로 iii Worker Compose가 시작됩니다. iii 0.24.6, `state@0.22.20`, `http@0.22.7`을 사용합니다. 로컬 CLI REST 및 뷰어 listener는 `127.0.0.1`에 bind되고 엔진 WebSocket은 런타임 내부 트래픽입니다. 저장소 기반 Docker 배포는 별도의 [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml)을 사용합니다. 자세한 내용은 [`deploy/README.md`](deploy/README.md)를 참고하십시오.
+`agentmemory`(또는 하위 명령 없는 패키지)를 실행하면 선택한 데이터 디렉터리 아래 격리 manifest로 iii Worker Compose가 시작됩니다. iii 0.24.6, `state@0.22.20`, `http@0.22.7`을 사용합니다. 로컬 CLI REST 및 뷰어 listener는 `127.0.0.1`에 bind되고 엔진 WebSocket은 런타임 내부 트래픽입니다. 저장소 기반 Docker 배포는 별도의 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용합니다. 자세한 내용은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 ### 저장소 backend: file (기본값) 또는 Redis
 
@@ -1334,7 +1334,7 @@ AGENTMEMORY_REDIS_URL=redis://localhost:6379
 
 **권장 Redis 설정.** 기본 snapshot 정책은 충돌 시 몇 분간의 쓰기를 잃을 수 있습니다. 중요한 데이터에는 `appendonly yes`를 설정하고 메모리가 조용히 제거되지 않도록 `maxmemory-policy noeviction`을 사용하십시오.
 
-CLI가 생성한 Worker Compose 프로젝트는 이 변수를 state 워커에 전달합니다. Docker self-host는 [`deploy/README.md`](deploy/README.md)와 [state 워커 문서](https://workers.iii.dev/workers/state)를 참고하십시오.
+CLI가 생성한 Worker Compose 프로젝트는 이 변수를 state 워커에 전달합니다. Docker self-host는 [`deploy/README.md`](../deploy/README.md)와 [state 워커 문서](https://workers.iii.dev/workers/state)를 참고하십시오.
 
 Redis 인증 정보가 포함될 수 있는 URL이 있다면 저장된 worker 설정과 데이터 디렉터리를 민감한 정보로 취급하십시오. 권한을 제한하고(공유 호스트에서 `chmod 700 <data-dir>` 등), 데이터베이스 관리자 대신 agentmemory에 필요한 범위만 허용하는 Redis ACL 사용자를 권장합니다.
 

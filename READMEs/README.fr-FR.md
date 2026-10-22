@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Déploiement</h2>
 
-Docker est pris en charge pour l'auto-hébergement depuis ce dépôt, et non comme mode de démarrage de la CLI. Les modèles de déploiement utilisent [`deploy/Dockerfile`](deploy/Dockerfile) et [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml), épinglent le runtime iii 0.24.6 et stockent l'état, les traces et le secret généré sur un volume persistant `/data`. Docker Compose utilise par défaut le volume nommé `iii-data` ; définissez `AGENTMEMORY_DATA_DIR` sur un chemin hôte pour utiliser un bind mount. Le store fichier existant de 0.22.1 est lu directement depuis `/data/state_store.db`, sans migration ni conversion. CORS REST autorise par défaut les origines locales REST et visualiseur ; définissez `REST_ALLOWED_ORIGINS` avec des origines exactes séparées par des virgules pour autoriser un navigateur de confiance. Voir [`deploy/README.md`](deploy/README.md) pour la configuration et la sécurité.
+Docker est pris en charge pour l'auto-hébergement depuis ce dépôt, et non comme mode de démarrage de la CLI. Les modèles de déploiement utilisent [`deploy/Dockerfile`](../deploy/Dockerfile) et [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), épinglent le runtime iii 0.24.6 et stockent l'état, les traces et le secret généré sur un volume persistant `/data`. Docker Compose utilise par défaut le volume nommé `iii-data` ; définissez `AGENTMEMORY_DATA_DIR` sur un chemin hôte pour utiliser un bind mount. Le store fichier existant de 0.22.1 est lu directement depuis `/data/state_store.db`, sans migration ni conversion. CORS REST autorise par défaut les origines locales REST et visualiseur ; définissez `REST_ALLOWED_ORIGINS` avec des origines exactes séparées par des virgules pour autoriser un navigateur de confiance. Voir [`deploy/README.md`](../deploy/README.md) pour la configuration et la sécurité.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -906,7 +906,7 @@ visualiseur, rotation, sauvegarde, planchers de coût) se trouvent dans
   votre propre VPS via [Coolify](https://coolify.io/self-hosted) ; même
   stack Docker Compose, vous possédez l'hôte et les données.
 
-REST est sur `3111` ; le visualiseur est sur `3113` et n'est publié séparément que si le modèle de plateforme propose une route protégée. Les mises à jour en direct utilisent SSE authentifié par bearer sur `/agentmemory/viewer/events` de REST. Le WebSocket moteur sur `49134` est interne et ne doit pas être publié. Voir [`deploy/README.md`](deploy/README.md) pour les règles d'exposition selon la plateforme.
+REST est sur `3111` ; le visualiseur est sur `3113` et n'est publié séparément que si le modèle de plateforme propose une route protégée. Les mises à jour en direct utilisent SSE authentifié par bearer sur `/agentmemory/viewer/events` de REST. Le WebSocket moteur sur `49134` est interne et ne doit pas être publié. Voir [`deploy/README.md`](../deploy/README.md) pour les règles d'exposition selon la plateforme.
 
 ---
 
@@ -1309,7 +1309,7 @@ Registre complet : [workers.iii.dev](https://workers.iii.dev). Chaque worker qui
 
 ### Runtime de la CLI et adresses d'écoute
 
-L'exécution d'`agentmemory` (ou du paquet sans sous-commande) démarre iii Worker Compose avec un manifeste isolé dans le répertoire de données choisi. Elle utilise iii 0.24.6, `state@0.22.20` et `http@0.22.7`. Les écouteurs REST et visualiseur locaux de la CLI sont liés à `127.0.0.1` ; le WebSocket moteur est un trafic interne au runtime. Les déploiements Docker depuis le dépôt utilisent le fichier [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) séparé ; voir [`deploy/README.md`](deploy/README.md).
+L'exécution d'`agentmemory` (ou du paquet sans sous-commande) démarre iii Worker Compose avec un manifeste isolé dans le répertoire de données choisi. Elle utilise iii 0.24.6, `state@0.22.20` et `http@0.22.7`. Les écouteurs REST et visualiseur locaux de la CLI sont liés à `127.0.0.1` ; le WebSocket moteur est un trafic interne au runtime. Les déploiements Docker depuis le dépôt utilisent le fichier [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) séparé ; voir [`deploy/README.md`](../deploy/README.md).
 
 ### Backend de stockage : fichier (défaut) ou Redis
 
@@ -1335,7 +1335,7 @@ Les événements du visualiseur utilisent SSE sur le worker REST et sont diffus�
 
 **Paramètres Redis recommandés.** La politique de snapshot par défaut peut perdre plusieurs minutes d'écritures lors d'un crash. Activez `appendonly yes` pour les données importantes et `maxmemory-policy noeviction` afin d'éviter l'éviction silencieuse des mémoires.
 
-Le projet Worker Compose généré par la CLI transmet ces variables au worker state. Pour l'auto-hébergement Docker, consultez [`deploy/README.md`](deploy/README.md) et la [documentation du worker state](https://workers.iii.dev/workers/state).
+Le projet Worker Compose généré par la CLI transmet ces variables au worker state. Pour l'auto-hébergement Docker, consultez [`deploy/README.md`](../deploy/README.md) et la [documentation du worker state](https://workers.iii.dev/workers/state).
 
 Traitez la configuration persistante des workers et le répertoire de données comme sensibles s'ils contiennent une URL Redis avec identifiants. Restreignez les permissions (par exemple `chmod 700 <data-dir>`) et préférez un utilisateur ACL Redis limité aux besoins d'agentmemory.
 

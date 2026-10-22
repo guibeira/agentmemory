@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">डिप्लॉय</h2>
 
-Docker इस repository से self-hosting के लिए supported है, CLI startup mode के रूप में नहीं। One-click templates [`deploy/Dockerfile`](deploy/Dockerfile) और [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) इस्तेमाल करते हैं, iii 0.24.6 runtime pin करते हैं और state, traces तथा generated secret को persistent `/data` volume में रखते हैं। Docker Compose default में named volume `iii-data` इस्तेमाल करता है; bind mount के लिए `AGENTMEMORY_DATA_DIR` को host path दें। 0.22.1 का मौजूदा file-based store `/data/state_store.db` से सीधे पढ़ा जाता है, बिना migration या conversion के। REST CORS default में local REST और viewer origins को अनुमति देता है; trusted browser origin की अनुमति के लिए comma-separated exact origins वाला `REST_ALLOWED_ORIGINS` set करें। Setup और security के लिए [`deploy/README.md`](deploy/README.md) देखें।
+Docker इस repository से self-hosting के लिए supported है, CLI startup mode के रूप में नहीं। One-click templates [`deploy/Dockerfile`](../deploy/Dockerfile) और [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) इस्तेमाल करते हैं, iii 0.24.6 runtime pin करते हैं और state, traces तथा generated secret को persistent `/data` volume में रखते हैं। Docker Compose default में named volume `iii-data` इस्तेमाल करता है; bind mount के लिए `AGENTMEMORY_DATA_DIR` को host path दें। 0.22.1 का मौजूदा file-based store `/data/state_store.db` से सीधे पढ़ा जाता है, बिना migration या conversion के। REST CORS default में local REST और viewer origins को अनुमति देता है; trusted browser origin की अनुमति के लिए comma-separated exact origins वाला `REST_ALLOWED_ORIGINS` set करें। Setup और security के लिए [`deploy/README.md`](../deploy/README.md) देखें।
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1312,7 +1312,7 @@ Full registry: [workers.iii.dev](https://workers.iii.dev)। वहाँ हर
 
 ### CLI runtime और bind addresses
 
-`agentmemory` (या बिना subcommand वाला package) चलाने पर चुनी गई data directory के अंतर्गत isolated manifest के साथ iii Worker Compose शुरू होता है। इसमें iii 0.24.6, `state@0.22.20` और `http@0.22.7` हैं। Local CLI REST और viewer listeners `127.0.0.1` से bind होते हैं; engine WebSocket internal runtime traffic है। Repository-based Docker deployments अलग [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) इस्तेमाल करते हैं; [`deploy/README.md`](deploy/README.md) देखें।
+`agentmemory` (या बिना subcommand वाला package) चलाने पर चुनी गई data directory के अंतर्गत isolated manifest के साथ iii Worker Compose शुरू होता है। इसमें iii 0.24.6, `state@0.22.20` और `http@0.22.7` हैं। Local CLI REST और viewer listeners `127.0.0.1` से bind होते हैं; engine WebSocket internal runtime traffic है। Repository-based Docker deployments अलग [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) इस्तेमाल करते हैं; [`deploy/README.md`](../deploy/README.md) देखें।
 
 ### Storage backend: file (default) बनाम Redis
 
@@ -1338,7 +1338,7 @@ Viewer live events REST worker पर SSE हैं और चल रही agen
 
 **अनुशंसित Redis settings।** Default snapshot policy crash में कई मिनट के writes खो सकती है। महत्त्वपूर्ण data के लिए `appendonly yes` रखें और memories के चुपचाप हटने से बचाने के लिए `maxmemory-policy noeviction` set करें।
 
-CLI-generated Worker Compose project ये variables state worker को देता है। Docker self-host के लिए [`deploy/README.md`](deploy/README.md) और [state worker docs](https://workers.iii.dev/workers/state) देखें।
+CLI-generated Worker Compose project ये variables state worker को देता है। Docker self-host के लिए [`deploy/README.md`](../deploy/README.md) और [state worker docs](https://workers.iii.dev/workers/state) देखें।
 
 Persisted worker config और data directory में Redis credentials हो सकते हैं; उन्हें sensitive मानें और permissions सीमित करें (जैसे shared host पर `chmod 700 <data-dir>`)। Database admin credentials के बजाय agentmemory की ज़रूरत तक सीमित Redis ACL user बेहतर है।
 

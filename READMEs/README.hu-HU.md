@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Telepítés (Deploy)</h2>
 
-A Docker a tárolóból történő saját üzemeltetéshez támogatott, nem a CLI indítási módjaként. Az egykattintásos sablonok a [`deploy/Dockerfile`](deploy/Dockerfile) és [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) fájlokat használják, az iii 0.24.6 runtime-ot rögzítik, az állapotot, nyomokat és generált titkot pedig tartós `/data` köteten tárolják. A Docker Compose alapértelmezésben az `iii-data` nevű kötetet használja; bind mount használatához állítsa az `AGENTMEMORY_DATA_DIR` értékét egy gazdagép elérési útjára. A 0.22.1-es verzióból származó fájlalapú store közvetlenül a `/data/state_store.db` fájlból olvasható, migrálás vagy konverzió nélkül. A REST CORS alapértelmezés szerint engedélyezi a helyi REST- és viewer-originöket; megbízható böngésző-origin engedélyezéséhez adja meg a pontos originök vesszővel elválasztott listáját a `REST_ALLOWED_ORIGINS` változóban. A beállításról és biztonságról lásd a [`deploy/README.md`](deploy/README.md) fájlt.
+A Docker a tárolóból történő saját üzemeltetéshez támogatott, nem a CLI indítási módjaként. Az egykattintásos sablonok a [`deploy/Dockerfile`](../deploy/Dockerfile) és [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) fájlokat használják, az iii 0.24.6 runtime-ot rögzítik, az állapotot, nyomokat és generált titkot pedig tartós `/data` köteten tárolják. A Docker Compose alapértelmezésben az `iii-data` nevű kötetet használja; bind mount használatához állítsa az `AGENTMEMORY_DATA_DIR` értékét egy gazdagép elérési útjára. A 0.22.1-es verzióból származó fájlalapú store közvetlenül a `/data/state_store.db` fájlból olvasható, migrálás vagy konverzió nélkül. A REST CORS alapértelmezés szerint engedélyezi a helyi REST- és viewer-originöket; megbízható böngésző-origin engedélyezéséhez adja meg a pontos originök vesszővel elválasztott listáját a `REST_ALLOWED_ORIGINS` változóban. A beállításról és biztonságról lásd a [`deploy/README.md`](../deploy/README.md) fájlt.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Telepítés a fly.io-ra" /></a>
@@ -1310,7 +1310,7 @@ Teljes regiszter: [workers.iii.dev](https://workers.iii.dev). Minden ottani work
 
 ### CLI-runtime és bind-címek
 
-Az `agentmemory` (vagy a csomag alparancs nélkül) futtatása iii Worker Compose-t indít elkülönített manifesttel a kiválasztott adatkönyvtárban. iii 0.24.6-ot, `state@0.22.20`-at és `http@0.22.7`-et használ. A CLI helyi REST- és megjelenítőfigyelői a `127.0.0.1` címre kötnek; a motor WebSocketje belső runtime-forgalom. A repóból indított Docker-telepítések a külön [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) fájlt használják; lásd a [`deploy/README.md`](deploy/README.md) fájlt.
+Az `agentmemory` (vagy a csomag alparancs nélkül) futtatása iii Worker Compose-t indít elkülönített manifesttel a kiválasztott adatkönyvtárban. iii 0.24.6-ot, `state@0.22.20`-at és `http@0.22.7`-et használ. A CLI helyi REST- és megjelenítőfigyelői a `127.0.0.1` címre kötnek; a motor WebSocketje belső runtime-forgalom. A repóból indított Docker-telepítések a külön [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) fájlt használják; lásd a [`deploy/README.md`](../deploy/README.md) fájlt.
 
 ### Tárolási backend: fájl (alapértelmezett) vagy Redis
 
@@ -1336,7 +1336,7 @@ A viewer élő eseményei SSE-n, a REST workeren keresztül jutnak el, és a fut
 
 **Ajánlott Redis-beállítások.** Az alapértelmezett snapshot-szabály összeomláskor perceknyi írást veszíthet. Fontos adatoknál engedélyezze az `appendonly yes` beállítást, és a csendes memória-eltávolítás elkerüléséhez használja a `maxmemory-policy noeviction` értéket.
 
-A CLI által generált Worker Compose-projekt ezeket a változókat a state workernek adja át. Dockeres saját üzemeltetéshez lásd a [`deploy/README.md`](deploy/README.md) és a [state worker dokumentációját](https://workers.iii.dev/workers/state).
+A CLI által generált Worker Compose-projekt ezeket a változókat a state workernek adja át. Dockeres saját üzemeltetéshez lásd a [`deploy/README.md`](../deploy/README.md) és a [state worker dokumentációját](https://workers.iii.dev/workers/state).
 
 A Redis-hitelesítő adatokat tartalmazó mentett worker-konfigurációt és adatkönyvtárat kezelje érzékeny adatként; korlátozza a hozzáférést (például megosztott gépen `chmod 700 <data-dir>`). Az adatbázis-adminisztrátori hitelesítő adatok helyett használjon az agentmemory igényeire korlátozott Redis ACL-felhasználót.
 

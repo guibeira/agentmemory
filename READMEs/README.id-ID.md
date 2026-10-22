@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Deploy</h2>
 
-Docker didukung untuk self-hosting dari repositori ini, bukan sebagai mode startup CLI. Template sekali klik menggunakan [`deploy/Dockerfile`](deploy/Dockerfile) dan [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml), mematok runtime iii 0.24.6, serta menyimpan state, trace, dan secret yang dibuat pada volume `/data` persisten. Secara default Docker Compose menggunakan named volume `iii-data`; set `AGENTMEMORY_DATA_DIR` ke path host untuk bind mount. Store berbasis file yang sudah ada dari 0.22.1 dibaca langsung dari `/data/state_store.db` tanpa migrasi atau konversi. REST CORS secara default mengizinkan origin REST dan viewer lokal; set `REST_ALLOWED_ORIGINS` ke daftar origin persis yang dipisahkan koma untuk mengizinkan origin browser tepercaya. Lihat [`deploy/README.md`](deploy/README.md) untuk setup dan keamanan.
+Docker didukung untuk self-hosting dari repositori ini, bukan sebagai mode startup CLI. Template sekali klik menggunakan [`deploy/Dockerfile`](../deploy/Dockerfile) dan [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), mematok runtime iii 0.24.6, serta menyimpan state, trace, dan secret yang dibuat pada volume `/data` persisten. Secara default Docker Compose menggunakan named volume `iii-data`; set `AGENTMEMORY_DATA_DIR` ke path host untuk bind mount. Store berbasis file yang sudah ada dari 0.22.1 dibaca langsung dari `/data/state_store.db` tanpa migrasi atau konversi. REST CORS secara default mengizinkan origin REST dan viewer lokal; set `REST_ALLOWED_ORIGINS` ke daftar origin persis yang dipisahkan koma untuk mengizinkan origin browser tepercaya. Lihat [`deploy/README.md`](../deploy/README.md) untuk setup dan keamanan.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy ke fly.io" /></a>
@@ -905,7 +905,7 @@ batas bawah biaya) ada di [`deploy/`](.././deploy/README.md):
   VPS Anda sendiri lewat [Coolify](https://coolify.io/self-hosted); stack Docker
   Compose yang sama, Anda memiliki host dan datanya.
 
-REST berada di `3111`; viewer di `3113` dan hanya dipublikasikan terpisah pada template platform yang menyediakan rute terlindungi. Pembaruan langsung menggunakan SSE bearer-authenticated pada `/agentmemory/viewer/events` di REST. WebSocket engine `49134` bersifat internal dan tidak boleh dipublikasikan. Lihat [`deploy/README.md`](deploy/README.md) untuk panduan platform.
+REST berada di `3111`; viewer di `3113` dan hanya dipublikasikan terpisah pada template platform yang menyediakan rute terlindungi. Pembaruan langsung menggunakan SSE bearer-authenticated pada `/agentmemory/viewer/events` di REST. WebSocket engine `49134` bersifat internal dan tidak boleh dipublikasikan. Lihat [`deploy/README.md`](../deploy/README.md) untuk panduan platform.
 
 ---
 
@@ -1308,7 +1308,7 @@ Registry lengkap: [workers.iii.dev](https://workers.iii.dev). Setiap worker di s
 
 ### Runtime CLI dan alamat bind
 
-Menjalankan `agentmemory` (atau paket tanpa subcommand) memulai iii Worker Compose dengan manifest terisolasi di direktori data yang dipilih. Runtime ini memakai iii 0.24.6, `state@0.22.20`, dan `http@0.22.7`. Listener REST dan viewer CLI lokal bind ke `127.0.0.1`; WebSocket engine adalah trafik internal runtime. Deployment Docker berbasis repositori menggunakan [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) yang terpisah; lihat [`deploy/README.md`](deploy/README.md).
+Menjalankan `agentmemory` (atau paket tanpa subcommand) memulai iii Worker Compose dengan manifest terisolasi di direktori data yang dipilih. Runtime ini memakai iii 0.24.6, `state@0.22.20`, dan `http@0.22.7`. Listener REST dan viewer CLI lokal bind ke `127.0.0.1`; WebSocket engine adalah trafik internal runtime. Deployment Docker berbasis repositori menggunakan [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) yang terpisah; lihat [`deploy/README.md`](../deploy/README.md).
 
 ### Backend penyimpanan: file (default) vs Redis
 
@@ -1334,7 +1334,7 @@ Event langsung viewer menggunakan SSE pada worker REST dan disiarkan oleh proses
 
 **Pengaturan Redis yang disarankan.** Kebijakan snapshot default dapat kehilangan beberapa menit penulisan saat crash. Aktifkan `appendonly yes` untuk data penting dan `maxmemory-policy noeviction` agar memori tidak terhapus diam-diam.
 
-Proyek Worker Compose yang dibuat CLI meneruskan variabel ini ke worker state. Untuk Docker self-host, lihat [`deploy/README.md`](deploy/README.md) dan [dokumen worker state](https://workers.iii.dev/workers/state).
+Proyek Worker Compose yang dibuat CLI meneruskan variabel ini ke worker state. Untuk Docker self-host, lihat [`deploy/README.md`](../deploy/README.md) dan [dokumen worker state](https://workers.iii.dev/workers/state).
 
 Anggap konfigurasi worker tersimpan dan direktori data sebagai informasi sensitif jika memuat URL Redis berisi kredensial. Batasi izinnya (misalnya `chmod 700 <data-dir>` pada host bersama) dan gunakan pengguna ACL Redis yang hanya memiliki akses yang dibutuhkan agentmemory.
 

@@ -885,7 +885,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">פריסה</h2>
 
-Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפעלה של ה-CLI. תבניות הפריסה משתמשות ב-[`deploy/Dockerfile`](deploy/Dockerfile) וב-[`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml), נועלות את runtime של iii 0.24.6 ושומרות מצב, traces וסוד שנוצר בכרך מתמשך `/data`. כברירת מחדל Docker Compose משתמש בכרך הנקוב `iii-data`; הגדירו את `AGENTMEMORY_DATA_DIR` לנתיב מארח כדי להשתמש ב-bind mount. מאגר הקבצים הקיים מ-0.22.1 נקרא ישירות מתוך `/data/state_store.db`, ללא הגירה או המרה. CORS של REST מאפשר כברירת מחדל את מקורות REST והמַציג המקומיים; הגדירו `REST_ALLOWED_ORIGINS` כרשימת מקורות מדויקים מופרדת בפסיקים כדי לאפשר דפדפן מהימן. לפרטי התקנה ואבטחה ראו [`deploy/README.md`](deploy/README.md).
+Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפעלה של ה-CLI. תבניות הפריסה משתמשות ב-[`deploy/Dockerfile`](../deploy/Dockerfile) וב-[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), נועלות את runtime של iii 0.24.6 ושומרות מצב, traces וסוד שנוצר בכרך מתמשך `/data`. כברירת מחדל Docker Compose משתמש בכרך הנקוב `iii-data`; הגדירו את `AGENTMEMORY_DATA_DIR` לנתיב מארח כדי להשתמש ב-bind mount. מאגר הקבצים הקיים מ-0.22.1 נקרא ישירות מתוך `/data/state_store.db`, ללא הגירה או המרה. CORS של REST מאפשר כברירת מחדל את מקורות REST והמַציג המקומיים; הגדירו `REST_ALLOWED_ORIGINS` כרשימת מקורות מדויקים מופרדת בפסיקים כדי לאפשר דפדפן מהימן. לפרטי התקנה ואבטחה ראו [`deploy/README.md`](../deploy/README.md).
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="פרסו ל-fly.io" /></a>
@@ -906,7 +906,7 @@ Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפ�
   שלכם באמצעות [Coolify](https://coolify.io/self-hosted); אותה ערימת Docker
   Compose, אתם הבעלים של ה-host ושל הנתונים.
 
-REST פועל ב-`3111`; המציג ב-`3113` ונחשף בנפרד רק בתבניות פלטפורמה שמספקות נתיב מוגן. עדכונים חיים משתמשים ב-SSE עם bearer דרך `/agentmemory/viewer/events` של REST. WebSocket המנוע ב-`49134` פנימי ואסור לפרסם אותו. לפרטי חשיפה לכל פלטפורמה ראו [`deploy/README.md`](deploy/README.md).
+REST פועל ב-`3111`; המציג ב-`3113` ונחשף בנפרד רק בתבניות פלטפורמה שמספקות נתיב מוגן. עדכונים חיים משתמשים ב-SSE עם bearer דרך `/agentmemory/viewer/events` של REST. WebSocket המנוע ב-`49134` פנימי ואסור לפרסם אותו. לפרטי חשיפה לכל פלטפורמה ראו [`deploy/README.md`](../deploy/README.md).
 
 ---
 
@@ -1309,7 +1309,7 @@ workers:
 
 ### סביבת הריצה של ה-CLI וכתובות bind
 
-הרצת `agentmemory` (או החבילה ללא פקודת משנה) מפעילה iii Worker Compose עם manifest מבודד בתיקיית הנתונים שנבחרה. היא משתמשת ב-iii 0.24.6, ב-`state@0.22.20` וב-`http@0.22.7`. מאזיני REST והמַציג המקומיים של ה-CLI קשורים ל-`127.0.0.1`; WebSocket המנוע הוא תעבורה פנימית. פריסות Docker מתוך המאגר משתמשות בקובץ הנפרד [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml); ראו [`deploy/README.md`](deploy/README.md).
+הרצת `agentmemory` (או החבילה ללא פקודת משנה) מפעילה iii Worker Compose עם manifest מבודד בתיקיית הנתונים שנבחרה. היא משתמשת ב-iii 0.24.6, ב-`state@0.22.20` וב-`http@0.22.7`. מאזיני REST והמַציג המקומיים של ה-CLI קשורים ל-`127.0.0.1`; WebSocket המנוע הוא תעבורה פנימית. פריסות Docker מתוך המאגר משתמשות בקובץ הנפרד [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); ראו [`deploy/README.md`](../deploy/README.md).
 
 ### Backend אחסון: file (ברירת מחדל) לעומת Redis
 
@@ -1335,7 +1335,7 @@ AGENTMEMORY_REDIS_URL=redis://localhost:6379
 
 **הגדרות Redis מומלצות.** מדיניות ה-snapshot ברירת המחדל עלולה לאבד דקות של כתיבות במקרה קריסה. הפעילו `appendonly yes` עבור מידע חשוב ואת `maxmemory-policy noeviction` כדי למנוע פינוי שקט של זיכרונות.
 
-פרויקט Worker Compose שנוצר ב-CLI מעביר את המשתנים האלה ל-worker ‏state. לאירוח עצמי ב-Docker ראו [`deploy/README.md`](deploy/README.md) ואת [תיעוד worker ‏state](https://workers.iii.dev/workers/state).
+פרויקט Worker Compose שנוצר ב-CLI מעביר את המשתנים האלה ל-worker ‏state. לאירוח עצמי ב-Docker ראו [`deploy/README.md`](../deploy/README.md) ואת [תיעוד worker ‏state](https://workers.iii.dev/workers/state).
 
 התייחסו לתצורת worker שנשמרת ולתיקיית הנתונים כאל מידע רגיש אם הן מכילות URL של Redis עם פרטי גישה. הגבילו הרשאות (למשל `chmod 700 <data-dir>`) והעדיפו משתמש ACL של Redis עם ההרשאות הנדרשות ל-agentmemory בלבד.
 

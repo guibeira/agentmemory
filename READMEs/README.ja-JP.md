@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">デプロイ</h2>
 
-Docker はこのリポジトリからのセルフホストに対応しており、CLI の起動モードではありません。ワンクリックテンプレートは [`deploy/Dockerfile`](deploy/Dockerfile) と [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) を使い、iii 0.24.6 ランタイムを固定し、状態、トレース、生成された secret を永続 `/data` ボリュームに保存します。Docker Compose はデフォルトで名前付きボリューム `iii-data` を使います。bind mount には `AGENTMEMORY_DATA_DIR` にホストパスを設定してください。0.22.1 からの既存のファイルベース store は、移行や変換なしで `/data/state_store.db` から直接読み込まれます。REST CORS はデフォルトでローカル REST と viewer の origin を許可します。信頼するブラウザー origin を追加するには、カンマ区切りの正確な origin を `REST_ALLOWED_ORIGINS` に設定してください。設定とセキュリティについては [`deploy/README.md`](deploy/README.md) を参照してください。
+Docker はこのリポジトリからのセルフホストに対応しており、CLI の起動モードではありません。ワンクリックテンプレートは [`deploy/Dockerfile`](../deploy/Dockerfile) と [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使い、iii 0.24.6 ランタイムを固定し、状態、トレース、生成された secret を永続 `/data` ボリュームに保存します。Docker Compose はデフォルトで名前付きボリューム `iii-data` を使います。bind mount には `AGENTMEMORY_DATA_DIR` にホストパスを設定してください。0.22.1 からの既存のファイルベース store は、移行や変換なしで `/data/state_store.db` から直接読み込まれます。REST CORS はデフォルトでローカル REST と viewer の origin を許可します。信頼するブラウザー origin を追加するには、カンマ区切りの正確な origin を `REST_ALLOWED_ORIGINS` に設定してください。設定とセキュリティについては [`deploy/README.md`](../deploy/README.md) を参照してください。
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -904,7 +904,7 @@ Render のワンクリックデプロイボタンはリポジトリルートに 
   経由で自前の VPS にセルフホスト。同じ Docker
   Compose スタックを使い、ホストとデータは自分の手元に残ります。
 
-REST は `3111`、ビューワーは `3113` です。保護された独立 route に対応するプラットフォームテンプレートに限り、ビューワーを別途公開します。ライブ更新は REST の `/agentmemory/viewer/events` endpoint で bearer 認証付き SSE を使用します。エンジン WebSocket `49134` は内部用で公開してはいけません。プラットフォームごとの公開方法は [`deploy/README.md`](deploy/README.md) を参照してください。
+REST は `3111`、ビューワーは `3113` です。保護された独立 route に対応するプラットフォームテンプレートに限り、ビューワーを別途公開します。ライブ更新は REST の `/agentmemory/viewer/events` endpoint で bearer 認証付き SSE を使用します。エンジン WebSocket `49134` は内部用で公開してはいけません。プラットフォームごとの公開方法は [`deploy/README.md`](../deploy/README.md) を参照してください。
 
 ---
 
@@ -1307,7 +1307,7 @@ workers:
 
 ### CLI ランタイムと bind アドレス
 
-`agentmemory`(またはサブコマンドなしのパッケージ)を実行すると、選択したデータディレクトリ内の独立 manifest で iii Worker Compose が起動します。iii 0.24.6、`state@0.22.20`、`http@0.22.7` を使用します。CLI のローカル REST と viewer listener は `127.0.0.1` に bind し、エンジン WebSocket はランタイム内部通信です。リポジトリベースの Docker デプロイでは別の [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml) を使います。詳細は [`deploy/README.md`](deploy/README.md) を参照してください。
+`agentmemory`(またはサブコマンドなしのパッケージ)を実行すると、選択したデータディレクトリ内の独立 manifest で iii Worker Compose が起動します。iii 0.24.6、`state@0.22.20`、`http@0.22.7` を使用します。CLI のローカル REST と viewer listener は `127.0.0.1` に bind し、エンジン WebSocket はランタイム内部通信です。リポジトリベースの Docker デプロイでは別の [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使います。詳細は [`deploy/README.md`](../deploy/README.md) を参照してください。
 
 ### ストレージ backend: file (デフォルト) と Redis
 
@@ -1333,7 +1333,7 @@ viewer のライブイベントは REST worker の SSE を使い、実行中の 
 
 **推奨 Redis 設定。** デフォルトの snapshot policy では crash 時に数分の書き込みを失う可能性があります。重要なデータには `appendonly yes` を設定し、メモリが黙って削除されないよう `maxmemory-policy noeviction` を使用してください。
 
-CLI が生成する Worker Compose プロジェクトはこれらの変数を state worker に渡します。Docker セルフホストについては [`deploy/README.md`](deploy/README.md) と [state worker のドキュメント](https://workers.iii.dev/workers/state)を参照してください。
+CLI が生成する Worker Compose プロジェクトはこれらの変数を state worker に渡します。Docker セルフホストについては [`deploy/README.md`](../deploy/README.md) と [state worker のドキュメント](https://workers.iii.dev/workers/state)を参照してください。
 
 Redis URL に認証情報が含まれる場合、永続化された worker 設定とデータディレクトリを機密情報として扱ってください。権限を制限し(共有ホストでは `chmod 700 <data-dir>` など)、DB 管理者ではなく agentmemory に必要な範囲に限定した Redis ACL user を推奨します。
 
