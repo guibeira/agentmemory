@@ -10,6 +10,7 @@ export III_REST_PORT="${III_REST_PORT:-3111}"
 export III_VIEWER_PORT="${III_VIEWER_PORT:-3113}"
 export III_TELEMETRY_ENABLED="${III_TELEMETRY_ENABLED:-false}"
 export AGENTMEMORY_VIEWER_HOST="${AGENTMEMORY_VIEWER_HOST:-0.0.0.0}"
+export AGENTMEMORY_STATE_SAVE_INTERVAL_MS="${AGENTMEMORY_STATE_SAVE_INTERVAL_MS:-2000}"
 export VIEWER_ALLOWED_HOSTS="${VIEWER_ALLOWED_HOSTS:-localhost:3113,127.0.0.1:3113,[::1]:3113}"
 export VIEWER_ALLOWED_ORIGINS="${VIEWER_ALLOWED_ORIGINS:-http://localhost:3113,http://127.0.0.1:3113}"
 export REST_ALLOWED_ORIGINS="${REST_ALLOWED_ORIGINS:-http://localhost:3111,http://127.0.0.1:3111,http://localhost:3113,http://127.0.0.1:3113}"
@@ -63,12 +64,12 @@ const storage = value.trace_storage && typeof value.trace_storage === "object" &
 if (typeof storage.directory !== "string" || storage.directory === "" || storage.directory === "./data/observability/traces") {
   storage.directory = `${process.env.AGENTMEMORY_DATA_DIR}/observability/traces`;
   value.trace_storage = storage;
-  entry.value = value;
-  const temporary = `${configPath}.tmp`;
-  fs.writeFileSync(temporary, stringify(entry), { mode: 0o600 });
-  fs.renameSync(temporary, configPath);
-  fs.chmodSync(configPath, 0o600);
 }
+entry.value = value;
+const temporary = `${configPath}.tmp`;
+fs.writeFileSync(temporary, stringify(entry), { mode: 0o600 });
+fs.renameSync(temporary, configPath);
+fs.chmodSync(configPath, 0o600);
 fs.mkdirSync(`${process.env.AGENTMEMORY_DATA_DIR}/observability/traces`, { recursive: true, mode: 0o700 });
 if (process.env.AGENTMEMORY_STATE_BACKEND === "redis") {
   const legacy = `        name: kv\n        config:\n          store_method: file_based\n          file_path: /data/state_store.db\n          save_interval_ms: 2000`;

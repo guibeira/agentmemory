@@ -561,9 +561,18 @@ export function getIndexSaveIntervalMs(): number {
   return raw > 0 ? raw : INDEX_SAVE_INTERVAL_DEFAULT_MS;
 }
 
-export function getStateSaveIntervalMs(): number | undefined {
-  const raw = safeParseInt(getMergedEnv()["AGENTMEMORY_STATE_SAVE_INTERVAL_MS"], 0);
-  return raw > 0 ? raw : undefined;
+export const STATE_SAVE_INTERVAL_DEFAULT_MS = 2000;
+export const STATE_SAVE_INTERVAL_MIN_MS = 100;
+export const STATE_SAVE_INTERVAL_MAX_MS = 3_600_000;
+
+export function getStateSaveIntervalMs(): number {
+  const value = getMergedEnv()["AGENTMEMORY_STATE_SAVE_INTERVAL_MS"];
+  if (value === undefined || value.trim() === "") return STATE_SAVE_INTERVAL_DEFAULT_MS;
+  if (!/^\d+$/.test(value.trim())) return STATE_SAVE_INTERVAL_DEFAULT_MS;
+  const raw = Number(value);
+  return Number.isSafeInteger(raw) && raw >= STATE_SAVE_INTERVAL_MIN_MS && raw <= STATE_SAVE_INTERVAL_MAX_MS
+    ? raw
+    : STATE_SAVE_INTERVAL_DEFAULT_MS;
 }
 
 export const VECTOR_BUCKET_SIZE_DEFAULT = 500;

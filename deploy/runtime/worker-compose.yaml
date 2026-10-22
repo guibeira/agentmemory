@@ -30,7 +30,7 @@ containers:
         config:
           store_method: file_based
           file_path: /data/state_store.db
-          save_interval_ms: 2000
+          save_interval_ms: "${AGENTMEMORY_STATE_SAVE_INTERVAL_MS:-2000}"
   http:
     worker: package://api.workers.iii.dev/http
     version: "${HTTP_VERSION}"

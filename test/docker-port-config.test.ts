@@ -53,7 +53,8 @@ describe("Docker Worker Compose runtime", () => {
     expect(entrypoint).toContain("/usr/local/bin/iii compose");
     expect(entrypoint).toContain("--namespace agentmemory --up --file");
     expect(workerCompose).toContain("configuration:");
-    expect(workerCompose).toContain("save_interval_ms: 2000");
+    expect(workerCompose).toContain('save_interval_ms: "${AGENTMEMORY_STATE_SAVE_INTERVAL_MS:-2000}"');
+    expect(entrypoint).toContain('AGENTMEMORY_STATE_SAVE_INTERVAL_MS="${AGENTMEMORY_STATE_SAVE_INTERVAL_MS:-2000}"');
     expect(workerCompose).toContain("file_path: /data/state_store.db");
     expect(compose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
     expect(compose).toContain('AGENTMEMORY_STATE_BACKEND: "${AGENTMEMORY_STATE_BACKEND:-}"');

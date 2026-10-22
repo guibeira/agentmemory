@@ -80,7 +80,7 @@ const COMPOSE_RESERVED_ENV = new Set([
 ]);
 
 function stateSaveInterval(value: string | undefined): number {
-  if (value === undefined || value.trim() === "") return 2000;
+  if (value === undefined || value.trim() === "") return getStateSaveIntervalMs();
   if (!/^\d+$/.test(value.trim())) throw new Error("AGENTMEMORY_STATE_SAVE_INTERVAL_MS must be an integer between 100 and 3600000.");
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 100 || parsed > 3_600_000) {

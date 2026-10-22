@@ -102,6 +102,14 @@ describe("Worker Compose project", () => {
     expect(text).not.toContain("file_path: '/opt/am/workers-local");
   });
 
+  it("uses and validates the configured state flush interval", () => {
+    expect(renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: "9000" } }))).toContain("save_interval_ms: 9000");
+    expect(renderWorkerCompose(options())).toContain("save_interval_ms: 2000");
+    for (const invalid of ["nope", "99", "3600001", "1.5"]) {
+      expect(() => renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: invalid } }))).toThrow(/AGENTMEMORY_STATE_SAVE_INTERVAL_MS/);
+    }
+  });
+
   it("honors disableRestartPolicy for every worker", () => {
     const disabled = parse(renderWorkerCompose(options({ disableRestartPolicy: true }))) as {
       containers: Record<string, { restart: string }>;
@@ -248,7 +256,7 @@ describe("Worker Compose project", () => {
 
     writeWorkerCompose(options());
     const entry = parse(readFileSync(join(configDir, "iii-observability.yaml"), "utf8")) as {
-      value: { trace_storage: { directory: string } };
+      value: { trace_storage: { directory: string }; sampling_ratio: number; logs_console_output: boolean };
     };
     expect(entry.value.trace_storage.directory).toBe("/mnt/traces");
   });
