@@ -476,7 +476,7 @@ Nejnovější poznámky k vydání: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Externí závislosti</strong></td>
-<td>Žádné (SQLite + iii-engine)</td>
+<td>Žádné (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektorová DB</td>
 <td>Více</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker je podporován pro self-hosting z tohoto repozitáře, nikoli jako režim spouštění CLI. Šablony pro nasazení na jedno kliknutí používají `deploy/Dockerfile` a `deploy/runtime/worker-compose.yaml`, připínají stejný runtime iii 0.24.6 a workery a ukládají stav, traces i vygenerovaný secret na trvalý svazek `/data`. Docker Compose standardně používá existující pojmenovaný svazek `iii-data`; pro bind mount nastavte `AGENTMEMORY_DATA_DIR` na cestu hostitele. Starší souborové úložiště z verze 0.22.1 se čte přímo z `/data/state_store.db`, bez migrace nebo konverze. REST CORS ve výchozím stavu povoluje lokální původ REST a vieweru; pokud potřebuje přístup důvěryhodný původ prohlížeče, nastavte `REST_ALLOWED_ORIGINS` na seznam přesných původů oddělených čárkami. Podrobnosti nastavení a zabezpečení jsou v [`deploy/README.md`](../deploy/README.md).
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Nasadit na fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Nasadit na Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Nasadit na fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Nasadit na Railway" /></a>
 </p>
 
 Tlačítko pro nasazení na jedno kliknutí od Renderu vyžaduje `render.yaml` v kořeni repozitáře, který záměrně udržujeme čistý. Pro manuální nasměrování na blueprint v repozitáři použijte postup Render Blueprint popsaný v [`deploy/render/`](.././deploy/render/README.md).
@@ -906,6 +906,15 @@ spodní hranice nákladů) jsou v [`deploy/`](.././deploy/README.md):
   Compose stack, host i data vlastníte vy.
 
 REST používá port `3111`; viewer běží na portu `3113` a zveřejňuje se pouze tam, kde šablona platformy podporuje samostatnou chráněnou trasu. Živé aktualizace používají SSE s bearer autentizací na REST endpointu `/agentmemory/viewer/events`. WebSocket enginu na `49134` je interní a nesmí se zveřejňovat. Pokyny k vystavení a povoleným originům pro jednotlivé platformy najdete v [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1239,7 +1248,7 @@ agentmemory tohle dodává zadarmo, protože každé volání funkce a trigger s
 agentmemory console
 ```
 
-Tím se spustí `iii console` pinned enginu proti portům, které agentmemory vyřešil (REST a WebSocket workeru), a obslouží se o jeden port nad viewerem, výchozí `http://localhost:3114`. `--console-port N` zvolí jiný port; `--port` a `--instance` volí instanci agentmemory stejně jako u `stop`; jakýkoli jiný přepínač se předá dál, například `--enable-flow` pro experimentální stránku architekturního grafu.
+`--console-port N` zvolí jiný port; `--port` a `--instance` volí instanci agentmemory stejně jako u `stop`; jakýkoli jiný přepínač se předá dál, například `--enable-flow` pro experimentální stránku architekturního grafu.
 
 Totéž manuálně, užitečné, když `agentmemory` není v PATH:
 
@@ -1255,11 +1264,9 @@ Totéž manuálně, užitečné, když `agentmemory` není v PATH:
 | **Functions** | vyvolá přímo jakoukoli funkci agentmemory s payloadem JSON; vhodné pro testování `memory.recall`, `memory.consolidate`, `graph.query` bez zapojování klienta. |
 | **Triggers** | přehraje triggery HTTP, cron, event a state: manuálně vyvolá cron konsolidace, zopakuje HTTP route, vyšle změnu stavu. |
 | **States** | prohlížeč KV s plným CRUD nad sessions, sloty paměti, časovači životního cyklu a indexem embeddingů; hodnoty lze upravovat na místě. |
-| **Streams** | kontrola kanálů a aktivity enginu iii. |
 | **Traces** | pohledy waterfall / flame / rozpad podle služby v OpenTelemetry. Filtrování podle `trace_id` ukáže, které funkce, volání DB a požadavky na embedding provedlo jedno `memory.search`. |
 | **Logs** | strukturované logy OTEL filtrované a korelované na ID trace/span. |
 | **Config** | runtime konfigurace: přesně vidíte, s jakými workery, poskytovateli a porty váš engine běží. |
-| **Flow** | (volitelné, `--enable-flow`) interaktivní architekturní graf každého workeru, triggeru a streamu. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="Pohled waterfall na trace v iii console zobrazující dobu trvání jednotlivých spanů" width="720" />
@@ -1377,7 +1384,7 @@ fi
 | Tradiční stack | agentmemory používá |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + in-memory vektorový index |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | dohled nad workery iii engine |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1670,6 +1677,7 @@ Vytvořte `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

@@ -476,7 +476,7 @@ Seneste udgivelsesnoter: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Eksterne afhængigheder</strong></td>
-<td>Ingen (SQLite + iii-engine)</td>
+<td>Ingen (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektordatabase</td>
 <td>Flere</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker understøttes til self-hosting fra dette repository, ikke som CLI-starttilstand. One-click-skabeloner bruger `deploy/Dockerfile` og `deploy/runtime/worker-compose.yaml`, fastlåser samme iii 0.24.6-runtime-workers og gemmer state, traces og den genererede secret på et persistent `/data`-volume. Docker Compose bruger som standard det eksisterende navngivne `iii-data`-volume; angiv `AGENTMEMORY_DATA_DIR` som en hoststi for at bruge et bind mount. Det eksisterende filbaserede store fra 0.22.1 læses direkte fra `/data/state_store.db` uden migration eller konvertering. REST CORS tillader som standard de lokale REST- og viewer-origins; sæt `REST_ALLOWED_ORIGINS` til en kommasepareret liste med præcise origins, når en betroet browser-origin skal have adgang. Se [`deploy/README.md`](../deploy/README.md) for opsætning og sikkerhed.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy til fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy til Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy til fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy til Railway" /></a>
 </p>
 
 Renders one-click-deploy-knap kræver `render.yaml` i repositoryets rod, som vi med vilje holder ren. Brug Render Blueprint-flowet, dokumenteret i [`deploy/render/`](.././deploy/render/README.md), til manuelt at pege på blueprintet i repositoryet.
@@ -906,6 +906,15 @@ minimumsomkostninger) findes i [`deploy/`](.././deploy/README.md):
   Compose-stack, du ejer hosten og dataene.
 
 REST bruger port `3111`; viewer er på `3113` og publiceres kun, hvor platformsskabelonen understøtter en separat beskyttet rute. Live-opdateringer bruger bearer-autentificeret SSE på REST-endpointet `/agentmemory/viewer/events`. Engine-WebSocket på `49134` er intern og må ikke publiceres. Se [`deploy/README.md`](../deploy/README.md) for platformspecifik eksponering og allowlist-vejledning.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1255,11 +1264,9 @@ Samme kommando manuelt, nyttig når `agentmemory` ikke er på PATH:
 | **Functions** | Kalde enhver agentmemory-funktion direkte med en JSON-payload; praktisk til at teste `memory.recall`, `memory.consolidate`, `graph.query` uden klient. |
 | **Triggers** | Afspille HTTP-, cron-, event- og state-triggers: køre konsoliderings-cronen manuelt, gentage en HTTP-route eller udsende en state-ændring. |
 | **States** | KV-browser med fuld CRUD for sessioner, memory-slots, livscyklustimere og embeddings-indeks; redigér værdier direkte. |
-| **Streams** | Undersøg iii-engine-kanaler og aktivitet. |
 | **Traces** | OpenTelemetry-waterfall-, flame- og serviceopdelingsvisninger. Filtrér efter `trace_id` for at se præcis, hvilke funktioner, DB-kald og embedding-forespørgsler ét `memory.search` udløste. |
 | **Logs** | Strukturerede OTEL-logs filtreret og korreleret med trace-/span-ID’er. |
 | **Config** | Runtime-konfiguration: se præcis, hvilke workers, providere og porte din engine kører med. |
-| **Flow** | (Valgfrit, `--enable-flow`) Interaktiv arkitekturgraf over hver worker, trigger og stream. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace-waterfall-visning, der viser varighed pr. span" width="720" />
@@ -1375,7 +1382,7 @@ fi
 | Traditionel stack | agentmemory bruger |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + in-memory vektorindeks |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST-endpointet `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii-engine-worker-overvågning |
 | Prometheus / Grafana | iii OTEL + health-monitor |
@@ -1668,6 +1675,7 @@ Opret `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

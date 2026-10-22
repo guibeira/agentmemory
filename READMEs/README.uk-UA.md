@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>Зовнішні залежності</strong></td>
-<td>Немає (SQLite + iii-engine)</td>
+<td>Немає (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + векторна БД</td>
 <td>Декілька</td>
@@ -887,8 +887,8 @@ Docker підтримується для self-hosting із репозиторі�
 
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Розгорнути на fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Розгорнути на Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Розгорнути на fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Розгорнути на Railway" /></a>
 </p>
 
 Кнопка розгортання в один клік для Render вимагає `render.yaml` у корені репозиторію, який ми свідомо тримаємо чистим. Скористайтеся процесом Render Blueprint, описаним у [`../deploy/render/`](.././deploy/render/README.md), щоб вручну вказати на blueprint усередині репозиторію.
@@ -909,6 +909,15 @@ Docker підтримується для self-hosting із репозиторі�
 Публікується лише порт `3111`. Переглядач на `3113` стає
 прив'язаним до loopback усередині контейнера; README кожного шаблону документує
 схему SSH-тунелю для доступу до нього.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1258,7 +1267,6 @@ agentmemory console
 | **Functions** | Викликати будь-яку функцію agentmemory напряму з корисним навантаженням JSON; зручно для тестування `memory.recall`, `memory.consolidate`, `graph.query` без підключення клієнта. |
 | **Triggers** | Відтворювати HTTP-, cron-, подієві та стейт-тригери: запустити cron консолідації вручну, повторити HTTP-маршрут, згенерувати зміну стану. |
 | **States** | Браузер KV із повним CRUD для сесій, слотів пам'яті, таймерів життєвого циклу та індексу ембедингів; редагувати значення на місці. |
-| **Streams** | Живий монітор WebSocket для записів пам'яті, подій хуків та оновлень спостережень у міру їхнього проходження через потоки iii. |
 | **Queues** | Довговічні теми черги + керування dead-letter. Відтворювати або відкидати невдалі завдання ембедингу / стиснення. |
 | **Traces** | Перегляди OpenTelemetry waterfall / flame / розбивки за сервісами. Фільтруйте за `trace_id`, щоб побачити, які саме функції, запити до БД та запити ембедингу породив один `memory.search`. |
 | **Logs** | Структуровані логи OTEL, відфільтровані та співвіднесені з ID трасування/спанів. |
@@ -1374,7 +1382,7 @@ fi
 | Традиційний стек | agentmemory використовує |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + векторний індекс у пам'яті |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | нагляд за воркерами двигуна iii |
 | Prometheus / Grafana | iii OTEL + монітор стану здоров'я |
@@ -1661,6 +1669,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

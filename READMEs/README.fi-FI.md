@@ -476,7 +476,7 @@ Uusimmat julkaisutiedot: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Ulkoiset riippuvuudet</strong></td>
-<td>Ei mitään (SQLite + iii-engine)</td>
+<td>Ei mitään (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektoritietokanta</td>
 <td>Useita</td>
@@ -885,8 +885,8 @@ npx -y @agentmemory/mcp
 
 Dockeria tuetaan itse ylläpidettävään käyttöönottoon tästä repositoriosta, ei CLI:n käynnistystilana. Yhden napsautuksen mallipohjat käyttävät tiedostoja [`deploy/Dockerfile`](../deploy/Dockerfile) ja [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), kiinnittävät saman iii 0.24.6 -ajoympäristön ja tallentavat tilan, jäljitykset sekä luodun salaisuuden pysyvään `/data`-taltioon. Docker Compose käyttää oletuksena olemassa olevaa nimettyä `iii-data`-taltioita; aseta `AGENTMEMORY_DATA_DIR` isäntäkoneen polkuun, jos haluat käyttää bind-liitosta. Olemassa oleva tiedostopohjainen tallennus (0.22.1:n tiedostomuodossa) luetaan suoraan polusta `/data/state_store.db` ilman siirtoa tai muunnosta. REST CORS sallii oletuksena paikalliset REST- ja katseluohjelmaoriginit; aseta `REST_ALLOWED_ORIGINS` pilkuilla erotelluksi luetteloksi täsmällisiä originitunnuksia, jos luotetun selaimen origin tarvitsee pääsyn. Katso käyttöönotto- ja suojaustiedot tiedostosta [`deploy/README.md`](../deploy/README.md).
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Ota käyttöön fly.io:ssa" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Ota käyttöön Railwayssa" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Ota käyttöön fly.io:ssa" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Ota käyttöön Railwayssa" /></a>
 </p>
 
 Renderin yhden klikkauksen käyttöönottopainike vaatii `render.yaml`-tiedoston repositorion juuressa, jonka pidämme tarkoituksella siistinä. Käytä [`deploy/render/`](.././deploy/render/README.md)-kansiossa dokumentoitua Render Blueprint -virtaa osoittaaksesi repositorion sisäiseen blueprintiin käsin.
@@ -905,6 +905,15 @@ kustannuslattia) löytyvät kansiosta [`deploy/`](.././deploy/README.md):
   Compose -pino, omistat itse isännän ja datan.
 
 REST käyttää porttia `3111`; katseluohjelma käyttää porttia `3113` ja julkaistaan vain, kun alustan mallipohja tukee erillistä suojattua reittiä. Reaaliaikaiset päivitykset käyttävät bearer-todennettua SSE:tä REST-päätepisteessä `/agentmemory/viewer/events`. Moottorin WebSocket portissa `49134` on sisäinen, eikä sitä pidä julkaista. Katso alustakohtaiset julkaisu- ja sallittujen osoitteiden ohjeet tiedostosta [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1218,9 +1227,9 @@ Katseluohjelman palvelin sitoutuu oletuksena osoitteeseen `127.0.0.1` ja liittä
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii-konsoli" height="32" /></picture></h2>
 
-Katseluohjelma portissa `:3113` näyttää, mitä agenttisi **muisti**. [iii-konsoli](https://iii.dev/docs/console) näyttää, mitä agenttisi **teki**: joka muistioperaatio OpenTelemetry-jäljityksenä, joka KV-merkintä muokattavana, joka funktio kutsuttavana, joka stream napautettavana. Kaksi ikkunaa samaan muistiin: yksi tuoteksikin, yksi moottoriksikin muotoiltu.
+Katseluohjelma portissa `:3113` näyttää, mitä agenttisi **muisti**. [iii-konsoli](https://iii.dev/docs/console) näyttää, mitä agenttisi **teki**: joka muistioperaatio OpenTelemetry-jäljityksenä, joka KV-merkintä muokattavana, joka funktio kutsuttavana. Kaksi ikkunaa samaan muistiin: yksi tuoteksikin, yksi moottoriksikin muotoiltu.
 
-Katso `memory_smart_search`-kutsun laukeavan ja näe BM25-skannaus → upotushaku → RRF-fuusio → uudelleenluokittelu vesiputousnäkymänä. Muokkaa jumittunutta konsolidointiajastinta KV-selaimessa. Toista `PostToolUse`-hook muokatulla hyötykuormalla. Pinnaa WebSocket-stream ja katso havaintojen saapuvan live.
+Katso `memory_smart_search`-kutsun laukeavan ja näe BM25-skannaus → upotushaku → RRF-fuusio → uudelleenluokittelu vesiputousnäkymänä. Muokkaa jumittunutta konsolidointiajastinta KV-selaimessa. Toista `PostToolUse`-hook muokatulla hyötykuormalla.
 
 agentmemory toimittaa tämän ilmaiseksi, koska joka funktiokutsu ja triggeri laukeaa iii:n läpi; ei mitään mukautettua, ei mitään instrumentoitavaa.
 
@@ -1254,11 +1263,9 @@ Sama asia käsin, hyödyllinen kun `agentmemory` ei ole PATH:ssa:
 | **Functions** | Kutsu mitä tahansa agentmemoryn funktiota suoraan JSON-hyötykuormalla; kätevä testaamaan `memory.recall`, `memory.consolidate`, `graph.query` kytkemättä asiakasta. |
 | **Triggers** | Toista HTTP-, cron-, tapahtuma- ja tilatriggereitä: laukaise konsolidointi-cron käsin, yritä HTTP-reittiä uudelleen, lähetä tilamuutos. |
 | **States** | KV-selain täydellä CRUD:lla istuntoihin, muistipaikkoihin, elinkaariajastimiin ja upotusindeksiin; muokkaa arvoja paikan päällä. |
-| **Streams** | Tarkastele iii-moottorin kanavia ja toimintaa. |
 | **Traces** | OpenTelemetry-vesiputous-/liekki-/palvelujaotellut näkymät. Suodata `trace_id`:llä nähdäksesi tarkalleen, mitkä funktiot, tietokantakutsut ja upotuspyynnöt yksi `memory.search` tuotti. |
 | **Logs** | Rakenteelliset OTEL-lokit suodatettuna ja korreloituna trace-/span-ID:ihin. |
 | **Config** | Ajonaikainen konfiguraatio: näe tarkalleen, millä workereilla, tarjoajilla ja porteilla moottorisi käy. |
-| **Flow** | (Valinnainen, `--enable-flow`) Interaktiivinen arkkitehtuurigraafi joka workerista, triggeristä ja streamista. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii-konsolin jäljitysvesiputousnäkymä, joka näyttää keston per span" width="720" />
@@ -1375,7 +1382,7 @@ fi
 | Perinteinen pino | agentmemory käyttää |
 |---|---|
 | Express.js / Fastify | iii HTTP-triggerit |
-| SQLite / Postgres + pgvector | iii KV-tila + muistinvarainen vektori-indeksi |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST-päätepiste `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii-moottorin workerien valvonta |
 | Prometheus / Grafana | iii OTEL + terveysmonitori |
@@ -1668,7 +1675,7 @@ Luo `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

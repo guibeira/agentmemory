@@ -478,7 +478,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>الاعتماديات الخارجية</strong></td>
-<td>لا يوجد (SQLite + iii-engine)</td>
+<td>لا يوجد (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + قاعدة بيانات متجهية</td>
 <td>متعددة</td>
@@ -888,8 +888,8 @@ npx -y @agentmemory/mcp
 يدعم Docker الاستضافة الذاتية من هذا المستودع، وليس وضع بدء تشغيل CLI. تستخدم القوالب بنقرة واحدة [`deploy/Dockerfile`](../deploy/Dockerfile) و[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)، وتثبّت عمّال runtime iii 0.24.6 أنفسهم، وتحفظ الحالة والتتبّعات والسر المُنشأ على وحدة تخزين دائمة عند `/data`. يستخدم Docker Compose وحدة التخزين المسماة الموجودة `iii-data` افتراضيًا؛ اضبط `AGENTMEMORY_DATA_DIR` على مسار مضيف لاستخدام ربط مجلد بدلًا منها. تُقرأ مباشرةً البيانات المخزنة بصيغة 0.22.1 في `/data/state_store.db` دون ترحيل أو تحويل. يسمح REST CORS بمنشأَي REST والعارض المحليين افتراضيًا؛ اضبط `REST_ALLOWED_ORIGINS` على قائمة مفصولة بفواصل من المنشأات الدقيقة عندما يحتاج منشأ متصفح موثوق إلى الوصول. راجع [`deploy/README.md`](../deploy/README.md) لتفاصيل الإعداد والأمان.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 يتطلب زر نشر Render بنقرة واحدة وجود `render.yaml` في جذر المستودع، وهو ما نتركه نظيفًا عمدًا. استخدم مسار Render Blueprint المُوثَّق في [`deploy/render/`](.././deploy/render/README.md) للإشارة يدويًا إلى المخطط الموجود في المستودع.
@@ -907,6 +907,15 @@ npx -y @agentmemory/mcp
   Compose، وأنت من يملك المضيف والبيانات.
 
 تعمل REST على `3111`؛ ويعمل العارض على `3113` ولا يُنشر إلا عندما يدعم قالب المنصة مسارًا منفصلًا محميًا. تستخدم التحديثات الحية SSE موثّقًا برمز الحامل على نقطة REST `/agentmemory/viewer/events`. ويظل WebSocket المحرك على `49134` داخليًا ويجب عدم نشره. راجع [`deploy/README.md`](../deploy/README.md) لإرشادات الإتاحة وقوائم السماح الخاصة بكل منصة.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1256,7 +1265,6 @@ agentmemory console
 | **الدوال (Functions)** | استدعاء أي من دوال agentmemory مباشرة بحمولة JSON؛ مفيد لاختبار `memory.recall` و`memory.consolidate` و`graph.query` دون ربط عميل. |
 | **المحفِّزات (Triggers)** | إعادة تشغيل محفِّزات HTTP وcron والأحداث والحالة: تفعيل مهمة cron للتوحيد يدويًا، وإعادة محاولة مسار HTTP، وبث تغيّر حالة. |
 | **الحالات (States)** | مستعرض KV بعمليات CRUD كاملة على الجلسات، وفُتحات الذاكرة، ومؤقِّتات دورة الحياة، وفهرس التضمينات؛ وتعديل القيم في مكانها. |
-| **التيارات (Streams)** | فحص قنوات محرك iii ونشاطها. |
 | **التتبّعات (Traces)** | عروض شلالية (waterfall) / لهبية (flame) / تفصيلية بالخدمة لـ OpenTelemetry. رشِّح حسب `trace_id` لمعرفة بالضبط أي الدوال، واستدعاءات قاعدة البيانات، وطلبات التضمين التي أنتجها استدعاء واحد لـ `memory.search`. |
 | **السجلات (Logs)** | سجلات OTEL البنيوية مُرشَّحة ومرتبطة بمعرِّفات trace/span. |
 | **الإعدادات (Config)** | إعدادات بيئة التشغيل: رؤية بالضبط أي عمّال ومزوّدين ومنافذ يعمل محركك بها. |
@@ -1376,7 +1384,7 @@ fi
 | المكدّس التقليدي | ما يستخدمه agentmemory |
 |---|---|
 | Express.js / Fastify | محفِّزات HTTP في iii |
-| SQLite / Postgres + pgvector | حالة KV في iii + فهرس متجهات في الذاكرة |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | نقطة REST `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | إشراف المحرك على العمّال في iii |
 | Prometheus / Grafana | OTEL في iii + مراقب الحالة الصحية |
@@ -1668,6 +1676,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

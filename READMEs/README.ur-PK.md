@@ -478,7 +478,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>خارجی انحصار</strong></td>
-<td>کوئی نہیں (SQLite + iii-engine)</td>
+<td>کوئی نہیں (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + ویکٹر DB</td>
 <td>متعدد</td>
@@ -889,8 +889,8 @@ Docker repository سے self-host کے لیے معاون ہے، CLI startup mode 
 
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="fly.io پر ڈیپلائی کریں" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Railway پر ڈیپلائی کریں" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="fly.io پر ڈیپلائی کریں" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Railway پر ڈیپلائی کریں" /></a>
 </p>
 
 Render کے ون-کلک ڈیپلائی بٹن کو repository کی root میں `render.yaml` درکار ہے، جسے ہم جانستہ طور پر صاف رکھتے ہیں۔ in-repo blueprint کی طرف دستی طور پر اشارہ کرنے کے لیے [`../deploy/render/`](.././deploy/render/README.md) میں دستاویزی Render Blueprint فلو استعمال کریں۔
@@ -903,6 +903,15 @@ Render کے ون-کلک ڈیپلائی بٹن کو repository کی root میں `
 - [`../deploy/coolify`](.././deploy/coolify/README.md): [Coolify](https://coolify.io/self-hosted) کے ذریعے آپ کے اپنے VPS پر سیلف-ہوسٹڈ؛ وہی Docker Compose اسٹیک، host اور data دونوں آپ کے اپنے۔
 
 صرف پورٹ `3111` publish کی جاتی ہے۔ `3113` پر ویور container کے اندر loopback سے bound رہتا ہے؛ ہر template کا README اس تک پہنچنے کے لیے SSH-tunnel پیٹرن دستاویز کرتا ہے۔
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1218,7 +1227,6 @@ open http://localhost:3113
 
 `:3113` پر ویور دکھاتا ہے کہ آپ کے ایجنٹ نے **کیا یاد رکھا**۔ [iii کنسول](https://iii.dev/docs/console) دکھاتا ہے کہ آپ کے ایجنٹ نے **کیا کیا**: ہر میموری op ایک OpenTelemetry trace کے طور پر، ہر KV entry قابلِ ترمیم، ہر فنکشن invocable، ہر stream tap کرنے کے قابل۔ ایک ہی میموری پر دو کھڑکیاں: ایک product-shaped، ایک engine-shaped۔
 
-کسی `memory_smart_search` کو فائر ہوتے دیکھیں اور BM25 scan → embedding lookup → RRF fusion → reranker کو ایک waterfall کے طور پر دیکھیں۔ KV browser میں کسی پھنسے ہوئے consolidation timer میں ترمیم کریں۔ کسی تبدیل شدہ payload کے ساتھ `PostToolUse` hook کو دوبارہ چلائیں (replay)۔ WebSocket stream کو pin کریں اور observations کو لائیو آتے دیکھیں۔
 
 agentmemory یہ مفت فراہم کرتا ہے کیونکہ ہر function call اور trigger iii کے ذریعے فائر ہوتا ہے؛ کچھ بھی custom نہیں، instrument کرنے کے لیے کچھ نہیں۔
 
@@ -1236,7 +1244,7 @@ agentmemory یہ مفت فراہم کرتا ہے کیونکہ ہر function call
 agentmemory console
 ```
 
-یہ pinned انجن کے `iii console` کو agentmemory کے resolve کردہ پورٹس (REST، streams، bridge) کے خلاف چلاتا ہے اور اسے ویور سے ایک پورٹ اوپر سرو کرتا ہے، ڈیفالٹ کے طور پر `http://localhost:3114`۔ `--console-port N` کوئی اور پورٹ منتخب کرتا ہے؛ `--port` اور `--instance` اسی طرح agentmemory انسٹنس منتخب کرتے ہیں جیسے `stop` کے لیے کرتے ہیں؛ کوئی بھی دوسرا فلیگ آگے پاس ہو جاتا ہے، مثلاً experimental architecture-graph صفحے کے لیے `--enable-flow`۔
+یہ pinned انجن کے `iii console` کو agentmemory کے resolve کردہ پورٹس کے خلاف چلاتا ہے اور اسے ویور سے ایک پورٹ اوپر سرو کرتا ہے، ڈیفالٹ کے طور پر `http://localhost:3114`۔ `--console-port N` کوئی اور پورٹ منتخب کرتا ہے؛ `--port` اور `--instance` اسی طرح agentmemory انسٹنس منتخب کرتے ہیں جیسے `stop` کے لیے کرتے ہیں؛ کوئی بھی دوسرا فلیگ آگے پاس ہو جاتا ہے، مثلاً experimental architecture-graph صفحے کے لیے `--enable-flow`۔
 
 وہی کام دستی طور پر، مفید جب `agentmemory` PATH پر نہ ہو:
 
@@ -1252,12 +1260,10 @@ agentmemory console
 | **Functions** | agentmemory کے کسی بھی فنکشن کو براہِ راست ایک JSON payload کے ساتھ invoke کریں؛ بغیر کسی کلائنٹ جوڑے `memory.recall`، `memory.consolidate`، `graph.query` کو ٹیسٹ کرنے کے لیے مفید۔ |
 | **Triggers** | HTTP، cron، event، اور state triggers کو دوبارہ چلائیں: consolidation cron کو دستی طور پر فائر کریں، کسی HTTP route کو retry کریں، ایک state تبدیلی emit کریں۔ |
 | **States** | sessions، memory slots، lifecycle timers، اور embeddings index پر مکمل CRUD والا KV browser؛ قدریں جگہ پر ترمیم کریں۔ |
-| **Streams** | memory writes، hook events، اور observation اپ ڈیٹس کے لیے لائیو WebSocket مانیٹر جیسے وہ iii streams سے گزرتے ہیں۔ |
 | **Queues** | Durable queue topics + dead-letter management۔ ناکام embedding / compression jobs کو دوبارہ چلائیں یا drop کریں۔ |
 | **Traces** | OpenTelemetry waterfall / flame / service-breakdown views۔ `trace_id` سے فلٹر کریں تاکہ عین دیکھا جا سکے کہ کسی ایک `memory.search` نے کون سے functions، DB calls، اور embedding requests پیدا کیے۔ |
 | **Logs** | trace/span IDs سے فلٹر اور correlated structured OTEL logs۔ |
 | **Config** | Runtime configuration: دیکھیں کہ آپ کا انجن عین کن workers، providers، اور ports کے ساتھ چل رہا ہے۔ |
-| **Flow** | (اختیاری، `--enable-flow`) ہر worker، trigger، اور stream کا انٹرایکٹو architecture گراف۔ |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console کا trace waterfall view جو فی-span duration دکھاتا ہے" width="720" />
@@ -1368,7 +1374,7 @@ fi
 | روایتی اسٹیک | agentmemory استعمال کرتا ہے |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + in-memory vector index |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker supervision |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1652,6 +1658,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

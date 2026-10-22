@@ -476,7 +476,7 @@ Top-5 hit rate 100% pada **batas matematis P@5** untuk korpus ini (0.240, lihat 
 </tr>
 <tr>
 <td><strong>Dependensi eksternal</strong></td>
-<td>Tidak ada (SQLite + iii-engine)</td>
+<td>Tidak ada (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vector DB</td>
 <td>Multipel</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker didukung untuk self-hosting dari repositori ini, bukan sebagai mode startup CLI. Template sekali klik menggunakan [`deploy/Dockerfile`](../deploy/Dockerfile) dan [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), mematok runtime iii 0.24.6, serta menyimpan state, trace, dan secret yang dibuat pada volume `/data` persisten. Secara default Docker Compose menggunakan named volume `iii-data`; set `AGENTMEMORY_DATA_DIR` ke path host untuk bind mount. Store berbasis file yang sudah ada dari 0.22.1 dibaca langsung dari `/data/state_store.db` tanpa migrasi atau konversi. REST CORS secara default mengizinkan origin REST dan viewer lokal; set `REST_ALLOWED_ORIGINS` ke daftar origin persis yang dipisahkan koma untuk mengizinkan origin browser tepercaya. Lihat [`deploy/README.md`](../deploy/README.md) untuk setup dan keamanan.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy ke fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy ke Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy ke fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy ke Railway" /></a>
 </p>
 
 Tombol deploy satu klik milik Render membutuhkan `render.yaml` di root repository, yang dengan sengaja kami biarkan bersih. Gunakan flow Render Blueprint yang didokumentasikan di [`deploy/render/`](.././deploy/render/README.md) untuk mengarah ke blueprint in-repo secara manual.
@@ -906,6 +906,15 @@ batas bawah biaya) ada di [`deploy/`](.././deploy/README.md):
   Compose yang sama, Anda memiliki host dan datanya.
 
 REST berada di `3111`; viewer di `3113` dan hanya dipublikasikan terpisah pada template platform yang menyediakan rute terlindungi. Pembaruan langsung menggunakan SSE bearer-authenticated pada `/agentmemory/viewer/events` di REST. WebSocket engine `49134` bersifat internal dan tidak boleh dipublikasikan. Lihat [`deploy/README.md`](../deploy/README.md) untuk panduan platform.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1219,9 +1228,9 @@ Server viewer terbind ke `127.0.0.1` secara default dan melampirkan secret serve
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Viewer di `:3113` menunjukkan apa yang **diingat** agen Anda. [Konsol iii](https://iii.dev/docs/console) menunjukkan apa yang **dilakukannya**: operasi memori sebagai trace OpenTelemetry, entri KV yang dapat diedit, fungsi yang dapat dipanggil, dan aktivitas kanal engine.
+Viewer di `:3113` menunjukkan apa yang **diingat** agen Anda. [Konsol iii](https://iii.dev/docs/console) menunjukkan apa yang **dilakukannya**: operasi memori sebagai trace OpenTelemetry, entri KV yang dapat diedit, fungsi yang dapat dipanggil.
 
-Lihat `memory_smart_search` dipicu dan saksikan scan BM25 → lookup embedding → fusi RRF → reranker sebagai waterfall. Edit timer konsolidasi yang stuck di KV browser. Replay hook `PostToolUse` dengan payload yang diubah. Pin stream WebSocket dan saksikan observasi mendarat secara live.
+Lihat `memory_smart_search` dipicu dan saksikan scan BM25 → lookup embedding → fusi RRF → reranker sebagai waterfall. Edit timer konsolidasi yang stuck di KV browser. Replay hook `PostToolUse` dengan payload yang diubah.
 
 agentmemory menyediakan ini secara gratis karena setiap panggilan fungsi dan trigger dipicu lewat iii; tidak ada yang custom, tidak ada yang perlu diinstrumentasi.
 
@@ -1239,7 +1248,7 @@ agentmemory menyediakan ini secara gratis karena setiap panggilan fungsi dan tri
 agentmemory console
 ```
 
-Ini menjalankan `iii console` dari engine yang dipin terhadap port hasil resolusi agentmemory (REST, stream, bridge) dan menyajikannya satu port di atas viewer, `http://localhost:3114` secara default. `--console-port N` memilih port lain; `--port` dan `--instance` memilih instance agentmemory dengan cara yang sama seperti untuk `stop`; flag lain apa pun diteruskan, misalnya `--enable-flow` untuk halaman architecture-graph eksperimental.
+Ini menjalankan `iii console` dari engine yang dipin terhadap port hasil resolusi agentmemory (REST, bridge) dan menyajikannya satu port di atas viewer, `http://localhost:3114` secara default. `--console-port N` memilih port lain; `--port` dan `--instance` memilih instance agentmemory dengan cara yang sama seperti untuk `stop`; flag lain apa pun diteruskan, misalnya `--enable-flow` untuk halaman architecture-graph eksperimental.
 
 Hal yang sama secara manual, berguna saat `agentmemory` tidak ada di PATH:
 
@@ -1255,12 +1264,10 @@ Hal yang sama secara manual, berguna saat `agentmemory` tidak ada di PATH:
 | **Functions** | Memanggil langsung fungsi apa pun milik agentmemory dengan payload JSON; berguna untuk menguji `memory.recall`, `memory.consolidate`, `graph.query` tanpa menyambungkan klien. |
 | **Triggers** | Me-replay trigger HTTP, cron, event, dan state: memicu cron konsolidasi secara manual, retry rute HTTP, memancarkan perubahan state. |
 | **States** | Browser KV dengan CRUD penuh atas sesi, slot memori, timer lifecycle, dan index embedding; edit nilai di tempat. |
-| **Streams** | Memeriksa kanal engine iii dan aktivitasnya. |
 
 | **Traces** | Tampilan waterfall / flame / service-breakdown OpenTelemetry. Filter berdasarkan `trace_id` untuk melihat persis fungsi, panggilan DB, dan permintaan embedding apa yang dihasilkan satu `memory.search`. |
 | **Logs** | Log OTEL terstruktur yang difilter dan dikorelasikan ke trace/span ID. |
 | **Config** | Konfigurasi runtime: lihat persis worker, provider, dan port apa yang dipakai engine Anda. |
-| **Flow** | (Opsional, `--enable-flow`) Graph arsitektur interaktif untuk setiap worker, trigger, dan stream. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="Tampilan waterfall trace iii console menunjukkan durasi per-span" width="720" />
@@ -1377,7 +1384,7 @@ fi
 | Stack tradisional | agentmemory memakai |
 |---|---|
 | Express.js / Fastify | iii HTTP Trigger |
-| SQLite / Postgres + pgvector | iii KV State + index vector in-memory |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | Supervisi worker engine iii |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1669,7 +1676,7 @@ Buat `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

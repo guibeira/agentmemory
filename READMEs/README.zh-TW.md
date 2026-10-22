@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>外部相依元件</strong></td>
-<td>無(SQLite + iii-engine)</td>
+<td>無(file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + 向量資料庫</td>
 <td>多種</td>
@@ -887,8 +887,8 @@ Docker 支援從此 repository 自行託管，不是 CLI 啟動模式。使用 [
 
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render 的一鍵部署按鈕需要倉庫根目錄下有 `render.yaml`,而我們特意讓根目錄保持乾淨。請使用 [`../deploy/render/`](.././deploy/render/README.md) 中說明的 Render Blueprint 流程,手動指向倉庫內的 blueprint。
@@ -901,6 +901,15 @@ Render 的一鍵部署按鈕需要倉庫根目錄下有 `render.yaml`,而我們�
 - [`../deploy/coolify`](.././deploy/coolify/README.md):透過 [Coolify](https://coolify.io/self-hosted) 自行架設在你自己的 VPS 上;同一套 Docker Compose 堆疊,主機和資料都由你自己掌控。
 
 只有連接埠 `3111` 會對外發布。容器內 `3113` 上的檢視器仍綁定在 loopback;每個範本的 README 都記載了連接它所需的 SSH 通道模式。
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1250,7 +1259,6 @@ agentmemory console
 | **Functions** | 直接以 JSON 負載呼叫 agentmemory 的任何函式;方便測試 `memory.recall`、`memory.consolidate`、`graph.query`,不需要接入用戶端。 |
 | **Triggers** | 重播 HTTP、cron、事件和狀態觸發器:手動觸發整合 cron、重試某個 HTTP 路由、發出狀態變更。 |
 | **States** | KV 瀏覽器,對會話、記憶槽位、生命週期計時器和嵌入索引提供完整的 CRUD;可就地編輯值。 |
-| **Streams** | 即時 WebSocket 監視器,顯示流經 iii 串流的記憶寫入、hook 事件和觀測更新。 |
 | **Queues** | 持久化佇列主題 + dead-letter 管理。重播或捨棄失敗的嵌入 / 壓縮工作。 |
 | **Traces** | OpenTelemetry 瀑布圖 / 火焰圖 / 服務分解視圖。依 `trace_id` 過濾,精確查看單次 `memory.search` 產生了哪些函式、DB 呼叫和嵌入請求。 |
 | **Logs** | 結構化的 OTEL 日誌,已與 trace/span ID 過濾並關聯。 |
@@ -1366,7 +1374,7 @@ fi
 | 傳統技術棧 | agentmemory 使用 |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + 記憶體內向量索引 |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine 的 worker 監管 |
 | Prometheus / Grafana | iii OTEL + 健康監控 |
@@ -1653,6 +1661,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

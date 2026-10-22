@@ -476,7 +476,7 @@ Bu corpus için **P@5 matematiksel tavanında** (0.240, scorecard'a bakın) %100
 </tr>
 <tr>
 <td><strong>Harici bağımlılıklar</strong></td>
-<td>Yok (SQLite + iii-engine)</td>
+<td>Yok (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektör DB</td>
 <td>Birden fazla</td>
@@ -887,8 +887,8 @@ Docker CLI başlatma modu olarak değil, depodan self-host için desteklenir. [`
 
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render'ın tek tıkla deploy butonu, repository root'unda bir `render.yaml` gerektirir; bunu kasıtlı olarak temiz tutuyoruz. Repo içindeki blueprint'e manuel olarak işaret etmek için [`../deploy/render/`](.././deploy/render/README.md) içinde belgelenen Render Blueprint akışını kullanın.
@@ -908,6 +908,15 @@ maliyet tabanları) [`../deploy/`](.././deploy/README.md) içinde yaşar:
 Yalnızca port `3111` yayımlanır. `3113`'teki görüntüleyici container içinde
 loopback'e bağlı kalır; her şablonun README'si, ona erişmek için
 SSH-tüneli desenini belgeler.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1221,9 +1230,9 @@ Görüntüleyici sunucusu, varsayılan olarak `127.0.0.1`'e bağlanır ve istekl
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113`'teki görüntüleyici, ajanınızın **hatırladığını** gösterir. [iii console](https://iii.dev/docs/console), ajanınızın **yaptığını** gösterir: her bellek işlemi bir OpenTelemetry trace'i olarak, her KV girdisi düzenlenebilir, her fonksiyon çağrılabilir, her stream dinlenebilir (tappable). Aynı belleğe iki pencere: biri ürün şekilli, biri engine şekilli.
+`:3113`'teki görüntüleyici, ajanınızın **hatırladığını** gösterir. [iii console](https://iii.dev/docs/console), ajanınızın **yaptığını** gösterir: her bellek işlemi bir OpenTelemetry trace'i olarak, her KV girdisi düzenlenebilir, her fonksiyon çağrılabilir. Aynı belleğe iki pencere: biri ürün şekilli, biri engine şekilli.
 
-Bir `memory_smart_search`'ün ateşlenmesini izleyin ve BM25 taraması → embedding lookup'u → RRF füzyonu → reranker'ı bir waterfall olarak görün. KV browser'da takılı kalmış bir konsolidasyon timer'ını düzenleyin. Değiştirilmiş bir payload ile bir `PostToolUse` hook'unu yeniden oynatın (replay). WebSocket stream'ini pin'leyin ve gözlemlerin canlı olarak düşmesini izleyin.
+Bir `memory_smart_search`'ün ateşlenmesini izleyin ve BM25 taraması → embedding lookup'u → RRF füzyonu → reranker'ı bir waterfall olarak görün. KV browser'da takılı kalmış bir konsolidasyon timer'ını düzenleyin. Değiştirilmiş bir payload ile bir `PostToolUse` hook'unu yeniden oynatın (replay).
 
 agentmemory, bunu ücretsiz olarak sunar çünkü her fonksiyon çağrısı ve trigger iii üzerinden ateşlenir; özel (custom) hiçbir şey yok, enstrümante edilecek hiçbir şey yok.
 
@@ -1241,7 +1250,7 @@ agentmemory, bunu ücretsiz olarak sunar çünkü her fonksiyon çağrısı ve t
 agentmemory console
 ```
 
-Bu, sabitlenmiş engine'in `iii console`'unu agentmemory'nin çözümlediği portlara (REST, stream'ler, bridge) karşı çalıştırır ve bunu görüntüleyicinin bir port üstünde, varsayılan olarak `http://localhost:3114`'te sunar. `--console-port N`, başka bir port seçer; `--port` ve `--instance`, `stop` için yaptıkları gibi agentmemory instance'ını seçer; başka herhangi bir flag geçirilir, örneğin deneysel mimari-grafı sayfası için `--enable-flow`.
+Bu, sabitlenmiş engine'in `iii console`'unu agentmemory'nin çözümlediği portlara (REST, bridge) karşı çalıştırır ve bunu görüntüleyicinin bir port üstünde, varsayılan olarak `http://localhost:3114`'te sunar. `--console-port N`, başka bir port seçer; `--port` ve `--instance`, `stop` için yaptıkları gibi agentmemory instance'ını seçer; başka herhangi bir flag geçirilir, örneğin deneysel mimari-grafı sayfası için `--enable-flow`.
 
 Aynı şeyi elle yapmak, `agentmemory` PATH'te olmadığında kullanışlıdır:
 
@@ -1257,12 +1266,10 @@ Aynı şeyi elle yapmak, `agentmemory` PATH'te olmadığında kullanışlıdır:
 | **Functions** | agentmemory'nin fonksiyonlarından herhangi birini bir JSON payload ile doğrudan çağırın; bir istemci bağlamadan `memory.recall`, `memory.consolidate`, `graph.query`'yi test etmek için kullanışlıdır. |
 | **Triggers** | HTTP, cron, event ve state trigger'larını yeniden oynatın: konsolidasyon cron'unu manuel olarak ateşleyin, bir HTTP route'unu yeniden deneyin, bir state değişikliği yayınlayın. |
 | **States** | Oturumlar, bellek slot'ları, yaşam döngüsü timer'ları ve embedding indeksi üzerinde tam CRUD'a sahip KV browser; değerleri yerinde düzenleyin. |
-| **Streams** | iii stream'leri üzerinden akarken bellek yazmaları, hook olayları ve gözlem güncellemeleri için canlı WebSocket monitörü. |
 | **Queues** | Dayanıklı (durable) queue topic'leri + dead-letter yönetimi. Başarısız embedding / compression job'larını yeniden oynatın veya düşürün. |
 | **Traces** | OpenTelemetry waterfall / flame / service-breakdown görünümleri. Tek bir `memory.search`'ün tam olarak hangi fonksiyonları, DB çağrılarını ve embedding isteklerini ürettiğini görmek için `trace_id`'ye göre filtreleyin. |
 | **Logs** | trace/span ID'leriyle filtrelenen ve ilişkilendirilen yapılandırılmış OTEL log'ları. |
 | **Config** | Runtime yapılandırması: engine'inizin tam olarak hangi worker'larla, sağlayıcılarla ve portlarla çalıştığını görün. |
-| **Flow** | (Opsiyonel, `--enable-flow`) Her worker, trigger ve stream'in interaktif mimari grafı. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall görünümü, span başına süreyi gösteriyor" width="720" />
@@ -1373,7 +1380,7 @@ fi
 | Geleneksel stack | agentmemory'nin kullandığı |
 |---|---|
 | Express.js / Fastify | iii HTTP Trigger'ları |
-| SQLite / Postgres + pgvector | iii KV State + bellek içi vektör indeksi |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker supervision'ı |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1660,6 +1667,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

@@ -476,7 +476,7 @@ Nyeste versjonsnotater: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Eksterne avhengigheter</strong></td>
-<td>Ingen (SQLite + iii-engine)</td>
+<td>Ingen (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektor-DB</td>
 <td>Flere</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker støttes for selvhosting fra dette repoet, ikke som en CLI-oppstartsmodus. Ettklikksmalene bruker [`deploy/Dockerfile`](../deploy/Dockerfile) og [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), låser de samme iii 0.24.6-kjøretidsworkerne og lagrer tilstand, spor og den genererte hemmeligheten på et persistent `/data`-volum. Docker Compose bruker det eksisterende navngitte volumet `iii-data` som standard; sett `AGENTMEMORY_DATA_DIR` til en vertssti for å bruke en bind-mount i stedet. Data fra 0.22.1 leses direkte fra `/data/state_store.db` uten migrering eller konvertering. REST CORS tillater lokale REST- og viewer-opprinnelser som standard; sett `REST_ALLOWED_ORIGINS` til en kommaseparert liste med eksakte opprinnelser når en betrodd nettleseropprinnelse trenger tilgang. Se [`deploy/README.md`](../deploy/README.md) for oppsett og sikkerhetsdetaljer.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Renders knapp for ett-klikks-distribusjon krever `render.yaml` i repoets rot, som vi med vilje holder ren. Bruk Render Blueprint-flyten dokumentert i [`deploy/render/`](.././deploy/render/README.md) for å peke på den interne blueprinten manuelt.
@@ -906,6 +906,15 @@ kostnadsgulv) finnes i [`deploy/`](.././deploy/README.md):
   Compose-stack, du eier verten og dataene.
 
 REST kjører på `3111`; viewer kjører på `3113` og publiseres bare der plattformmalen støtter en separat beskyttet rute. Live-oppdateringer bruker bearer-autentisert SSE på REST-endepunktet `/agentmemory/viewer/events`. Engine-WebSocket-en på `49134` er intern og må ikke publiseres. Se [`deploy/README.md`](../deploy/README.md) for plattformspesifikk eksponering og veiledning om tillatelseslister.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1255,7 +1264,6 @@ Det samme for hånd, nyttig når `agentmemory` ikke er på PATH:
 | **Functions** | Kall direkte hvilken som helst av agentmemorys funksjoner med en JSON-nyttelast; nyttig for å teste `memory.recall`, `memory.consolidate`, `graph.query` uten å koble til en klient. |
 | **Triggers** | Spill av HTTP-, cron-, event-, og state-triggere på nytt: utløs konsolideringscronen manuelt, prøv en HTTP-rute på nytt, send en tilstandsendring. |
 | **States** | KV-browser med full CRUD over sesjoner, minneplasser, livssyklustimere, og embeddings-indeksen; rediger verdier direkte. |
-| **Streams** | Inspiser iii-engine-kanaler og aktivitet. |
 | **Traces** | OpenTelemetry fossefall-/flamme-/tjenesteoppdelingsvisninger. Filtrer etter `trace_id` for å se nøyaktig hvilke funksjoner, DB-kall, og embedding-forespørsler et enkelt `memory.search`-kall produserte. |
 | **Logs** | Strukturerte OTEL-logger filtrert og korrelert til trace-/span-ID-er. |
 | **Config** | Kjøretidskonfigurasjon: se nøyaktig hvilke workere, leverandører, og porter engine-en din kjører med. |
@@ -1375,7 +1383,7 @@ fi
 | Tradisjonell stack | agentmemory bruker |
 |---|---|
 | Express.js / Fastify | iii HTTP-triggere |
-| SQLite / Postgres + pgvector | iii KV-tilstand + vektorindeks i minnet |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST-endepunktet `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker-overvåking |
 | Prometheus / Grafana | iii OTEL + helseovervåker |
@@ -1668,6 +1676,7 @@ Opprett `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>Внешние зависимости</strong></td>
-<td>Нет (SQLite + iii-engine)</td>
+<td>Нет (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + векторная БД</td>
 <td>Несколько</td>
@@ -887,8 +887,8 @@ npx -y @agentmemory/mcp
 Docker поддерживается для self-hosting из этого репозитория, но не как режим запуска CLI. Шаблоны развёртывания используют [`deploy/Dockerfile`](../deploy/Dockerfile) и [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), закрепляют тот же runtime iii 0.24.6 и его воркеры, а состояние, трассы и сгенерированный секрет хранят на постоянном томе `/data`. Docker Compose по умолчанию использует существующий именованный том `iii-data`; чтобы подключить каталог хоста, задайте `AGENTMEMORY_DATA_DIR`. Существующее файловое хранилище данных версии 0.22.1 считывается напрямую из `/data/state_store.db`, без миграции или преобразования. По умолчанию REST CORS разрешает локальные origins REST и просмотрщика; задайте `REST_ALLOWED_ORIGINS` списком точных origins через запятую, если нужен доступ доверенного браузера. Инструкции по настройке и безопасности см. в [`deploy/README.md`](../deploy/README.md).
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Кнопке Render «деплой в один клик» нужен `render.yaml` в корне репозитория, который мы намеренно держим чистым. Используйте поток Render Blueprint, описанный в [`deploy/render/`](.././deploy/render/README.md), чтобы вручную указать на blueprint внутри репозитория.
@@ -906,6 +906,15 @@ Docker поддерживается для self-hosting из этого репо
   Compose, хост и данные остаются у вас.
 
 REST работает на `3111`, а просмотрщик — на `3113`; отдельный защищённый маршрут для просмотрщика публикуется только там, где его поддерживает шаблон платформы. Живые обновления передаются по SSE с bearer-аутентификацией через REST-эндпоинт `/agentmemory/viewer/events`. WebSocket движка на `49134` внутренний и не должен публиковаться. Инструкции по публикации и спискам разрешённых адресов для каждой платформы см. в [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1219,9 +1228,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Просмотрщик на `:3113` показывает, что ваш агент **запомнил**. [iii console](https://iii.dev/docs/console) показывает, что ваш агент **сделал**: каждая операция памяти как трейс OpenTelemetry, каждая запись KV редактируема, каждая функция вызываема, каждый стрим тэппится. Два окна на одну и ту же память: одно повёрнуто к продукту, другое к движку.
+Просмотрщик на `:3113` показывает, что ваш агент **запомнил**. [iii console](https://iii.dev/docs/console) показывает, что ваш агент **сделал**: каждая операция памяти как трейс OpenTelemetry, каждая запись KV редактируема, каждая функция вызываема. Два окна на одну и ту же память: одно повёрнуто к продукту, другое к движку.
 
-Наблюдайте, как срабатывает `memory_smart_search`, и видите BM25-скан → поиск эмбеддингов → RRF-слияние → reranker в виде waterfall. Отредактируйте зависший таймер консолидации в браузере KV. Воспроизведите хук `PostToolUse` с изменённым payload. Закрепите WebSocket-стрим — и смотрите, как наблюдения прилетают в реальном времени.
+Наблюдайте, как срабатывает `memory_smart_search`, и видите BM25-скан → поиск эмбеддингов → RRF-слияние → reranker в виде waterfall. Отредактируйте зависший таймер консолидации в браузере KV. Воспроизведите хук `PostToolUse` с изменённым payload.
 
 agentmemory отдаёт это бесплатно, потому что каждый вызов функции и каждый триггер проходит через iii; ничего самописного, нечего инструментировать.
 
@@ -1239,7 +1248,7 @@ agentmemory отдаёт это бесплатно, потому что кажд
 agentmemory console
 ```
 
-Это запускает `iii console` закреплённого движка с портами, которые вычислил agentmemory (REST и WebSocket воркеров), и отдаёт его на порт выше просмотрщика — по умолчанию `http://localhost:3114`. `--console-port N` выбирает другой порт; `--port` и `--instance` выбирают инстанс agentmemory так же, как для `stop`; любой другой флаг передаётся дальше, например `--enable-flow` для экспериментальной страницы графа архитектуры.
+`--console-port N` выбирает другой порт; `--port` и `--instance` выбирают инстанс agentmemory так же, как для `stop`; любой другой флаг передаётся дальше, например `--enable-flow` для экспериментальной страницы графа архитектуры.
 
 То же самое вручную — пригодится, когда `agentmemory` не в PATH:
 
@@ -1255,7 +1264,6 @@ agentmemory console
 | **Functions** | Напрямую вызывать любую функцию agentmemory с JSON-payload; удобно для тестов `memory.recall`, `memory.consolidate`, `graph.query` без подключения клиента. |
 | **Triggers** | Воспроизводить HTTP-, cron-, event- и state-триггеры: запустить cron консолидации вручную, повторить HTTP-маршрут, эмитировать изменение состояния. |
 | **States** | KV-браузер с полным CRUD по сессиям, слотам памяти, lifecycle-таймерам и индексу эмбеддингов; редактирование значений на месте. |
-| **Streams** | Просмотр каналов и активности движка iii. |
 | **Traces** | Виды waterfall / flame / разбивка по сервисам в OpenTelemetry. Фильтр по `trace_id` показывает, какие функции, обращения к БД и embedding-запросы породил отдельный `memory.search`. |
 | **Logs** | Структурированные OTEL-логи, фильтруемые и коррелируемые с trace-/span-ID. |
 | **Config** | Конфигурация runtime: какие именно воркеры, провайдеры и порты использует ваш движок. |
@@ -1376,7 +1384,7 @@ fi
 | Традиционный стек | agentmemory использует |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + векторный индекс в памяти |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | iii Streams (WebSocket) |
 | pm2 / systemd | Супервизия воркеров движка iii |
 | Prometheus / Grafana | iii OTEL + монитор состояния |
@@ -1669,7 +1677,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

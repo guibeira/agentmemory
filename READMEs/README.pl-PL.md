@@ -476,7 +476,7 @@ Najnowsze informacje o wydaniach: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Zależności zewnętrzne</strong></td>
-<td>Brak (SQLite + iii-engine)</td>
+<td>Brak (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + baza wektorowa</td>
 <td>Wiele</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker jest obsługiwany do samodzielnego hostowania z repozytorium, a nie jako tryb uruchamiania CLI. Szablony jednoklikowe korzystają z [`deploy/Dockerfile`](../deploy/Dockerfile) i [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), przypinają ten sam runtime iii 0.24.6 i jego workery oraz przechowują stan, trace i wygenerowany sekret na trwałym woluminie `/data`. Docker Compose domyślnie korzysta z istniejącego woluminu nazwanego `iii-data`; ustaw `AGENTMEMORY_DATA_DIR` na ścieżkę hosta, aby zamiast tego użyć bind mountu. Dane plikowego magazynu z wersji 0.22.1 są bezpośrednio odczytywane z `/data/state_store.db`, bez migracji ani konwersji. Domyślnie CORS REST zezwala na lokalne originy REST i podglądu; ustaw `REST_ALLOWED_ORIGINS` jako listę rozdzielonych przecinkami dokładnych originów, jeśli dostęp ma uzyskać zaufana przeglądarka. Instrukcje konfiguracji i bezpieczeństwa znajdziesz w [`deploy/README.md`](../deploy/README.md).
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Wdróż na fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Wdróż na Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Wdróż na fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Wdróż na Railway" /></a>
 </p>
 
 Przycisk jednoklikowego wdrożenia Render wymaga `render.yaml` w katalogu głównym repozytorium, który celowo zostawiamy czysty. Użyj przepływu Render Blueprint opisanego w [`deploy/render/`](.././deploy/render/README.md), aby ręcznie wskazać blueprint znajdujący się w repozytorium.
@@ -906,6 +906,15 @@ minimalne koszty) znajdują się w [`deploy/`](.././deploy/README.md):
   stos Docker Compose, host i dane należą do ciebie.
 
 REST działa na porcie `3111`; podgląd na `3113` jest publikowany tylko tam, gdzie szablon platformy obsługuje osobną chronioną trasę. Zdarzenia na żywo są przesyłane przez uwierzytelnione bearerem SSE pod endpointem REST `/agentmemory/viewer/events`. WebSocket silnika na `49134` jest wewnętrzny i nie wolno go publikować. Informacje o udostępnianiu i dozwolonych originach dla poszczególnych platform znajdziesz w [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1219,7 +1228,7 @@ Serwer podglądu domyślnie wiąże się z `127.0.0.1` i dołącza sekret serwer
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="Konsola iii" height="32" /></picture></h2>
 
-Podgląd na `:3113` pokazuje, co twój agent **zapamiętał**. [Konsola iii](https://iii.dev/docs/console) pokazuje, co twój agent **zrobił**: każdą operację pamięci jako trace OpenTelemetry, każdy wpis KV edytowalny, każdą funkcję wywoływalną, każdy strumień podsłuchiwalny. Dwa okna na tę samą pamięć: jedno w kształcie produktu, drugie w kształcie silnika.
+Podgląd na `:3113` pokazuje, co twój agent **zapamiętał**. [Konsola iii](https://iii.dev/docs/console) pokazuje, co twój agent **zrobił**: każdą operację pamięci jako trace OpenTelemetry, każdy wpis KV edytowalny, każdą funkcję wywoływalną. Dwa okna na tę samą pamięć: jedno w kształcie produktu, drugie w kształcie silnika.
 
 Obserwuj, jak `memory_smart_search` się wyzwala, i zobacz skan BM25 → wyszukanie embeddingu → fuzję RRF → reranker jako wodospad (waterfall). Edytuj zablokowany timer konsolidacji w przeglądarce KV. Odtwórz hook `PostToolUse` ze zmodyfikowanym payloadem. Przypnij strumień WebSocket i obserwuj, jak obserwacje spływają na żywo.
 
@@ -1255,7 +1264,6 @@ To samo ręcznie, przydatne, gdy `agentmemory` nie jest w PATH:
 | **Functions** | Wywołania bezpośrednio każdej funkcji agentmemory z payloadem JSON; przydatne do testowania `memory.recall`, `memory.consolidate`, `graph.query` bez podłączania klienta. |
 | **Triggers** | Odtworzenia triggerów HTTP, cron, zdarzeń i stanu: ręcznego wyzwolenia crona konsolidacji, ponownej próby trasy HTTP, wyemitowania zmiany stanu. |
 | **States** | Przeglądarki KV z pełnym CRUD na sesjach, slotach pamięci, timerach cyklu życia i indeksie embeddingów; edycji wartości w miejscu. |
-| **Streams** | Inspekcji kanałów i aktywności silnika iii. |
 | **Traces** | Widoków waterfall / flame / rozbicia na usługi OpenTelemetry. Filtrowania po `trace_id`, aby zobaczyć, które funkcje, wywołania bazy danych i żądania embeddingu wyprodukowało jedno `memory.search`. |
 | **Logs** | Ustrukturyzowanych logów OTEL filtrowanych i skorelowanych z ID trace/span. |
 | **Config** | Konfiguracji runtime: zobaczenia dokładnie, z jakimi workerami, dostawcami i portami działa twój silnik. |
@@ -1375,7 +1383,7 @@ fi
 | Tradycyjny stos | agentmemory używa |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + indeks wektorowy w pamięci |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | Endpoint REST `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | nadzór workerów silnika iii |
 | Prometheus / Grafana | iii OTEL + monitor stanu |
@@ -1667,6 +1675,7 @@ Utwórz `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

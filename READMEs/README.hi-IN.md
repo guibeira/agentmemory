@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>बाहरी निर्भरताएँ</strong></td>
-<td>कोई नहीं (SQLite + iii-engine)</td>
+<td>कोई नहीं (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vector DB</td>
 <td>कई</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker इस repository से self-hosting के लिए supported है, CLI startup mode के रूप में नहीं। One-click templates [`deploy/Dockerfile`](../deploy/Dockerfile) और [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) इस्तेमाल करते हैं, iii 0.24.6 runtime pin करते हैं और state, traces तथा generated secret को persistent `/data` volume में रखते हैं। Docker Compose default में named volume `iii-data` इस्तेमाल करता है; bind mount के लिए `AGENTMEMORY_DATA_DIR` को host path दें। 0.22.1 का मौजूदा file-based store `/data/state_store.db` से सीधे पढ़ा जाता है, बिना migration या conversion के। REST CORS default में local REST और viewer origins को अनुमति देता है; trusted browser origin की अनुमति के लिए comma-separated exact origins वाला `REST_ALLOWED_ORIGINS` set करें। Setup और security के लिए [`deploy/README.md`](../deploy/README.md) देखें।
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render का one-click deploy button repository root पर `render.yaml` की आवश्यकता रखता है,
@@ -910,6 +910,15 @@ rotation, backup, cost floors) [`deploy/`](.././deploy/README.md) में र�
 केवल port `3111` publish किया जाता है। `3113` पर viewer container के अंदर
 loopback से bound रहता है; हर template का README उस तक पहुँचने के लिए
 SSH-tunnel pattern को document करता है।
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1223,9 +1232,8 @@ Viewer server default रूप से `127.0.0.1` से bind होता ह�
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113` पर viewer दिखाता है कि आपके agent ने **क्या याद रखा**। [iii console](https://iii.dev/docs/console) दिखाता है कि उसने **क्या किया**: OpenTelemetry traces के रूप में memory operations, editable KV entries, invocable functions और engine channel activity।
+`:3113` पर viewer दिखाता है कि आपके agent ने **क्या याद रखा**। [iii console](https://iii.dev/docs/console) दिखाता है कि उसने **क्या किया**: OpenTelemetry traces के रूप में memory operations, editable KV entries
 
-`memory_smart_search` को fire होते देखें और BM25 scan → embedding lookup → RRF fusion → reranker को waterfall के रूप में देखें। KV browser में stuck consolidation timer को edit करें। `PostToolUse` hook को tweaked payload के साथ replay करें। WebSocket stream को pin करें और observations को live land होते देखें।
 
 agentmemory इसे free में ship करता है क्योंकि हर function call और trigger iii के माध्यम से fire होता है; कुछ भी custom नहीं, instrument करने के लिए कुछ नहीं।
 
@@ -1243,7 +1251,7 @@ agentmemory इसे free में ship करता है क्योंक
 agentmemory console
 ```
 
-यह pinned engine का `iii console` उन ports के विरुद्ध चलाता है जो agentmemory ने resolve किए (REST, streams, bridge) और इसे viewer से एक port ऊपर serve करता है, default रूप से `http://localhost:3114`। `--console-port N` कोई और port चुनता है; `--port` और `--instance` उसी तरह agentmemory instance चुनते हैं जैसे वे `stop` के लिए करते हैं; कोई भी अन्य flag pass through होती है, जैसे experimental architecture-graph page के लिए `--enable-flow`।
+यह pinned engine का `iii console` उन ports के विरुद्ध चलाता है जो agentmemory ने resolve किए (REST, bridge) और इसे viewer से एक port ऊपर serve करता है, default रूप से `http://localhost:3114`। `--console-port N` कोई और port चुनता है; `--port` और `--instance` उसी तरह agentmemory instance चुनते हैं जैसे वे `stop` के लिए करते हैं; कोई भी अन्य flag pass through होती है, जैसे experimental architecture-graph page के लिए `--enable-flow`।
 
 वही चीज़ हाथ से, तब उपयोगी जब `agentmemory` PATH पर न हो:
 
@@ -1259,12 +1267,10 @@ agentmemory console
 | **Functions** | agentmemory के किसी भी function को सीधे JSON payload के साथ invoke करें; client जोड़े बिना `memory.recall`, `memory.consolidate`, `graph.query` test करने के लिए उपयोगी। |
 | **Triggers** | HTTP, cron, event, और state triggers replay करें: consolidation cron को manually fire करें, HTTP route retry करें, एक state change emit करें। |
 | **States** | Sessions, memory slots, lifecycle timers, और embeddings index पर full CRUD वाला KV browser; values को in place edit करें। |
-| **Streams** | iii engine channels और उनकी activity का निरीक्षण। |
 
 | **Traces** | OpenTelemetry waterfall / flame / service-breakdown views। `trace_id` से filter करें ताकि देख सकें कि एक `memory.search` ने वास्तव में कौन से functions, DB calls, और embedding requests produce किए। |
 | **Logs** | Trace/span IDs से correlated और filtered structured OTEL logs। |
 | **Config** | Runtime configuration: देखें कि आपका engine किन workers, providers, और ports के साथ चल रहा है। |
-| **Flow** | (Optional, `--enable-flow`) हर worker, trigger, और stream का interactive architecture graph। |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall view showing per-span duration" width="720" />
@@ -1381,7 +1387,7 @@ fi
 | Traditional stack | agentmemory उपयोग करता है |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + in-memory vector index |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker supervision |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1674,7 +1680,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

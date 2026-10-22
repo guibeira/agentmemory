@@ -476,7 +476,7 @@ Senaste versionsanteckningarna: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Externa beroenden</strong></td>
-<td>Inga (SQLite + iii-engine)</td>
+<td>Inga (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektor-DB</td>
 <td>Flera</td>
@@ -887,8 +887,8 @@ npx -y @agentmemory/mcp
 Docker stöds för self-hosting från det här repot, inte som ett startläge för CLI:n. Driftsättningsmallarna använder [`deploy/Dockerfile`](../deploy/Dockerfile) och [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), fastlåser samma iii 0.24.6-körtid och workers och lagrar state, traces och den genererade hemligheten på en beständig `/data`-volym. Docker Compose använder som standard den befintliga namngivna volymen `iii-data`; sätt `AGENTMEMORY_DATA_DIR` till en värdsökväg för att använda en bind-mount. Den befintliga filbaserade lagringen från 0.22.1 läses direkt från `/data/state_store.db` utan migrering eller konvertering. REST CORS tillåter lokala REST- och viewer-origins som standard; sätt `REST_ALLOWED_ORIGINS` till en kommaseparerad lista med exakta origins om en betrodd webbläsarorigin behöver åtkomst. Se [`deploy/README.md`](../deploy/README.md) för konfiguration och säkerhet.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Renders driftsättningsknapp med ett klick kräver `render.yaml` i repots rot, vilket vi avsiktligt håller rent. Använd Render Blueprint-flödet som dokumenteras i [`deploy/render/`](.././deploy/render/README.md) för att manuellt peka på den repo-interna blueprinten.
@@ -906,6 +906,15 @@ Fullständiga installationsdetaljer (HMAC-infångning, SSH-tunnel för viewern, 
   Compose-stack, du äger värden och datan.
 
 REST finns på `3111` och viewern på `3113`; en separat skyddad viewer-route publiceras bara där plattformsmallen stöder det. Liveuppdateringar använder bearer-autentiserad SSE på REST-endpointen `/agentmemory/viewer/events`. Engine-WebSocket på `49134` är intern och får inte publiceras. Se [`deploy/README.md`](../deploy/README.md) för plattformsspecifik exponering och tillåtelselistor.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1219,7 +1228,7 @@ Viewer-servern binder till `127.0.0.1` som standard och bifogar serverhemlighete
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii-konsolen" height="32" /></picture></h2>
 
-Viewern på `:3113` visar vad din agent **minns**. [iii-konsolen](https://iii.dev/docs/console) visar vad din agent **gjorde**: varje minnesoperation som ett OpenTelemetry-spår, varje KV-post redigerbar, varje funktion anropsbar, varje ström avlyssningsbar. Två fönster mot samma minne: ett produktformat, ett motorformat.
+Viewern på `:3113` visar vad din agent **minns**. [iii-konsolen](https://iii.dev/docs/console) visar vad din agent **gjorde**: varje minnesoperation som ett OpenTelemetry-spår, varje KV-post redigerbar, varje funktion anropsbar. Två fönster mot samma minne: ett produktformat, ett motorformat.
 
 Se en `memory_smart_search` utlösas och följ BM25-skanningen → embedding-uppslaget → RRF-fusionen → rerankern som ett vattenfall. Redigera en fastnad konsolideringstimer i KV-webbläsaren. Spela upp en `PostToolUse`-hook igen med en justerad nyttolast. Fäst WebSocket-strömmen och se observationer landa i realtid.
 
@@ -1255,11 +1264,10 @@ Samma sak för hand, användbart när `agentmemory` inte finns i PATH:
 | **Functions** | Anropa vilken av agentmemorys funktioner som helst direkt med en JSON-nyttolast; praktiskt för att testa `memory.recall`, `memory.consolidate`, `graph.query` utan att koppla in en klient. |
 | **Triggers** | Spela upp HTTP-, cron-, event- och state-triggers igen: utlös konsolideringscronen manuellt, försök igen med en HTTP-rutt, sänd en tillståndsändring. |
 | **States** | KV-webbläsare med fullständig CRUD över sessioner, minnesplatser, livscykeltimrar och embedding-indexet; redigera värden direkt. |
-| **Streams** | Granska iii-motorns kanaler och aktivitet. |
 | **Traces** | OpenTelemetry-vyer för vattenfall/flame/tjänsteuppdelning. Filtrera på `trace_id` för att se exakt vilka funktioner, DB-anrop och embedding-förfrågningar en enskild `memory.search` gav upphov till. |
 | **Logs** | Strukturerade OTEL-loggar filtrerade och korrelerade till trace-/span-ID:n. |
 | **Config** | Körtidskonfiguration: se exakt vilka workers, leverantörer och portar din engine körs med. |
-| **Flow** | (Valfritt, `--enable-flow`) Interaktiv arkitekturgraf över varje worker, trigger och ström. |
+| **Flow** | (Valfritt, `--enable-flow`) Interaktiv arkitekturgraf över varje worker. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii-konsolens vattenfallsvy för spår som visar varaktighet per span" width="720" />
@@ -1376,7 +1384,7 @@ fi
 | Traditionell stack | agentmemory använder |
 |---|---|
 | Express.js / Fastify | iii HTTP-triggers |
-| SQLite / Postgres + pgvector | iii KV-state + vektorindex i minnet |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST-endpointen `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii-enginens worker-övervakning |
 | Prometheus / Grafana | iii OTEL + hälsoövervakare |
@@ -1669,6 +1677,7 @@ Skapa `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

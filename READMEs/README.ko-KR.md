@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>외부 의존성</strong></td>
-<td>없음 (SQLite + iii-engine)</td>
+<td>없음 (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + 벡터 DB</td>
 <td>다수</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker는 이 저장소에서 직접 self-host할 때 지원되며 CLI 시작 모드는 아닙니다. 원클릭 템플릿은 [`deploy/Dockerfile`](../deploy/Dockerfile)과 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용하고 iii 0.24.6 런타임을 고정하며, 상태·trace·생성된 secret을 영구 `/data` 볼륨에 저장합니다. Docker Compose는 기본적으로 `iii-data` 명명 볼륨을 사용합니다. bind mount에는 `AGENTMEMORY_DATA_DIR`을 호스트 경로로 설정하십시오. 0.22.1에서 사용하던 기존 파일 기반 저장소는 마이그레이션이나 변환 없이 `/data/state_store.db`에서 직접 읽습니다. REST CORS는 기본적으로 로컬 REST 및 뷰어 origin을 허용합니다. 신뢰하는 브라우저 origin을 허용하려면 쉼표로 구분된 정확한 origin을 `REST_ALLOWED_ORIGINS`에 설정하십시오. 설정 및 보안은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render의 원클릭 배포 버튼은 저장소 루트에 `render.yaml`이 있어야 하는데, 이는 의도적으로 깨끗하게 비워 두었습니다. [`deploy/render/`](.././deploy/render/README.md)에 문서화된 Render Blueprint 흐름을 사용해 저장소 내 blueprint를 수동으로 지정하십시오.
@@ -906,6 +906,15 @@ Render의 원클릭 배포 버튼은 저장소 루트에 `render.yaml`이 있어
   Compose 스택을 사용하며, 호스트와 데이터를 직접 소유합니다.
 
 REST는 `3111`, 뷰어는 `3113`에서 제공되며 별도의 보호된 경로를 지원하는 플랫폼 템플릿에서만 뷰어를 따로 게시합니다. 실시간 업데이트는 REST endpoint `/agentmemory/viewer/events`에서 bearer 인증 SSE를 사용합니다. 엔진 WebSocket `49134`는 내부용이므로 게시하면 안 됩니다. 플랫폼별 안내는 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1239,7 +1248,7 @@ agentmemory는 이것을 무료로 제공합니다. 모든 함수 호출과 트�
 agentmemory console
 ```
 
-이 명령은 고정된 엔진의 `iii console`을 agentmemory가 해석한 포트(REST, 스트림, bridge)에 대해 실행하고, 뷰어보다 한 포트 위, 기본적으로 `http://localhost:3114`에서 서비스합니다. `--console-port N`으로 다른 포트를 선택할 수 있습니다. `--port`와 `--instance`는 `stop`에서와 동일한 방식으로 agentmemory 인스턴스를 선택합니다. 그 외의 플래그는 그대로 전달됩니다. 예를 들어 실험적인 아키텍처 그래프 페이지를 위한 `--enable-flow`가 있습니다.
+이 명령은 고정된 엔진의 `iii console`을 agentmemory가 해석한 포트(REST, bridge)에 대해 실행하고, 뷰어보다 한 포트 위, 기본적으로 `http://localhost:3114`에서 서비스합니다. `--console-port N`으로 다른 포트를 선택할 수 있습니다. `--port`와 `--instance`는 `stop`에서와 동일한 방식으로 agentmemory 인스턴스를 선택합니다. 그 외의 플래그는 그대로 전달됩니다. 예를 들어 실험적인 아키텍처 그래프 페이지를 위한 `--enable-flow`가 있습니다.
 
 `agentmemory`가 PATH에 없을 때 유용한, 동일한 작업을 수동으로 수행하는 방법:
 
@@ -1255,7 +1264,6 @@ agentmemory console
 | **Functions** | agentmemory의 함수를 JSON payload로 직접 호출합니다. 클라이언트를 연결하지 않고 `memory.recall`, `memory.consolidate`, `graph.query`를 테스트할 때 편리합니다. |
 | **Triggers** | HTTP, cron, 이벤트, state 트리거를 재생합니다: 통합(consolidation) cron을 수동으로 발화하거나, HTTP 라우트를 재시도하거나, state 변경을 발생시킵니다. |
 | **States** | 세션, 메모리 slot, 라이프사이클 타이머, 임베딩 인덱스에 대한 완전한 CRUD를 제공하는 KV 브라우저입니다. 값을 그 자리에서 편집할 수 있습니다. |
-| **Streams** | iii 엔진 채널과 활동을 확인합니다. |
 
 | **Traces** | OpenTelemetry waterfall / flame / 서비스별 분석 뷰입니다. `trace_id`로 필터링하면 하나의 `memory.search`가 정확히 어떤 함수, DB 호출, 임베딩 요청을 발생시켰는지 볼 수 있습니다. |
 | **Logs** | trace/span ID와 연관되어 필터링된 구조화된 OTEL 로그입니다. |
@@ -1377,7 +1385,7 @@ fi
 | 전통적인 스택 | agentmemory가 사용하는 것 |
 |---|---|
 | Express.js / Fastify | iii HTTP Trigger |
-| SQLite / Postgres + pgvector | iii KV State + 인메모리 벡터 인덱스 |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii 엔진의 워커 감독 |
 | Prometheus / Grafana | iii OTEL + health 모니터 |
@@ -1670,7 +1678,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

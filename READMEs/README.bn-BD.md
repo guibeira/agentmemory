@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>এক্সটার্নাল ডিপেন্ডেন্সি</strong></td>
-<td>নেই (SQLite + iii-engine)</td>
+<td>নেই (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + ভেক্টর DB</td>
 <td>একাধিক</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker এই repository থেকে self-hosting-এর জন্য সমর্থিত, CLI startup mode হিসেবে নয়। ওয়ান-ক্লিক template-গুলো [`deploy/Dockerfile`](../deploy/Dockerfile) এবং [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) ব্যবহার করে, একই iii 0.24.6 runtime worker pin করে, এবং state, trace ও তৈরি secret স্থায়ী `/data` volume-এ রাখে। Docker Compose ডিফল্টভাবে বিদ্যমান `iii-data` named volume ব্যবহার করে; bind mount চাইলে `AGENTMEMORY_DATA_DIR`-কে host path-এ সেট করুন। 0.22.1 ফরম্যাটের বিদ্যমান data `/data/state_store.db` থেকে সরাসরি পড়া হয়, কোনো migration বা conversion ছাড়াই। REST CORS ডিফল্টভাবে local REST ও viewer origin অনুমোদন করে; trusted browser origin-এর জন্য নির্দিষ্ট origin-এর comma-separated তালিকা দিতে `REST_ALLOWED_ORIGINS` সেট করুন। setup ও security বিস্তারিত জানতে [`deploy/README.md`](../deploy/README.md) দেখুন।
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render-এর ওয়ান-ক্লিক ডিপ্লয় বাটনের জন্য রিপোজিটরি রুটে `render.yaml` লাগে, যা আমরা ইচ্ছাকৃতভাবে পরিষ্কার রাখি। ম্যানুয়ালি রেপোর ভেতরের ব্লুপ্রিন্টের দিকে পয়েন্ট করতে [`deploy/render/`](.././deploy/render/README.md)-এ ডকুমেন্টেড Render Blueprint ফ্লো ব্যবহার করুন।
@@ -905,6 +905,15 @@ Render-এর ওয়ান-ক্লিক ডিপ্লয় বাটন
   মাধ্যমে নিজের VPS-এ সেলফ-হোস্টেড; একই Docker Compose স্ট্যাক, হোস্ট ও ডেটা আপনার নিজের।
 
 REST `3111`-এ; viewer `3113`-এ এবং platform template আলাদা সুরক্ষিত route সমর্থন করলেই publish হয়। Live update REST endpoint `/agentmemory/viewer/events`-এ bearer-authenticated SSE ব্যবহার করে। Engine WebSocket `49134`-এ অভ্যন্তরীণ এবং publish করা যাবে না। Platform অনুযায়ী exposure ও allowlist নির্দেশিকার জন্য [`deploy/README.md`](../deploy/README.md) দেখুন।
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1218,7 +1227,7 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113`-এর viewer দেখায় আপনার agent কী **মনে রেখেছে**। [iii console](https://iii.dev/docs/console) দেখায় agent কী **করেছে**: প্রতিটি memory operation OpenTelemetry trace হিসেবে, প্রতিটি KV entry সম্পাদনযোগ্য, প্রতিটি function আহ্বানযোগ্য, আর প্রতিটি stream পরীক্ষা করা যায়। একই memory-র দুটি দৃশ্য: একটি product-কেন্দ্রিক, অন্যটি engine-কেন্দ্রিক।
+`:3113`-এর viewer দেখায় আপনার agent কী **মনে রেখেছে**। [iii console](https://iii.dev/docs/console) দেখায় agent কী **করেছে**: প্রতিটি memory operation OpenTelemetry trace হিসেবে, প্রতিটি KV entry সম্পাদনযোগ্য, প্রতিটি function আহ্বানযোগ্য, অন্যটি engine-কেন্দ্রিক।
 
 একটি `memory_smart_search` চালু হতে দেখুন এবং BM25 scan → embedding lookup → RRF fusion → reranker-কে waterfall হিসেবে অনুসরণ করুন। KV browser-এ আটকে থাকা consolidation timer সম্পাদনা করুন। পরিবর্তিত payload দিয়ে `PostToolUse` hook replay করুন। iii engine channel ও activity পরীক্ষা করুন।
 
@@ -1254,11 +1263,9 @@ agentmemory console
 | **Functions** | একটি JSON পেলোড দিয়ে agentmemory-র যেকোনো ফাংশন সরাসরি ইনভোক করুন; কোনো ক্লায়েন্ট ওয়্যার না করে `memory.recall`, `memory.consolidate`, `graph.query` টেস্ট করার জন্য সুবিধাজনক। |
 | **Triggers** | HTTP, cron, event, এবং state ট্রিগার রিপ্লে করুন: ম্যানুয়ালি কনসোলিডেশন cron ফায়ার করুন, একটি HTTP রুট রিট্রাই করুন, একটি state পরিবর্তন emit করুন। |
 | **States** | সেশন, মেমরি স্লট, লাইফসাইকেল টাইমার, এবং এমবেডিং ইনডেক্সের উপর পূর্ণ CRUD সহ KV ব্রাউজার; ভ্যালু ইন-প্লেস এডিট করুন। |
-| **Streams** | iii engine channel ও activity পরীক্ষা করুন। |
 | **Traces** | OpenTelemetry waterfall / flame / service-breakdown ভিউ। একটি একক `memory.search` ঠিক কোন ফাংশন, DB কল, এবং এমবেডিং রিকোয়েস্ট তৈরি করেছে তা দেখতে `trace_id` দিয়ে ফিল্টার করুন। |
 | **Logs** | trace/span ID-র সাথে ফিল্টার ও কো-রিলেটেড স্ট্রাকচারড OTEL লগ। |
 | **Config** | রানটাইম কনফিগারেশন: আপনার ইঞ্জিন ঠিক কোন ওয়ার্কার, প্রোভাইডার, এবং পোর্ট নিয়ে চলছে তা দেখুন। |
-| **Flow** | (ঐচ্ছিক, `--enable-flow`) প্রতিটি worker, trigger ও stream-এর interactive architecture graph। |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="প্রতি-স্প্যান ডিউরেশন দেখানো iii console trace waterfall ভিউ" width="720" />
@@ -1374,7 +1381,7 @@ fi
 | ট্র্যাডিশনাল স্ট্যাক | agentmemory যা ব্যবহার করে |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + ইন-মেমরি ভেক্টর ইনডেক্স |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine ওয়ার্কার সুপারভিশন |
 | Prometheus / Grafana | iii OTEL + হেলথ মনিটর |
@@ -1667,6 +1674,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

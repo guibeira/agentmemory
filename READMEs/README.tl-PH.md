@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-Ginagamit ng native at Docker launches ang parehong resolved host directory; Docker bind-mount ito sa `/data`. Idinadagdag ng `--instance 1` ang `instance-1` sa resolved directory at pinipili ang hiwalay na default port quartet na `3211/3212/3213/49234`.
+Ginagamit ng native at Docker launches ang parehong resolved host directory; Docker bind-mount ito sa `/data`. Idinadagdag ng `--instance 1` ang `instance-1` sa resolved directory at pinipili ang REST/viewer/internal engine ports na `3211/3213/49234`.
 
 Pinakabagong release notes: [CHANGELOG.md](../CHANGELOG.md).
 
@@ -476,7 +476,7 @@ Pinakabagong release notes: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Panlabas na deps</strong></td>
-<td>Wala (SQLite + iii-engine)</td>
+<td>Wala (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vector DB</td>
 <td>Marami</td>
@@ -887,8 +887,8 @@ Docker ay sinusuportahan para sa self-hosting mula sa repository, hindi bilang C
 
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="I-deploy sa fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="I-deploy sa Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="I-deploy sa fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="I-deploy sa Railway" /></a>
 </p>
 
 Kinakailangan ng one-click deploy button ng Render ang `render.yaml` sa repository root, na sinadya naming panatilihing malinis. Gamitin ang Render Blueprint flow na nakadokumento sa [`../deploy/render/`](.././deploy/render/README.md) para ituro nang manu-mano ang in-repo blueprint.
@@ -908,6 +908,15 @@ Nasa [`../deploy/`](.././deploy/README.md) ang kumpletong detalye ng setup (HMAC
 Port `3111` lamang ang pinublish. Nananatiling bound sa loopback sa loob ng
 container ang viewer sa `3113`; nakadokumento sa README ng bawat template ang
 SSH-tunnel pattern para maabot ito.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1222,9 +1231,9 @@ Nagbibind ang viewer server sa `127.0.0.1` bilang default at idinadagdag nito an
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Ipinapakita ng viewer sa `:3113` ang **naalala** ng iyong agent. Ipinapakita ng [iii console](https://iii.dev/docs/console) ang **ginawa** ng iyong agent: bawat memory op bilang isang OpenTelemetry trace, bawat KV entry na maaaring i-edit, bawat function na maaaring i-invoke, bawat stream na maaaring tapp-in. Dalawang bintana sa parehong memory: isang product-shaped, isang engine-shaped.
+Ipinapakita ng viewer sa `:3113` ang **naalala** ng iyong agent. Ipinapakita ng [iii console](https://iii.dev/docs/console) ang **ginawa** ng iyong agent: bawat memory op bilang isang OpenTelemetry trace, bawat KV entry na maaaring i-edit, bawat function na maaaring i-invoke. Dalawang bintana sa parehong memory: isang product-shaped, isang engine-shaped.
 
-Panoorin ang pagputok ng isang `memory_smart_search` at tingnan ang BM25 scan → embedding lookup → RRF fusion → reranker bilang isang waterfall. I-edit ang isang stuck na consolidation timer sa KV browser. I-replay ang isang `PostToolUse` hook na may tinweak na payload. I-pin ang WebSocket stream at panoorin ang mga obserbasyon na dumarating nang live.
+Panoorin ang pagputok ng isang `memory_smart_search` at tingnan ang BM25 scan → embedding lookup → RRF fusion → reranker bilang isang waterfall. I-edit ang isang stuck na consolidation timer sa KV browser. I-replay ang isang `PostToolUse` hook na may tinweak na payload.
 
 Ibinibigay ito ng agentmemory nang libre dahil ang bawat function call at trigger ay dumadaan sa iii; walang custom, walang kailangang i-instrument.
 
@@ -1242,7 +1251,7 @@ Ibinibigay ito ng agentmemory nang libre dahil ang bawat function call at trigge
 agentmemory console
 ```
 
-Pinapatakbo nito ang `iii console` ng pinned engine laban sa mga port na nireresolba ng agentmemory (REST, streams, bridge) at ipinapakita ito sa isang port sa itaas ng viewer, `http://localhost:3114` bilang default. Pumipili ang `--console-port N` ng ibang port; pinipili ng `--port` at `--instance` ang instance ng agentmemory sa parehong paraan tulad nila para sa `stop`; ipinapasa ang anumang ibang flag, halimbawa ang `--enable-flow` para sa experimental na architecture-graph page.
+Pinapatakbo nito ang `iii console` ng pinned engine laban sa mga port na nireresolba ng agentmemory (REST, bridge) at ipinapakita ito sa isang port sa itaas ng viewer, `http://localhost:3114` bilang default. Pumipili ang `--console-port N` ng ibang port; pinipili ng `--port` at `--instance` ang instance ng agentmemory sa parehong paraan tulad nila para sa `stop`; ipinapasa ang anumang ibang flag, halimbawa ang `--enable-flow` para sa experimental na architecture-graph page.
 
 Ang parehong bagay nang manu-mano, kapaki-pakinabang kapag wala ang `agentmemory` sa PATH:
 
@@ -1258,12 +1267,10 @@ Ang parehong bagay nang manu-mano, kapaki-pakinabang kapag wala ang `agentmemory
 | **Functions** | I-invoke nang direkta ang alinman sa mga function ng agentmemory gamit ang isang JSON payload; kapaki-pakinabang para sa pag-test ng `memory.recall`, `memory.consolidate`, `graph.query` nang walang i-wire na client. |
 | **Triggers** | I-replay ang HTTP, cron, event, at state trigger: patakbuhin nang manu-mano ang consolidation cron, ulitin ang isang HTTP route, maglabas ng state change. |
 | **States** | KV browser na may full CRUD sa mga session, memory slot, lifecycle timer, at ang embeddings index; i-edit ang mga value sa lugar. |
-| **Streams** | Live na WebSocket monitor para sa memory writes, hook event, at observation update habang dumadaloy sa mga iii stream. |
 | **Queues** | Durable queue topic + dead-letter management. I-replay o i-drop ang mga nabigong embedding / compression job. |
 | **Traces** | OpenTelemetry waterfall / flame / service-breakdown view. I-filter ayon sa `trace_id` para makita kung aling mga function, DB call, at embedding request mismo ang nabuo ng isang `memory.search`. |
 | **Logs** | Structured OTEL log na na-filter at na-correlate sa trace/span ID. |
 | **Config** | Runtime configuration: makita mismo kung aling mga worker, provider, at port ang tinatakbo ng iyong engine. |
-| **Flow** | (Opsyonal, `--enable-flow`) Interactive na architecture graph ng bawat worker, trigger, at stream. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall view na nagpapakita ng per-span duration" width="720" />
@@ -1362,7 +1369,7 @@ fi
 | Traditional na Stack | Ginagamit ng agentmemory |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + in-memory vector index |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker supervision |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1649,6 +1656,7 @@ Gawin ang `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

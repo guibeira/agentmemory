@@ -476,7 +476,7 @@ Neueste Release-Hinweise: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Externe Abhängigkeiten</strong></td>
-<td>Keine (SQLite + iii-engine)</td>
+<td>Keine (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + Vector-DB</td>
 <td>Mehrere</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker wird für Self-Hosting aus diesem Repository unterstützt, nicht als CLI-Startmodus. Ein-Klick-Vorlagen verwenden [`deploy/Dockerfile`](../deploy/Dockerfile) und [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), pinnen dieselbe iii-0.24.6-Runtime mit ihren Workern und speichern State, Traces und das generierte Secret auf einem persistenten `/data`-Volume. Docker Compose verwendet standardmäßig das vorhandene benannte Volume `iii-data`; setzen Sie `AGENTMEMORY_DATA_DIR` auf einen Host-Pfad, um stattdessen einen Bind-Mount zu verwenden. Der vorhandene dateibasierte Store aus 0.22.1 wird direkt unter `/data/state_store.db` gelesen, ohne Migration oder Konvertierung. (Ausdrücklicher Hinweis zur direkten Verwendung des 0.22.1-Datenformats.) REST-CORS erlaubt standardmäßig die lokalen REST- und Viewer-Origins. Setzen Sie `REST_ALLOWED_ORIGINS` auf eine kommaseparierte Liste exakter Origins, wenn ein vertrauenswürdiger Browser-Origin Zugriff benötigt. Setup und Sicherheitshinweise finden Sie in [`deploy/README.md`](../deploy/README.md).
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Der Ein-Klick-Deploy-Button von Render erfordert eine `render.yaml` im Repository-Root, das wir bewusst sauber halten. Verwenden Sie den Render-Blueprint-Fluss, dokumentiert in [`deploy/render/`](.././deploy/render/README.md), um manuell auf das im Repo liegende Blueprint zu zeigen.
@@ -906,6 +906,15 @@ Kostenuntergrenzen) finden Sie in [`deploy/`](.././deploy/README.md):
   Docker-Compose-Stack, Sie besitzen Host und Daten.
 
 REST läuft auf `3111`; der Viewer läuft auf `3113` und wird nur veröffentlicht, wenn die Plattformvorlage eine separate geschützte Route unterstützt. Live-Updates nutzen bearer-authentifiziertes SSE am REST-Endpunkt `/agentmemory/viewer/events`. Der Engine-WebSocket auf `49134` ist intern und darf nicht veröffentlicht werden. Hinweise zur plattformspezifischen Freigabe und zu Allowlists finden Sie in [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1219,7 +1228,7 @@ Der Viewer-Server bindet sich standardmäßig an `127.0.0.1` und hängt bei der 
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Der Viewer auf `:3113` zeigt, was Ihr Agent **gespeichert hat**. Die [iii console](https://iii.dev/docs/console) zeigt, was Ihr Agent **getan hat**: jede Memory-Operation als OpenTelemetry-Trace, jeden KV-Eintrag editierbar, jede Funktion aufrufbar und jeden Kanal untersuchbar. Zwei Fenster auf dasselbe Memory: eines produktnah, eines engine-nah.
+Der Viewer auf `:3113` zeigt, was Ihr Agent **gespeichert hat**. Die [iii console](https://iii.dev/docs/console) zeigt, was Ihr Agent **getan hat**: jede Memory-Operation als OpenTelemetry-Trace, jeden KV-Eintrag editierbar. Zwei Fenster auf dasselbe Memory: eines produktnah, eines engine-nah.
 
 Sehen Sie, wie ein `memory_smart_search` ausgeführt wird, und beobachten Sie BM25-Scan → Embedding-Lookup → RRF-Fusion → Reranker als Wasserfall. Bearbeiten Sie einen festhängenden Konsolidierungs-Timer im KV-Browser. Spielen Sie einen `PostToolUse`-Hook mit angepasster Payload erneut ab. Untersuchen Sie Engine-Kanäle und Aktivität.
 
@@ -1239,7 +1248,7 @@ agentmemory liefert das umsonst, weil jeder Funktionsaufruf und jeder Trigger du
 agentmemory console
 ```
 
-Dies führt `iii console` der gepinnten Engine mit den von agentmemory aufgelösten Ports (REST und Worker-WebSocket) aus und stellt die Console einen Port über dem Viewer bereit, standardmäßig unter `http://localhost:3114`. `--console-port N` wählt einen anderen Port; `--port` und `--instance` wählen die agentmemory-Instanz wie bei `stop`; alle anderen Flags werden weitergereicht, zum Beispiel `--enable-flow` für die experimentelle Architekturgraph-Seite.
+`--console-port N` wählt einen anderen Port; `--port` und `--instance` wählen die agentmemory-Instanz wie bei `stop`; alle anderen Flags werden weitergereicht, zum Beispiel `--enable-flow` für die experimentelle Architekturgraph-Seite.
 
 Dasselbe von Hand, nützlich, wenn `agentmemory` nicht im PATH liegt:
 
@@ -1255,11 +1264,9 @@ Dasselbe von Hand, nützlich, wenn `agentmemory` nicht im PATH liegt:
 | **Functions** | Jede Funktion von agentmemory direkt mit einer JSON-Payload aufrufen; handlich zum Testen von `memory.recall`, `memory.consolidate`, `graph.query` ohne Client zu verdrahten. |
 | **Triggers** | HTTP-, Cron-, Event- und State-Trigger erneut abspielen: den Konsolidierungs-Cron manuell auslösen, eine HTTP-Route wiederholen, einen State-Change emittieren. |
 | **States** | KV-Browser mit vollem CRUD über Sessions, Memory-Slots, Lifecycle-Timer und den Embeddings-Index; Werte direkt bearbeiten. |
-| **Streams** | iii-Engine-Kanäle und -Aktivität untersuchen. |
 | **Traces** | OpenTelemetry-Wasserfall- / Flame- / Service-Breakdown-Ansichten. Nach `trace_id` filtern, um exakt zu sehen, welche Funktionen, DB-Calls und Embedding-Anfragen eine einzelne `memory.search` ausgelöst hat. |
 | **Logs** | Strukturierte OTEL-Logs, gefiltert und korreliert mit Trace-/Span-IDs. |
 | **Config** | Runtime-Konfiguration: sehen Sie genau, mit welchen Workern, Providern und Ports Ihre Engine läuft. |
-| **Flow** | (Optional, `--enable-flow`) Interaktiver Architekturgraph jedes Workers, Triggers und Streams. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console Trace-Wasserfall-Ansicht mit Span-Dauer" width="720" />
@@ -1375,7 +1382,7 @@ fi
 | Traditioneller Stack | agentmemory verwendet |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + In-Memory-Vector-Index |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | SSE über den REST-Endpunkt |
 | pm2 / systemd | iii-Engine-Worker-Supervision |
 | Prometheus / Grafana | iii OTEL + Health-Monitor |
@@ -1668,6 +1675,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

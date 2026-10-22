@@ -476,7 +476,7 @@ A legfrissebb kiadási megjegyzések: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Külső függőségek</strong></td>
-<td>Nincs (SQLite + iii-engine)</td>
+<td>Nincs (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektor DB</td>
 <td>Több</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 A Docker a tárolóból történő saját üzemeltetéshez támogatott, nem a CLI indítási módjaként. Az egykattintásos sablonok a [`deploy/Dockerfile`](../deploy/Dockerfile) és [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) fájlokat használják, az iii 0.24.6 runtime-ot rögzítik, az állapotot, nyomokat és generált titkot pedig tartós `/data` köteten tárolják. A Docker Compose alapértelmezésben az `iii-data` nevű kötetet használja; bind mount használatához állítsa az `AGENTMEMORY_DATA_DIR` értékét egy gazdagép elérési útjára. A 0.22.1-es verzióból származó fájlalapú store közvetlenül a `/data/state_store.db` fájlból olvasható, migrálás vagy konverzió nélkül. A REST CORS alapértelmezés szerint engedélyezi a helyi REST- és viewer-originöket; megbízható böngésző-origin engedélyezéséhez adja meg a pontos originök vesszővel elválasztott listáját a `REST_ALLOWED_ORIGINS` változóban. A beállításról és biztonságról lásd a [`deploy/README.md`](../deploy/README.md) fájlt.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Telepítés a fly.io-ra" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Telepítés a Railway-re" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Telepítés a fly.io-ra" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Telepítés a Railway-re" /></a>
 </p>
 
 A Render egykattintásos telepítés gombja a repó gyökerében lévő `render.yaml`-t igényli, amit szándékosan tisztán tartunk. Használd a [`deploy/render/`](.././deploy/render/README.md)-ben dokumentált Render Blueprint folyamatot, hogy manuálisan a repón belüli blueprintre mutass.
@@ -908,6 +908,15 @@ költségküszöbök) a [`deploy/`](.././deploy/README.md)-ben élnek:
 Csak a `3111`-es port van publikálva. A `3113`-as megjelenítő
 a konténeren belül a loopbackhez marad kötve; minden sablon README-je dokumentálja
 az SSH-tunnel mintát az eléréséhez.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1223,7 +1232,7 @@ A megjelenítő szervere alapértelmezetten a `127.0.0.1`-hez kötődik, és csa
 
 A `:3113` porton lévő megjelenítő azt mutatja, **mire emlékezett** az ágens. Az [iii konzol](https://iii.dev/docs/console) azt, **mit tett**: memóriahívások OpenTelemetry-trace-ként, szerkeszthető KV-bejegyzések, meghívható függvények és motorcsatorna-aktivitás.
 
-Figyeld meg, ahogy egy `memory_smart_search` elsül, és nézd meg a BM25-pásztázást → embedding-keresést → RRF-fúziót → rerankert egy vízeséses nézetben. Szerkessz egy elakadt konszolidáció-timert a KV-böngészőben. Játssz vissza egy `PostToolUse` hookot egy módosított payloaddal. Pinneld ki a WebSocket-stream-et, és nézd, ahogy a megfigyelések élőben landolnak.
+Figyeld meg, ahogy egy `memory_smart_search` elsül, és nézd meg a BM25-pásztázást → embedding-keresést → RRF-fúziót → rerankert egy vízeséses nézetben. Szerkessz egy elakadt konszolidáció-timert a KV-böngészőben. Játssz vissza egy `PostToolUse` hookot egy módosított payloaddal.
 
 Az agentmemory ezt ingyen szállítja, mert minden funkcióhívás és trigger az iii-n keresztül sül el; semmi egyéni, semmit nem kell instrumentálni.
 
@@ -1241,7 +1250,7 @@ Az agentmemory ezt ingyen szállítja, mert minden funkcióhívás és trigger a
 agentmemory console
 ```
 
-Ez a pinnelt engine `iii console`-ját futtatja az agentmemory által feloldott portok ellen (REST, stream-ek, híd), és egy porttal a megjelenítő fölött szolgálja ki, alapértelmezetten a `http://localhost:3114`-en. A `--console-port N` egy másik portot választ; a `--port` és az `--instance` ugyanúgy választja ki az agentmemory-instance-t, mint a `stop`-nál; minden más kapcsoló átadásra kerül, például a `--enable-flow` a kísérleti architektúra-gráf oldalhoz.
+Ez a pinnelt engine `iii console`-ját futtatja az agentmemory által feloldott portok ellen (REST, híd), és egy porttal a megjelenítő fölött szolgálja ki, alapértelmezetten a `http://localhost:3114`-en. A `--console-port N` egy másik portot választ; a `--port` és az `--instance` ugyanúgy választja ki az agentmemory-instance-t, mint a `stop`-nál; minden más kapcsoló átadásra kerül, például a `--enable-flow` a kísérleti architektúra-gráf oldalhoz.
 
 Ugyanaz kézzel, hasznos, ha az `agentmemory` nincs a PATH-on:
 
@@ -1257,12 +1266,10 @@ Ugyanaz kézzel, hasznos, ha az `agentmemory` nincs a PATH-on:
 | **Functions** | Hívj meg közvetlenül bármelyik agentmemory-funkciót egy JSON-payloaddal; hasznos a `memory.recall`, `memory.consolidate`, `graph.query` teszteléséhez, kliens bekötése nélkül. |
 | **Triggers** | Játssz vissza HTTP-, cron-, event- és state-triggereket: süsd el manuálisan a konszolidáció-cront, próbálj újra egy HTTP-route-ot, bocsáss ki egy állapotváltozást. |
 | **States** | KV-böngésző teljes CRUD-dal a sessionök, memória-slotok, életciklus-timerek és az embedding-index felett; szerkeszd az értékeket a helyükön. |
-| **Streams** | Az iii motorcsatornák és aktivitásuk megtekintése. |
 
 | **Traces** | OpenTelemetry vízesés / flame / szolgáltatás-bontás nézetek. Szűrj `trace_id` szerint, hogy pontosan lásd, mely funkciók, DB-hívások és embedding-kérések adtak ki egy adott `memory.search`-t. |
 | **Logs** | Strukturált OTEL-logok, trace/span ID-khez szűrve és korrelálva. |
 | **Config** | Futásidejű konfiguráció: lásd pontosan, mely workerekkel, szolgáltatókkal és portokkal fut az engine-ed. |
-| **Flow** | (Opcionális, `--enable-flow`) Interaktív architektúra-gráf minden workerről, triggerről és stream-ről. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace vízesés nézet, amely a per-span időtartamot mutatja" width="720" />
@@ -1379,7 +1386,7 @@ A `/agentmemory/export` emellett elfogadja a `?maxSessions=`-t és a `?offset=`-
 | Hagyományos stack | Az agentmemory ezt használja |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggerek |
-| SQLite / Postgres + pgvector | iii KV State + memóriabeli vektorindex |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker-felügyelet |
 | Prometheus / Grafana | iii OTEL + egészségfigyelő |
@@ -1672,7 +1679,7 @@ Hozd létre a `~/.agentmemory/.env`-et:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

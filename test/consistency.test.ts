@@ -16,8 +16,10 @@ function readText(relativePath: string): string {
 }
 
 function countRestApiEndpoints(): number {
-  const src = readText("src/triggers/api.ts");
-  return Array.from(src.matchAll(/api_path:\s*["`]/g)).length;
+  const api = readText("src/triggers/api.ts");
+  const viewerSse = readText("src/triggers/viewer-sse.ts");
+  return Array.from(api.matchAll(/api_path:\s*["`]/g)).length +
+    Array.from(viewerSse.matchAll(/api_path:\s*["`]/g)).length;
 }
 
 describe("Consistency checks", () => {

@@ -478,7 +478,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>תלויות חיצוניות</strong></td>
-<td>אין (SQLite + iii-engine)</td>
+<td>אין (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + מסד נתונים וקטורי</td>
 <td>מרובות</td>
@@ -888,8 +888,8 @@ npx -y @agentmemory/mcp
 Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפעלה של ה-CLI. תבניות הפריסה משתמשות ב-[`deploy/Dockerfile`](../deploy/Dockerfile) וב-[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), נועלות את runtime של iii 0.24.6 ושומרות מצב, traces וסוד שנוצר בכרך מתמשך `/data`. כברירת מחדל Docker Compose משתמש בכרך הנקוב `iii-data`; הגדירו את `AGENTMEMORY_DATA_DIR` לנתיב מארח כדי להשתמש ב-bind mount. מאגר הקבצים הקיים מ-0.22.1 נקרא ישירות מתוך `/data/state_store.db`, ללא הגירה או המרה. CORS של REST מאפשר כברירת מחדל את מקורות REST והמַציג המקומיים; הגדירו `REST_ALLOWED_ORIGINS` כרשימת מקורות מדויקים מופרדת בפסיקים כדי לאפשר דפדפן מהימן. לפרטי התקנה ואבטחה ראו [`deploy/README.md`](../deploy/README.md).
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="פרסו ל-fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="פרסו ל-Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="פרסו ל-fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="פרסו ל-Railway" /></a>
 </p>
 
 כפתור הפריסה בלחיצה אחת של Render דורש `render.yaml` בשורש ה-repository, שאנחנו משאירים נקי בכוונה. השתמשו בזרימת ה-Render Blueprint המתועדת ב-[`deploy/render/`](.././deploy/render/README.md) כדי להפנות ל-blueprint שבתוך ה-repo באופן ידני.
@@ -907,6 +907,15 @@ Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפ�
   Compose, אתם הבעלים של ה-host ושל הנתונים.
 
 REST פועל ב-`3111`; המציג ב-`3113` ונחשף בנפרד רק בתבניות פלטפורמה שמספקות נתיב מוגן. עדכונים חיים משתמשים ב-SSE עם bearer דרך `/agentmemory/viewer/events` של REST. WebSocket המנוע ב-`49134` פנימי ואסור לפרסם אותו. לפרטי חשיפה לכל פלטפורמה ראו [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1222,7 +1231,7 @@ open http://localhost:3113
 
 המַציג ב-`:3113` מראה מה הסוכן שלכם **זכר**. [קונסולת iii](https://iii.dev/docs/console) מראה מה הוא **עשה**: פעולות זיכרון כ-traces של OpenTelemetry, ערכי KV הניתנים לעריכה, פונקציות להפעלה ופעילות ערוצים של המנוע.
 
-צפו ב-`memory_smart_search` מופעל וראו את סריקת ה-BM25 → חיפוש ה-embedding → fusion של RRF → reranker כ-waterfall. ערכו טיימר קונסולידציה תקוע ב-KV browser. בצעו replay ל-hook `PostToolUse` עם payload משופר. הצמידו (pin) את ה-stream של ה-WebSocket וצפו בתצפיות נוחתות בשידור חי.
+צפו ב-`memory_smart_search` מופעל וראו את סריקת ה-BM25 → חיפוש ה-embedding → fusion של RRF → reranker כ-waterfall. ערכו טיימר קונסולידציה תקוע ב-KV browser. בצעו replay ל-hook `PostToolUse` עם payload משופר.
 
 agentmemory מקבל את זה בחינם כי כל קריאת פונקציה וכל trigger עוברים דרך iii; שום דבר מותאם אישית, שום דבר להתקין לו instrumentation.
 
@@ -1240,7 +1249,7 @@ agentmemory מקבל את זה בחינם כי כל קריאת פונקציה ו
 agentmemory console
 ```
 
-זה מריץ את `iii console` של המנוע הנעוץ מול הפורטים ש-agentmemory פתר (REST, streams, bridge) ומגיש אותה פורט אחד מעל המציג, `http://localhost:3114` כברירת מחדל. `--console-port N` בוחר פורט אחר; `--port` ו-`--instance` בוחרים את instance ה-agentmemory באותו אופן שהם עושים ל-`stop`; כל דגל אחר מועבר הלאה, למשל `--enable-flow` לעמוד גרף הארכיטקטורה הניסיוני.
+זה מריץ את `iii console` של המנוע הנעוץ מול הפורטים ש-agentmemory פתר (REST, bridge) ומגיש אותה פורט אחד מעל המציג, `http://localhost:3114` כברירת מחדל. `--console-port N` בוחר פורט אחר; `--port` ו-`--instance` בוחרים את instance ה-agentmemory באותו אופן שהם עושים ל-`stop`; כל דגל אחר מועבר הלאה, למשל `--enable-flow` לעמוד גרף הארכיטקטורה הניסיוני.
 
 אותו דבר ביד, שימושי כש-`agentmemory` לא נמצא ב-PATH:
 
@@ -1256,12 +1265,10 @@ agentmemory console
 | **Functions** | להפעיל כל פונקציה של agentmemory ישירות עם payload של JSON; שימושי לבדיקת `memory.recall`, `memory.consolidate`, `graph.query` בלי לחווט לקוח. |
 | **Triggers** | לבצע replay ל-triggers מסוג HTTP, cron, event, ו-state: להפעיל את ה-cron של הקונסולידציה ידנית, לנסות שוב route של HTTP, לפלוט שינוי state. |
 | **States** | KV browser עם CRUD מלא על sessions, memory slots, טיימרי מחזור חיים, ואינדקס ה-embeddings; עריכת ערכים במקום. |
-| **Streams** | בדיקת ערוצי מנוע iii והפעילות בהם. |
 
 | **Traces** | תצוגות waterfall / flame / פירוק-לפי-שירות של OpenTelemetry. סננו לפי `trace_id` כדי לראות בדיוק אילו functions, קריאות DB, ובקשות embedding יצר `memory.search` בודד. |
 | **Logs** | logs מבניים של OTEL מסוננים ומקושרים (correlated) למזהי trace/span. |
 | **Config** | תצורת runtime: לראות בדיוק עם אילו workers, ספקים, ופורטים המנוע שלכם רץ. |
-| **Flow** | (אופציונלי, `--enable-flow`) גרף ארכיטקטורה אינטראקטיבי של כל worker, trigger, ו-stream. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="תצוגת waterfall של trace בקונסולת iii שמציגה משך זמן per-span" width="720" />
@@ -1378,7 +1385,7 @@ fi
 | ערימה מסורתית | agentmemory משתמש ב |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + אינדקס וקטורי בזיכרון |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | פיקוח (supervision) workers של מנוע iii |
 | Prometheus / Grafana | iii OTEL + מוניטור health |
@@ -1671,7 +1678,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.

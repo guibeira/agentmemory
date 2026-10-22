@@ -476,7 +476,7 @@ Rată de succes Top-5 de 100% la **plafonul matematic P@5** pentru acest corpus 
 </tr>
 <tr>
 <td><strong>Dependențe externe</strong></td>
-<td>Niciuna (SQLite + iii-engine)</td>
+<td>Niciuna (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + bază de date vectorială</td>
 <td>Multiple</td>
@@ -884,8 +884,8 @@ npx -y @agentmemory/mcp
 
 Docker este suportat pentru self-hosting din acest repository, nu ca mod de pornire al CLI-ului. Șabloanele cu un singur clic folosesc [`deploy/Dockerfile`](../deploy/Dockerfile) și [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), fixează același runtime iii 0.24.6 și aceiași workeri și stochează starea, trace-urile și secretul generat pe un volum persistent `/data`. Docker Compose folosește implicit volumul numit existent `iii-data`; setează `AGENTMEMORY_DATA_DIR` la o cale de pe host pentru a folosi un bind mount. Magazinul existent bazat pe fișiere din iii 0.22.1 este citit direct din `/data/state_store.db`, fără migrare sau conversie. CORS REST permite implicit origin-urile locale REST și ale vizualizatorului; setează `REST_ALLOWED_ORIGINS` la o listă de origin-uri exacte, separate prin virgule, când un browser de încredere are nevoie de acces. Consultă [`deploy/README.md`](../deploy/README.md) pentru configurare și detalii de securitate.
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Implementare pe fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Implementare pe Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Implementare pe fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Implementare pe Railway" /></a>
 </p>
 
 Butonul de implementare cu un singur clic al Render necesită `render.yaml` în rădăcina repository-ului, pe care îl păstrăm intenționat curat (gol). Folosește fluxul Render Blueprint documentat în [`deploy/render/`](.././deploy/render/README.md) pentru a indica manual blueprint-ul din repository.
@@ -898,6 +898,15 @@ Detaliile complete de configurare (capturarea HMAC, tunel SSH pentru vizualizato
 - [`deploy/coolify`](.././deploy/coolify/README.md): auto-hostat pe propriul tău VPS, prin [Coolify](https://coolify.io/self-hosted); aceeași stivă Docker Compose, tu deții host-ul și datele.
 
 REST este pe `3111`; vizualizatorul este pe `3113` și este publicat doar acolo unde șablonul platformei suportă o rută separată protejată. Actualizările live folosesc SSE autentificat cu bearer la endpoint-ul REST `/agentmemory/viewer/events`. WebSocket-ul engine-ului de pe `49134` este intern și nu trebuie publicat. Consultă [`deploy/README.md`](../deploy/README.md) pentru recomandări privind expunerea și allowlist-urile specifice platformei.
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1211,9 +1220,9 @@ Serverul vizualizatorului se leagă implicit la `127.0.0.1` și atașează secre
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="Consola iii" height="32" /></picture></h2>
 
-Vizualizatorul de pe `:3113` arată ce **și-a amintit** agentul tău. [Consola iii](https://iii.dev/docs/console) arată ce **a făcut** agentul tău: fiecare operație de memorie, ca trasare OpenTelemetry, fiecare intrare KV editabilă, fiecare funcție invocabilă, fiecare stream accesibil (tappable). Două ferestre către aceeași memorie: una modelată ca produs, una modelată ca motor.
+Vizualizatorul de pe `:3113` arată ce **și-a amintit** agentul tău. [Consola iii](https://iii.dev/docs/console) arată ce **a făcut** agentul tău: fiecare operație de memorie, ca trasare OpenTelemetry, fiecare intrare KV editabilă, fiecare funcție invocabilă. Două ferestre către aceeași memorie: una modelată ca produs, una modelată ca motor.
 
-Urmărește un `memory_smart_search` declanșându-se și vezi scanarea BM25 → căutarea embedding-ului → fuziunea RRF → reranker-ul, ca o cascadă (waterfall). Editează un timer de consolidare blocat, în browser-ul de KV. Reluează un hook `PostToolUse` cu un payload ajustat. Fixează (pin) stream-ul WebSocket și urmărește observațiile ajungând în timp real.
+Urmărește un `memory_smart_search` declanșându-se și vezi scanarea BM25 → căutarea embedding-ului → fuziunea RRF → reranker-ul, ca o cascadă (waterfall). Editează un timer de consolidare blocat, în browser-ul de KV. Reluează un hook `PostToolUse` cu un payload ajustat.
 
 agentmemory oferă toate acestea gratuit, pentru că fiecare apel de funcție și fiecare trigger trece prin iii; nimic personalizat, nimic de instrumentat.
 
@@ -1247,11 +1256,9 @@ Același lucru, manual, util când `agentmemory` nu este în PATH:
 | **Functions** | A invoca direct orice funcție a agentmemory, cu un payload JSON; util pentru a testa `memory.recall`, `memory.consolidate`, `graph.query`, fără a conecta un client. |
 | **Triggers** | A relua trigger-e HTTP, cron, de evenimente și de stare: a declanșa manual cron-ul de consolidare, a reîncerca o rută HTTP, a emite o schimbare de stare. |
 | **States** | Un browser KV cu CRUD complet pentru sesiuni, sloturi de memorie, timere de ciclu de viață și indexul de embeddings; editează valorile direct. |
-| **Streams** | Inspectează canalele și activitatea engine-ului iii. |
 | **Traces** | Vizualizări OpenTelemetry de tip waterfall / flame / defalcare pe servicii. Filtrează după `trace_id`, pentru a vedea exact ce funcții, apeluri DB și cereri de embedding a produs o singură `memory.search`. |
 | **Logs** | Log-uri OTEL structurate, filtrate și corelate cu ID-urile de trace/span. |
 | **Config** | Configurația runtime: vezi exact cu ce worker-i, furnizori și porturi rulează motorul tău. |
-| **Flow** | (Opțional, `--enable-flow`) Graf interactiv de arhitectură, cu fiecare worker, trigger și stream. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="Vizualizarea waterfall de trace din consola iii, care arată durata per span" width="720" />
@@ -1361,7 +1368,7 @@ fi
 | Stivă tradițională | agentmemory folosește |
 |---|---|
 | Express.js / Fastify | Trigger-e HTTP iii |
-| SQLite / Postgres + pgvector | Stare KV iii + index vectorial în memorie |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | endpoint-ul REST `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | Supervizarea worker-ilor de către motorul iii |
 | Prometheus / Grafana | iii OTEL + monitor de sănătate |
@@ -1654,6 +1661,7 @@ Creează `~/.agentmemory/.env`:
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
                                            # A hard kill loses at most this window.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

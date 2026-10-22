@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>Εξωτερικές εξαρτήσεις</strong></td>
-<td>Καμία (SQLite + iii-engine)</td>
+<td>Καμία (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vector DB</td>
 <td>Πολλαπλές</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Το Docker υποστηρίζεται για self-hosting από αυτό το αποθετήριο, όχι ως λειτουργία εκκίνησης του CLI. Τα πρότυπα ανάπτυξης με ένα κλικ χρησιμοποιούν τα [`deploy/Dockerfile`](../deploy/Dockerfile) και [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), καρφιτσώνουν το ίδιο runtime iii 0.24.6 με τους workers του και αποθηκεύουν state, traces και το παραγόμενο secret σε μόνιμο volume `/data`. Το Docker Compose χρησιμοποιεί από προεπιλογή το υπάρχον named volume `iii-data`· ορίστε το `AGENTMEMORY_DATA_DIR` σε διαδρομή host για να χρησιμοποιήσετε bind mount. Το υπάρχον file-based store από το 0.22.1 διαβάζεται απευθείας στο `/data/state_store.db`, χωρίς migration ή μετατροπή. (Ρητή αναφορά στην απευθείας ανάγνωση της μορφής δεδομένων 0.22.1.) Το REST CORS επιτρέπει από προεπιλογή τις τοπικές προελεύσεις REST και viewer· ορίστε το `REST_ALLOWED_ORIGINS` σε λίστα ακριβών origins διαχωρισμένων με κόμμα, όταν χρειάζεται πρόσβαση από έμπιστη προέλευση browser. Για ρύθμιση και ασφάλεια δείτε το [`deploy/README.md`](../deploy/README.md).
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Το κουμπί ανάπτυξης με ένα κλικ του Render απαιτεί `render.yaml` στη ρίζα του αποθετηρίου, το οποίο σκόπιμα το κρατάμε καθαρό. Χρησιμοποιήστε τη ροή Render Blueprint που τεκμηριώνεται στο [`deploy/render/`](.././deploy/render/README.md) για να δείξετε χειροκίνητα στο blueprint εντός του αποθετηρίου.
@@ -906,6 +906,15 @@ npx -y @agentmemory/mcp
   Compose stack, εσείς κατέχετε τον host και τα δεδομένα.
 
 Το REST εξυπηρετείται στη `3111`· το viewer στη `3113` δημοσιεύεται μόνο όταν το πρότυπο πλατφόρμας υποστηρίζει ξεχωριστή προστατευμένη διαδρομή. Οι live ενημερώσεις χρησιμοποιούν SSE με bearer authentication στο REST endpoint `/agentmemory/viewer/events`. Το WebSocket του engine στη `49134` είναι εσωτερικό και δεν πρέπει να δημοσιευτεί. Για οδηγίες έκθεσης και allowlist ανά πλατφόρμα, δείτε το [`deploy/README.md`](../deploy/README.md).
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1255,11 +1264,9 @@ agentmemory console
 | **Functions** | Να καλέσετε απευθείας οποιαδήποτε από τις functions του agentmemory με ένα JSON payload· χρήσιμο για τη δοκιμή των `memory.recall`, `memory.consolidate`, `graph.query` χωρίς να συνδέσετε έναν client. |
 | **Triggers** | Να αναπαράγετε triggers HTTP, cron, event, και state: να ενεργοποιήσετε το cron ενοποίησης χειροκίνητα, να ξαναδοκιμάσετε μια διαδρομή HTTP, να εκπέμψετε μια αλλαγή κατάστασης. |
 | **States** | Έναν KV browser με πλήρες CRUD πάνω σε sessions, memory slots, χρονόμετρα κύκλου ζωής, και το ευρετήριο embeddings· να επεξεργαστείτε τιμές επί τόπου. |
-| **Streams** | Επιθεωρήστε τα κανάλια και τη δραστηριότητα του iii engine. |
 | **Traces** | Προβολές waterfall / flame / service-breakdown του OpenTelemetry. Φιλτράρετε κατά `trace_id` για να δείτε ακριβώς ποιες functions, κλήσεις DB, και αιτήματα embedding παρήγαγε ένα μόνο `memory.search`. |
 | **Logs** | Δομημένα logs OTEL φιλτραρισμένα και συσχετισμένα με IDs trace/span. |
 | **Config** | Ρυθμίσεις runtime: δείτε ακριβώς με ποιους workers, providers, και θύρες τρέχει ο engine σας. |
-| **Flow** | (Προαιρετικό, `--enable-flow`) Διαδραστικός γράφος αρχιτεκτονικής κάθε worker, trigger, και stream. |
 
 <p align="center">
   <img src="../assets/iii-console/traces-waterfall.png" alt="προβολή waterfall traces της iii console που δείχνει τη διάρκεια ανά span" width="720" />
@@ -1375,7 +1382,7 @@ fi
 | Παραδοσιακό stack | Το agentmemory χρησιμοποιεί |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + ευρετήριο vector in-memory |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | SSE μέσω του endpoint REST |
 | pm2 / systemd | επιτήρηση workers του iii engine |
 | Prometheus / Grafana | iii OTEL + monitor υγείας |
@@ -1668,6 +1675,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

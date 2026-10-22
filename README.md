@@ -476,7 +476,7 @@ Latest release notes: [CHANGELOG.md](CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>External deps</strong></td>
-<td>None (SQLite + iii-engine)</td>
+<td>None (file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vector DB</td>
 <td>Multiple</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker is supported for self-hosting from this repository, not as a CLI startup mode. One-click templates use [`deploy/Dockerfile`](deploy/Dockerfile) and [`deploy/runtime/worker-compose.yaml`](deploy/runtime/worker-compose.yaml), pin the same iii 0.24.6 runtime workers, and store state, traces, and the generated secret on a persistent `/data` volume. Docker Compose uses the existing `iii-data` named volume by default; set `AGENTMEMORY_DATA_DIR` to a host path to use a bind mount instead. The existing file-based store from 0.22.1 is read directly at `/data/state_store.db` without migration or conversion. REST CORS allows the local REST and viewer origins by default; set `REST_ALLOWED_ORIGINS` to a comma-separated list of exact origins when a trusted browser origin needs access. See [`deploy/README.md`](deploy/README.md) for setup and security details.
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render's one-click deploy button requires `render.yaml` at the repository root, which we deliberately keep clean. Use the Render Blueprint flow documented in [`deploy/render/`](./deploy/render/README.md) to point at the in-repo blueprint manually.
@@ -906,6 +906,15 @@ cost floors) live in [`deploy/`](./deploy/README.md):
   Compose stack, you own the host and the data.
 
 REST is on `3111`; the viewer is on `3113` and is published only where the platform template supports a separate protected route. Live updates use bearer-authenticated SSE on the REST endpoint `/agentmemory/viewer/events`. The engine WebSocket at `49134` is internal and must not be published. See [`deploy/README.md`](deploy/README.md) for platform-specific exposure and allowlist guidance.
+
+
+### Migrating legacy CLI-managed Docker installs
+
+The current CLI does not start or manage Docker deployments. If it finds a legacy Docker lifecycle record, it preserves the metadata and prints the exact `docker stop ...` command; run that command before migrating. Do not start the new runtime while the old container still has the volume mounted.
+
+Keep and back up the old persistent volume (normally `iii-data`) or copy its `/data` contents to a bind mount. The state worker reads the existing `/data/state_store.db` directly, without export or conversion. The old runtime used UID/GID `65532:65532`; the new image performs a one-time recursive ownership migration to `node:node` (`1000:1000`) and writes `/data/.ownership-migrated-node-v1`. Do not mount the volume back into the old runtime after this migration.
+
+The old runtime also stored its generated bearer secret in `/data/.hmac`. The new image preserves that secret during migration; an explicitly set `AGENTMEMORY_SECRET` takes precedence. Start the new Compose project from the repository root with `docker compose up --build -d`. If the old volume has a project-prefixed name rather than `iii-data`, explicitly reuse or rename it—do not accidentally initialize an empty volume. Check `/agentmemory/livez` and confirm both old and new memories can be found. Avoid `docker compose down -v` unless deleting the data is intentional.
 
 ---
 
@@ -1223,9 +1232,9 @@ The viewer server binds to `127.0.0.1` by default and attaches the server secret
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/section-viewer.svg"><img src="assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-The viewer at `:3113` shows what your agent **remembered**. The [iii console](https://iii.dev/docs/console) shows what your agent **did**: every memory op as an OpenTelemetry trace, every KV entry editable, every function invocable, every stream tappable. Two windows on the same memory: one product-shaped, one engine-shaped.
+The viewer at `:3113` shows what your agent **remembered**. The [iii console](https://iii.dev/docs/console) shows what your agent **did**: every memory op as an OpenTelemetry trace, every KV entry editable, every function invocable. Two windows on the same memory: one product-shaped, one engine-shaped.
 
-Watch a `memory_smart_search` fire and see the BM25 scan → embedding lookup → RRF fusion → reranker as a waterfall. Edit a stuck consolidation timer in the KV browser. Replay a `PostToolUse` hook with a tweaked payload. Pin the WebSocket stream and watch observations land live.
+Watch a `memory_smart_search` fire and see the BM25 scan → embedding lookup → RRF fusion → reranker as a waterfall. Edit a stuck consolidation timer in the KV browser. Replay a `PostToolUse` hook with a tweaked payload.
 
 agentmemory ships this for free because every function call and trigger fires through iii; nothing custom, nothing to instrument.
 
@@ -1243,7 +1252,7 @@ agentmemory ships this for free because every function call and trigger fires th
 agentmemory console
 ```
 
-This runs the pinned engine's `iii console` against the ports agentmemory resolved (REST and worker WebSocket) and serves it one port above the viewer, `http://localhost:3114` by default. `--console-port N` picks another port; `--port` and `--instance` select the agentmemory instance the same way they do for `stop`; any other flag is passed through, for example `--enable-flow` for the experimental architecture-graph page.
+`--console-port N` picks another port; `--port` and `--instance` select the agentmemory instance the same way they do for `stop`; any other flag is passed through, for example `--enable-flow` for the experimental architecture-graph page.
 
 The same thing by hand, useful when `agentmemory` is not on PATH:
 
@@ -1259,11 +1268,9 @@ The same thing by hand, useful when `agentmemory` is not on PATH:
 | **Functions** | Invoke any of agentmemory's functions directly with a JSON payload; handy for testing `memory.recall`, `memory.consolidate`, `graph.query` without wiring a client. |
 | **Triggers** | Replay HTTP, cron, event, and state triggers: fire the consolidation cron manually, retry an HTTP route, emit a state change. |
 | **States** | KV browser with full CRUD over sessions, memory slots, lifecycle timers, and the embeddings index; edit values in place. |
-| **Streams** | Inspect iii engine channels and activity. |
 | **Traces** | OpenTelemetry waterfall / flame / service-breakdown views. Filter by `trace_id` to see exactly which functions, DB calls, and embedding requests a single `memory.search` produced. |
 | **Logs** | Structured OTEL logs filtered and correlated to trace/span IDs. |
 | **Config** | Runtime configuration: see exactly which workers, providers, and ports your engine is running with. |
-| **Flow** | (Optional, `--enable-flow`) Interactive architecture graph of every worker, trigger, and stream. |
 
 <p align="center">
   <img src="assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall view showing per-span duration" width="720" />
@@ -1379,7 +1386,7 @@ fi
 | Traditional stack | agentmemory uses |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + in-memory vector index |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker supervision |
 | Prometheus / Grafana | iii OTEL + health monitor |
@@ -1672,6 +1679,7 @@ Create `~/.agentmemory/.env`:
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
 # AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph

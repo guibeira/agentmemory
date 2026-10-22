@@ -476,7 +476,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 </tr>
 <tr>
 <td><strong>外部依存</strong></td>
-<td>なし(SQLite + iii-engine)</td>
+<td>なし(file-based KV state + iii-engine)</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + ベクトル DB</td>
 <td>複数</td>
@@ -886,8 +886,8 @@ npx -y @agentmemory/mcp
 Docker はこのリポジトリからのセルフホストに対応しており、CLI の起動モードではありません。ワンクリックテンプレートは [`deploy/Dockerfile`](../deploy/Dockerfile) と [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使い、iii 0.24.6 ランタイムを固定し、状態、トレース、生成された secret を永続 `/data` ボリュームに保存します。Docker Compose はデフォルトで名前付きボリューム `iii-data` を使います。bind mount には `AGENTMEMORY_DATA_DIR` にホストパスを設定してください。0.22.1 からの既存のファイルベース store は、移行や変換なしで `/data/state_store.db` から直接読み込まれます。REST CORS はデフォルトでローカル REST と viewer の origin を許可します。信頼するブラウザー origin を追加するには、カンマ区切りの正確な origin を `REST_ALLOWED_ORIGINS` に設定してください。設定とセキュリティについては [`deploy/README.md`](../deploy/README.md) を参照してください。
 
 <p>
-  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory&path=deploy/fly"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
-  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory&rootDirectory=deploy%2Frailway"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
+  <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
+  <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Deploy to Railway" /></a>
 </p>
 
 Render のワンクリックデプロイボタンはリポジトリルートに `render.yaml` を要求しますが、ルートはあえて綺麗なまま保っています。[`deploy/render/`](.././deploy/render/README.md) にドキュメント化された Render Blueprint フローを使い、リポジトリ内のブループリントを手動で指してください。
@@ -905,6 +905,15 @@ Render のワンクリックデプロイボタンはリポジトリルートに 
   Compose スタックを使い、ホストとデータは自分の手元に残ります。
 
 REST は `3111`、ビューワーは `3113` です。保護された独立 route に対応するプラットフォームテンプレートに限り、ビューワーを別途公開します。ライブ更新は REST の `/agentmemory/viewer/events` endpoint で bearer 認証付き SSE を使用します。エンジン WebSocket `49134` は内部用で公開してはいけません。プラットフォームごとの公開方法は [`deploy/README.md`](../deploy/README.md) を参照してください。
+
+
+### Migração de instalações Docker gerenciadas pelo CLI
+
+A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+
+Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+
+O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
 
 ---
 
@@ -1254,7 +1263,6 @@ PATH に `agentmemory` が通っていない場合に便利な、手動での同
 | **Functions** | JSON ペイロードを与えて agentmemory の任意の function を直接呼び出せます。クライアントを配線せずに `memory.recall`、`memory.consolidate`、`graph.query` をテストできて便利です。 |
 | **Triggers** | HTTP、cron、イベント、ステートのトリガーを再生します: 統合 cron を手動で発火、HTTP ルートを再試行、ステート変更を発行。 |
 | **States** | セッション、メモリスロット、ライフサイクルタイマー、埋め込みインデックスに対するフル CRUD の KV ブラウザ。値をその場で編集できます。 |
-| **Streams** | iii engine の channel とそのアクティビティを確認します。 |
 
 | **Traces** | OpenTelemetry のウォーターフォール / フレーム / サービスブレークダウンのビュー。`trace_id` でフィルタすれば、単一の `memory.search` がどの function、DB 呼び出し、埋め込みリクエストを生んだか正確にわかります。 |
 | **Logs** | trace/span ID に絞り込み・関連付けされた構造化 OTEL ログ。 |
@@ -1376,7 +1384,7 @@ fi
 | 従来のスタック | agentmemory が使うもの |
 |---|---|
 | Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii KV State + インメモリベクトルインデックス |
+| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker 監視 |
 | Prometheus / Grafana | iii OTEL + ヘルスモニタ |
@@ -1669,7 +1677,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # Storage and durability
 # AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
 # AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # How often the engine writes file state to disk.
+# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
