@@ -61,9 +61,22 @@ describe("Worker Compose project", () => {
     const node = join(dir, "node; safe");
     writeFileSync(node, "#!/bin/sh\nprintf '%s' \"$1\"\n", { mode: 0o755 });
     chmodSync(node, 0o755);
-    const rendered = renderWorkerCompose(options({ nodeBin: node }));
-    const appRun = (parse(rendered) as { containers: Record<string, { scripts: { run: string } }> }).containers.agentmemory!.scripts.run;
-    expect(appRun).toBe(shellCommand(node, ["dist/index.mjs"], false));
+    const binDir = join(dir, "Local Workers & (safe)");
+    mkdirSync(binDir, { recursive: true });
+    const workerBins = {} as Record<string, string>;
+    for (const name of ["state", "http"]) {
+      workerBins[name] = join(binDir, name);
+      writeFileSync(workerBins[name]!, "#!/bin/sh\nprintf '%s\\n' \"$0\"\n", { mode: 0o755 });
+      chmodSync(workerBins[name]!, 0o755);
+    }
+    const rendered = renderWorkerCompose(options({ nodeBin: node, workerBinDir: binDir, workerBinDirIsAbsolute: true }));
+    const parsed = parse(rendered) as { containers: Record<string, { scripts: { run: string } }> };
+    for (const [key, bin] of [["state", workerBins.state!], ["http", workerBins.http!], ["agentmemory", node]] as const) {
+      const run = parsed.containers[key]!.scripts.run;
+      const { status, stdout } = spawnSync("sh", ["-c", run], { encoding: "utf8", env: process.env });
+      expect(status).toBe(0);
+      expect(stdout).toBe(key === "agentmemory" ? "dist/index.mjs" : `${bin}\n`);
+    }
     const command = shellCommand(node, ["value with spaces;$(false)"], false);
     const result = spawnSync("sh", ["-c", command], { encoding: "utf8" });
     expect(result.status).toBe(0);
@@ -79,6 +92,31 @@ describe("Worker Compose project", () => {
       expect(text).toContain(`${key}: '${value}'`);
     }
     expect(composeEnvironment({ AGENTMEMORY_TOOLS: "core", VIEWER_ALLOWED_HOSTS: "example.test" }, "/tmp/state")).toMatchObject({ AGENTMEMORY_TOOLS: "core", VIEWER_ALLOWED_HOSTS: "example.test" });
+  });
+
+  it("gives CLI/shell tool and viewer settings precedence over conflicting env-file values", () => {
+    const envPath = join(root, "precedence.env");
+    mkdirSync(root, { recursive: true });
+    writeFileSync(envPath, [
+      "AGENTMEMORY_TOOLS=all",
+      "AGENTMEMORY_VIEWER_HOST=0.0.0.0",
+      "VIEWER_ALLOWED_HOSTS=old.example.test",
+      "VIEWER_ALLOWED_ORIGINS=https://old.example.test",
+      "" ,
+    ].join("\n"));
+    const text = renderWorkerCompose(options({ envFile: envPath, workerEnvironment: {
+      AGENTMEMORY_TOOLS: "core", AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
+      VIEWER_ALLOWED_HOSTS: "new.example.test", VIEWER_ALLOWED_ORIGINS: "https://new.example.test",
+    } }));
+    const { containers } = parse(text) as { containers: Record<string, { environment: Record<string, string>; env_file: string[] }> };
+    const app = containers.agentmemory!;
+    const fileValues = Object.fromEntries(readFileSync(envPath, "utf8").trim().split("\n").map((line) => line.split("=") as [string, string]));
+    const effective = { ...fileValues, ...app.environment };
+    expect(effective).toMatchObject({
+      AGENTMEMORY_TOOLS: "core", AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
+      VIEWER_ALLOWED_HOSTS: "new.example.test", VIEWER_ALLOWED_ORIGINS: "https://new.example.test",
+    });
+    expect(app.env_file).toHaveLength(1);
   });
 
   it("uses the forwarded tools setting for the effective MCP tool list", async () => {
@@ -146,6 +184,7 @@ describe("Worker Compose project", () => {
       VIEWER_ALLOWED_HOSTS: "example.test",
     });
   });
+
 
   it("uses the forwarded tools setting for the effective MCP tool list", async () => {
     const text = renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_TOOLS: "core" } }));

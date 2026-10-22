@@ -55,6 +55,9 @@ describe("Docker Worker Compose runtime", () => {
     expect(workerCompose).toContain("configuration:");
     expect(workerCompose).toContain('save_interval_ms: "${AGENTMEMORY_STATE_SAVE_INTERVAL_MS:-2000}"');
     expect(entrypoint).toContain('AGENTMEMORY_STATE_SAVE_INTERVAL_MS="${AGENTMEMORY_STATE_SAVE_INTERVAL_MS:-2000}"');
+    expect(entrypoint).toContain("-lt 100");
+    expect(entrypoint).toContain("-gt 3600000");
+    expect(entrypoint).toContain("*[!0-9]*");
     expect(workerCompose).toContain("file_path: /data/state_store.db");
     expect(compose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
     expect(compose).toContain('AGENTMEMORY_STATE_BACKEND: "${AGENTMEMORY_STATE_BACKEND:-}"');
