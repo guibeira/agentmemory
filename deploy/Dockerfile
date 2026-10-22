@@ -3,11 +3,9 @@
 ARG III_VERSION=0.24.6
 ARG STATE_VERSION=0.22.20
 ARG HTTP_VERSION=0.22.7
-ARG AGENTMEMORY_VERSION=0.9.30
 
 FROM node:24-slim AS agent-build
 ARG III_VERSION
-ARG AGENTMEMORY_VERSION
 WORKDIR /opt/agentmemory
 COPY package.json ./package.json
 RUN npm install --no-fund --no-audit --package-lock=false
@@ -21,7 +19,6 @@ FROM node:24-slim
 ARG III_VERSION
 ARG STATE_VERSION
 ARG HTTP_VERSION
-ARG AGENTMEMORY_VERSION
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates gosu tini \
@@ -42,8 +39,7 @@ RUN chmod 644 /opt/agentmemory/worker-compose.yaml /opt/agentmemory/iii.worker.y
  && chown -R node:node /opt/agentmemory
 COPY --chmod=0755 deploy/runtime/entrypoint.sh /usr/local/bin/agentmemory-entrypoint
 
-ENV AGENTMEMORY_VERSION=${AGENTMEMORY_VERSION} \
-    III_VERSION=${III_VERSION} \
+ENV III_VERSION=${III_VERSION} \
     STATE_VERSION=${STATE_VERSION} \
     HTTP_VERSION=${HTTP_VERSION} \
     AGENTMEMORY_DATA_DIR=/data \

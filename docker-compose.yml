@@ -3,6 +3,10 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile
+      args:
+        III_VERSION: "${III_VERSION:-0.24.6}"
+        STATE_VERSION: "${STATE_VERSION:-0.22.20}"
+        HTTP_VERSION: "${HTTP_VERSION:-0.22.7}"
     restart: unless-stopped
     environment:
       AGENTMEMORY_DATA_DIR: /data

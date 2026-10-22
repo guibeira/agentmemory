@@ -14,13 +14,15 @@ The container runs `iii compose --up`: Compose owns the engine and supervises `s
 
 There is no stream/WebSocket viewer port. REST CORS defaults to `http://localhost` and `http://127.0.0.1` on both the REST and viewer ports; set `REST_ALLOWED_ORIGINS` to a comma-separated list of exact origins when a trusted browser origin needs access. Keep the viewer behind TLS and set `VIEWER_ALLOWED_HOSTS` to the exact inbound `Host` values (with port where present) and `VIEWER_ALLOWED_ORIGINS` to its browser origins. It requires `AGENTMEMORY_SECRET` for API proxy calls; the viewer prompts for the bearer and keeps it in session storage. The engine worker manager listens only on `127.0.0.1:49134` inside the container; do not expose the engine port.
 
+`III_VERSION`, `STATE_VERSION`, and `HTTP_VERSION` are Docker build arguments; Compose passes their shell or `.env` values through to the shared Dockerfile. `AGENTMEMORY_VERSION` does not select a package version: the application code is built from the checked-out repository, so choose an agentmemory release by checking out its tag/commit and rebuilding. Platform deployments use the code revision selected for that service.
+
 Local Compose binds REST and viewer to loopback. Example with test ports:
 
 ```bash
 AGENTMEMORY_REST_PORT=3611 AGENTMEMORY_VIEWER_PORT=3613 docker compose up --build -d
 ```
 
-Open `http://127.0.0.1:3613`, use the persisted secret in `docker compose exec agentmemory cat /data/secret`, and stop with `docker compose down`. `docker compose down -v` deletes the memories and secret. Set `AGENTMEMORY_SECRET` to provide an explicit REST bearer. To use Redis for state, set `AGENTMEMORY_STATE_BACKEND=redis` and `AGENTMEMORY_REDIS_URL=redis://...`; otherwise the persistent file-backed store is used. Set `III_VERSION`, `STATE_VERSION`, `HTTP_VERSION`, and `AGENTMEMORY_VERSION` to override the central defaults.
+Open `http://127.0.0.1:3613`, use the persisted secret in `docker compose exec agentmemory cat /data/secret`, and stop with `docker compose down`. `docker compose down -v` deletes the memories and secret. Set `AGENTMEMORY_SECRET` to provide an explicit REST bearer. To use Redis for state, set `AGENTMEMORY_STATE_BACKEND=redis` and `AGENTMEMORY_REDIS_URL=redis://...`; otherwise the persistent file-backed store is used.
 
 ## Platform templates
 
@@ -34,3 +36,11 @@ For any public viewer host, configure the allowed host/origin values to the actu
 ## Updating and backing up
 
 Change the pins in `deploy/Dockerfile`, rebuild and redeploy, and keep the platform's `/data` volume attached. Back up `/data` before upgrades and before any `down -v`, volume deletion, or secret rotation. The worker cache and engine configuration persist alongside state so restarts do not lose data.
+
+### Migrating from the legacy CLI Docker mode
+
+The current CLI does not start or manage Docker deployments. If an older CLI recorded a legacy Docker instance, first run the old CLI's `stop` command for that instance. It preserves the legacy lifecycle record deliberately and prints the exact Docker command needed to stop the old container; run that command, then leave the preserved record alone while moving to this standalone Compose deployment. Do not start the new container against the data volume while the old engine still has it mounted.
+
+Keep the old deployment's persistent data volume (normally `iii-data`) or copy the old `/data` contents to a backed-up bind mount. The state worker reads the existing `/data/state_store.db` tree in place; no database export/import is needed. The previous runtime initialized the full volume as UID/GID `65532:65532`; this image performs a one-time recursive ownership migration to `node:node` (UID/GID 1000) and writes `/data/.ownership-migrated-node-v1`. Do not run the old image against the volume after that migration. Back up the whole volume before starting the new image.
+
+The previous platform entrypoints persisted the generated bearer secret at `/data/.hmac`. The new runtime preserves that file for the Node secret-store migration; ensure it is readable by the `node` runtime user (mode `0600`, owner `1000:1000`). An explicitly configured `AGENTMEMORY_SECRET` takes precedence. After preserving the volume and setting any explicit secret, start the new project from the repository root with `docker compose up --build -d`; the default project volume is `iii-data`. Check `/agentmemory/livez`, confirm the old and new memories, then use `docker compose down` to stop it. Avoid `down -v` unless deleting that data is intended.
