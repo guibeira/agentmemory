@@ -1225,7 +1225,7 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii کنسول" height="32" /></picture></h2>
 
-`:3113` پر ویور دکھاتا ہے کہ آپ کے ایجنٹ نے **کیا یاد رکھا**۔ [iii کنسول](https://iii.dev/docs/console) دکھاتا ہے کہ آپ کے ایجنٹ نے **کیا کیا**: ہر میموری op ایک OpenTelemetry trace کے طور پر، ہر KV entry قابلِ ترمیم، ہر فنکشن invocable، ہر stream tap کرنے کے قابل۔ ایک ہی میموری پر دو کھڑکیاں: ایک product-shaped، ایک engine-shaped۔
+`:3113` پر ویور دکھاتا ہے کہ آپ کے ایجنٹ نے **کیا یاد رکھا**۔ [iii کنسول](https://iii.dev/docs/console) دکھاتا ہے کہ آپ کے ایجنٹ نے **کیا کیا**: ہر میموری op ایک OpenTelemetry trace کے طور پر، ہر KV entry قابلِ ترمیم، ہر فنکشن invocable۔ ایک ہی میموری پر دو کھڑکیاں: ایک product-shaped، ایک engine-shaped۔
 
 
 agentmemory یہ مفت فراہم کرتا ہے کیونکہ ہر function call اور trigger iii کے ذریعے فائر ہوتا ہے؛ کچھ بھی custom نہیں، instrument کرنے کے لیے کچھ نہیں۔
