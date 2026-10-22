@@ -24,7 +24,15 @@ export REST_ALLOWED_ORIGINS="${REST_ALLOWED_ORIGINS:-http://localhost:3111,http:
 export MALLOC_ARENA_MAX="${MALLOC_ARENA_MAX:-2}"
 
 mkdir -p "$DATA_DIR"
-chown node:node "$DATA_DIR"
+# The former Docker runtime owned the persistent volume as UID/GID 65532.
+# Migrate the complete tree once; the marker makes subsequent boots O(1).
+OWNERSHIP_MARKER="$DATA_DIR/.ownership-migrated-node-v1"
+if [ ! -f "$OWNERSHIP_MARKER" ]; then
+  chown -R node:node "$DATA_DIR"
+  printf '%s\n' 'node:node' > "$OWNERSHIP_MARKER"
+  chown node:node "$OWNERSHIP_MARKER"
+  chmod 600 "$OWNERSHIP_MARKER"
+fi
 for dir in "$HOME" "$III_COMPOSE_STATE_DIR" "$DATA_DIR/config"; do
   mkdir -p "$dir"
   chown node:node "$dir"
