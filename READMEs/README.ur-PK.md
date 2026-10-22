@@ -1690,7 +1690,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-پورٹ `3111` پر 143 اینڈ پوائنٹس۔ REST API ڈیفالٹ کے طور پر `127.0.0.1` سے bind ہوتا ہے۔ محفوظ اینڈ پوائنٹس کو `Authorization: Bearer <secret>` درکار ہے، اور mesh sync اینڈ پوائنٹس کو دونوں peers پر واضح طور پر سیٹ کیا گیا `AGENTMEMORY_SECRET` درکار ہے۔
+پورٹ `3111` پر 144 اینڈ پوائنٹس۔ REST API ڈیفالٹ کے طور پر `127.0.0.1` سے bind ہوتا ہے۔ محفوظ اینڈ پوائنٹس کو `Authorization: Bearer <secret>` درکار ہے، اور mesh sync اینڈ پوائنٹس کو دونوں peers پر واضح طور پر سیٹ کیا گیا `AGENTMEMORY_SECRET` درکار ہے۔
 
 **Authentication default طور پر فعال ہے۔** اگر `AGENTMEMORY_SECRET` (shell یا `~/.agentmemory/.env` میں) مقرر نہ ہو تو CLI پہلے start پر random secret بناتا اور منتخب data directory میں `secret` کے نام سے mode `0600` کے ساتھ محفوظ کرتا ہے۔ Bundled clients مقامی server کے لیے وہیں سے پڑھتے ہیں؛ secret صرف loopback URLs کو بھیجا جاتا ہے۔ Remote clients کو secret اپنے environment میں دینا ہوگا۔ Docker self-host اور `deploy/` اپنا secret بناتے ہیں۔ API دستی طور پر چلانے کے لیے:
 

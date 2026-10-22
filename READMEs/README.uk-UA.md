@@ -1699,7 +1699,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-143 ендпоінтів на порту `3111`. REST API за замовчуванням прив'язується до `127.0.0.1`. Захищені ендпоінти вимагають `Authorization: Bearer <secret>`, а ендпоінти синхронізації mesh вимагають явно встановленого `AGENTMEMORY_SECRET` на обох сторонах.
+144 ендпоінтів на порту `3111`. REST API за замовчуванням прив'язується до `127.0.0.1`. Захищені ендпоінти вимагають `Authorization: Bearer <secret>`, а ендпоінти синхронізації mesh вимагають явно встановленого `AGENTMEMORY_SECRET` на обох сторонах.
 
 **Автентифікацію ввімкнено типово.** Якщо `AGENTMEMORY_SECRET` не задано (в оболонці чи `~/.agentmemory/.env`), CLI під час першого запуску генерує випадковий secret і зберігає його як `secret` з mode `0600` у вибраному каталозі даних. Вбудовані клієнти читають його звідти для локального сервера; secret надсилається лише на loopback URL (`localhost`, `127.0.0.0/8`, `::1`). Віддалені клієнти мають отримати secret через власне середовище. Docker self-host і `deploy/` створюють власні секрети. Щоб викликати API вручну:
 

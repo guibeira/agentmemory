@@ -1709,7 +1709,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-143 эндпоинтов на порту `3111`. REST API по умолчанию слушает на `127.0.0.1`. Защищённые эндпоинты требуют `Authorization: Bearer <secret>`, а эндпоинты mesh-синхронизации требуют явно заданного `AGENTMEMORY_SECRET` на обоих узлах.
+144 эндпоинтов на порту `3111`. REST API по умолчанию слушает на `127.0.0.1`. Защищённые эндпоинты требуют `Authorization: Bearer <secret>`, а эндпоинты mesh-синхронизации требуют явно заданного `AGENTMEMORY_SECRET` на обоих узлах.
 
 **Аутентификация включена по умолчанию.** Когда `AGENTMEMORY_SECRET` не задан (ни в shell, ни в `~/.agentmemory/.env`), сервер генерирует случайный секрет при первом запуске и хранит его в `~/.agentmemory/secret` с правами `0600`. Каждый встроенный клиент читает его оттуда, когда говорит с локальным сервером: CLI, просмотрщик, хуки из `plugin/scripts`, MCP-сервер и shim `@agentmemory/mcp`, конфиги, записанные `agentmemory connect`, и встроенные интеграции OpenCode, Pi, OpenClaw, Hermes и filesystem-watcher. Сохранённый секрет отправляется только на loopback-адреса (`localhost`, `127.0.0.0/8`, `::1`). Явно заданный `AGENTMEMORY_SECRET` всегда выигрывает, и удалённым клиентам он всё равно нужен. Docker и entrypoint'ы `deploy/` уже генерируют и экспортируют собственный секрет. Чтобы вызвать API вручную:
 

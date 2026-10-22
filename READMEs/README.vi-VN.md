@@ -1698,7 +1698,7 @@ Tạo `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-143 endpoint trên port `3111`. REST API bind vào `127.0.0.1` theo mặc định. Các endpoint được bảo vệ cần `Authorization: Bearer <secret>`, và các endpoint mesh sync cần `AGENTMEMORY_SECRET` được đặt rõ ràng trên cả hai phía.
+144 endpoint trên port `3111`. REST API bind vào `127.0.0.1` theo mặc định. Các endpoint được bảo vệ cần `Authorization: Bearer <secret>`, và các endpoint mesh sync cần `AGENTMEMORY_SECRET` được đặt rõ ràng trên cả hai phía.
 
 **Xác thực được bật mặc định.** Nếu chưa đặt `AGENTMEMORY_SECRET` (trong shell hoặc `~/.agentmemory/.env`), CLI tạo secret ngẫu nhiên khi khởi động lần đầu và lưu thành `secret`, mode `0600`, trong data directory đã chọn. Client đi kèm đọc secret tại đó khi kết nối server cục bộ; secret chỉ gửi đến loopback URL. Client từ xa cần secret trong environment của chúng. Docker self-host và `deploy/` tự tạo secret. Để gọi API thủ công:
 

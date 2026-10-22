@@ -1685,7 +1685,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-143 endpoint บนพอร์ต `3111` REST API จะ bind กับ `127.0.0.1` โดย default endpoint ที่ป้องกันไว้ต้องมี `Authorization: Bearer <secret>` และ endpoint ของ mesh sync ต้องตั้งค่า `AGENTMEMORY_SECRET` ไว้อย่างชัดเจนทั้งสองฝั่ง
+144 endpoint บนพอร์ต `3111` REST API จะ bind กับ `127.0.0.1` โดย default endpoint ที่ป้องกันไว้ต้องมี `Authorization: Bearer <secret>` และ endpoint ของ mesh sync ต้องตั้งค่า `AGENTMEMORY_SECRET` ไว้อย่างชัดเจนทั้งสองฝั่ง
 
 **เปิดการยืนยันตัวตนไว้โดยปริยาย** หากไม่ได้ตั้ง `AGENTMEMORY_SECRET` (ใน shell หรือ `~/.agentmemory/.env`) CLI จะสร้าง secret แบบสุ่มเมื่อเริ่มครั้งแรก และเก็บเป็น `secret` mode `0600` ใน data directory ที่เลือก client ที่ bundle มาอ่าน secret จากที่นี่เมื่อเชื่อมต่อ server ในเครื่อง ส่ง secret ไปยัง loopback URL เท่านั้น (`localhost`, `127.0.0.0/8`, `::1`) client ระยะไกลต้องตั้ง secret ใน environment ของตน Docker self-host และ `deploy/` สร้าง secret ของตนเอง หากเรียก API ด้วยตนเอง:
 

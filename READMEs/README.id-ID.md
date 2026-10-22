@@ -1709,7 +1709,7 @@ Buat `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-143 endpoint di port `3111`. REST API terbind ke `127.0.0.1` secara default. Endpoint yang terlindungi membutuhkan `Authorization: Bearer <secret>`, dan endpoint mesh sync membutuhkan `AGENTMEMORY_SECRET` yang diset secara eksplisit di kedua peer.
+144 endpoint di port `3111`. REST API terbind ke `127.0.0.1` secara default. Endpoint yang terlindungi membutuhkan `Authorization: Bearer <secret>`, dan endpoint mesh sync membutuhkan `AGENTMEMORY_SECRET` yang diset secara eksplisit di kedua peer.
 
 **Autentikasi aktif secara default.** Saat `AGENTMEMORY_SECRET` tidak diset (di shell atau di `~/.agentmemory/.env`), server menghasilkan secret acak pada start pertama dan menyimpannya di `~/.agentmemory/secret` dengan mode `0600`. Setiap klien bundel membacanya dari sana saat berbicara dengan server lokal: CLI, viewer, hook di bawah `plugin/scripts`, server MCP dan shim `@agentmemory/mcp`, konfigurasi yang ditulis `agentmemory connect`, serta integrasi OpenCode, Pi, OpenClaw, Hermes, dan filesystem-watcher bundel. Secret yang tersimpan hanya dikirim ke URL loopback (`localhost`, `127.0.0.0/8`, `::1`). `AGENTMEMORY_SECRET` eksplisit selalu menang, dan klien remote tetap membutuhkannya diset. Docker dan entrypoint `deploy/` sudah menghasilkan dan mengekspor secret-nya sendiri. Untuk memanggil API secara manual:
 

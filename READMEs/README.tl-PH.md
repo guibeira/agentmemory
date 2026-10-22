@@ -1687,7 +1687,7 @@ Gawin ang `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-143 na endpoint sa port `3111`. Nagbibind ang REST API sa `127.0.0.1` bilang default. Kinakailangan ng mga protected endpoint ang `Authorization: Bearer <secret>`, at kinakailangan ng mga mesh sync endpoint ang tahasang naka-set na `AGENTMEMORY_SECRET` sa dalawang peer.
+144 na endpoint sa port `3111`. Nagbibind ang REST API sa `127.0.0.1` bilang default. Kinakailangan ng mga protected endpoint ang `Authorization: Bearer <secret>`, at kinakailangan ng mga mesh sync endpoint ang tahasang naka-set na `AGENTMEMORY_SECRET` sa dalawang peer.
 
 **Naka-enable ang authentication bilang default.** Kung hindi itinakda ang `AGENTMEMORY_SECRET` (sa shell o `~/.agentmemory/.env`), gagawa ang CLI ng random secret sa unang start at ise-save ito bilang `secret`, mode `0600`, sa napiling data directory. Binabasa ito ng mga bundled client mula roon para sa local server; loopback URL lamang ang padadalhan ng secret. Kailangang nasa environment ng remote clients ang secret. Gumagawa ng sariling secret ang Docker self-host at `deploy/`. Para manu-manong tumawag sa API:
 

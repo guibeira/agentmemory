@@ -1698,7 +1698,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-`3111` portunda 143 endpoint. REST API, varsayılan olarak `127.0.0.1`'e bağlanır. Korumalı endpoint'ler `Authorization: Bearer <secret>` gerektirir ve mesh sync endpoint'leri her iki peer'da da açıkça ayarlanmış bir `AGENTMEMORY_SECRET` gerektirir.
+`3111` portunda 144 endpoint. REST API, varsayılan olarak `127.0.0.1`'e bağlanır. Korumalı endpoint'ler `Authorization: Bearer <secret>` gerektirir ve mesh sync endpoint'leri her iki peer'da da açıkça ayarlanmış bir `AGENTMEMORY_SECRET` gerektirir.
 
 **Kimlik doğrulama varsayılan olarak açıktır.** `AGENTMEMORY_SECRET` (shell’de veya `~/.agentmemory/.env` içinde) ayarlanmadığında CLI ilk başlatmada rastgele secret üretir ve seçili data directory içindeki `secret` dosyasına `0600` izniyle kaydeder. Paketli istemciler yerel sunucuya bağlanırken buradan okur; secret yalnız loopback URL’lerine (`localhost`, `127.0.0.0/8`, `::1`) gönderilir. Uzak istemciler secret’ı kendi ortamında sağlamalıdır. Docker self-host ve `deploy/` kendi secret’larını üretir. API’yi elle çağırmak için:
 

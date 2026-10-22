@@ -104,7 +104,10 @@ const FACTS: Fact[] = [
   {
     key: "restEndpoints",
     label: "REST endpoints",
-    value: () => String(countMatches("src/triggers/api.ts", /api_path:\s*["`]/g)),
+    value: () => String(
+      countMatches("src/triggers/api.ts", /api_path:\s*["`]/g) +
+      countMatches("src/triggers/viewer-sse.ts", /api_path:\s*["`]/g),
+    ),
     nouns: [
       "REST endpoints", "REST API endpoints", "endpoints", "endpoint", "Endpunkte", "эндпоинт", "个端点", "個端點", "개 엔드포인트", "개의 엔드포인트", "エンドポイント",
       "uç nokta", "एंडपॉइंट", "endepunkt", "de endpoint", "ендпоінт", "na endpoint", "اینڈ پوائنٹ", "نقطة نهاية", "এন্ডপয়েন্ট", "개",

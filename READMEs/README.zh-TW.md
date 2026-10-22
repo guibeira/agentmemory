@@ -1691,7 +1691,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-連接埠 `3111` 上有 143 個端點。REST API 預設綁定 `127.0.0.1`。受保護的端點需要 `Authorization: Bearer <secret>`,而網狀同步端點要求兩端都明確設定 `AGENTMEMORY_SECRET`。
+連接埠 `3111` 上有 144 個端點。REST API 預設綁定 `127.0.0.1`。受保護的端點需要 `Authorization: Bearer <secret>`,而網狀同步端點要求兩端都明確設定 `AGENTMEMORY_SECRET`。
 
 **預設啟用驗證。** 若未在 shell 或 `~/.agentmemory/.env` 設定 `AGENTMEMORY_SECRET`，CLI 首次啟動會產生隨機 secret，並以 mode `0600` 儲存為所選 data directory 中的 `secret`。內建用戶端連接本機 server 時會從該處讀取；secret 僅傳送至 loopback URL。遠端用戶端需在自己的 environment 設定 secret。Docker 自行託管和 `deploy/` 會產生自己的 secret。手動呼叫 API:
 
