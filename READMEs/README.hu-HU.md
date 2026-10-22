@@ -833,15 +833,23 @@ npm  install iii-sdk        # Node
 ```
 
 ```python
-from iii import register_worker
+import os
+from iii import InitOptions, register_worker
 
-iii = register_worker("ws://localhost:49134")
-iii.connect()
+# Native CLI: namespace is agentmemory-<REST port>, e.g. agentmemory-3111.
+# Docker runtime: deploy/runtime/worker-compose.yaml uses namespace "agentmemory".
+engine_url = os.environ.get("AGENTMEMORY_III_URL", "ws://127.0.0.1:49134")
+namespace = os.environ.get("AGENTMEMORY_III_NAMESPACE", "agentmemory-3111")
+iii = register_worker(engine_url, InitOptions(namespace=namespace))
 
-iii.trigger({
-    "function_id": "mem::smart-search",
-    "payload": {"project": "demo", "query": "how do tokens refresh"},
-})
+try:
+    hits = iii.trigger({
+        "function_id": "mem::smart-search",
+        "payload": {"project": "demo", "query": "how do tokens refresh", "limit": 5},
+    })
+    print(hits)
+finally:
+    iii.shutdown()
 ```
 
 Kidolgozott példa: [`examples/python/`](../examples/python/) (gyors indítás + megfigyelés/felidézés folyamat). A REST a `:3111`-en elérhető marad azokhoz a hosztokhoz, amelyeknek nincs iii futtatókörnyezetük.

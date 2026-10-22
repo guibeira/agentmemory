@@ -833,15 +833,23 @@ npm  install iii-sdk        # Node
 ```
 
 ```python
-from iii import register_worker
+import os
+from iii import InitOptions, register_worker
 
-iii = register_worker("ws://localhost:49134")
-iii.connect()
+# Native CLI: namespace is agentmemory-<REST port>, e.g. agentmemory-3111.
+# Docker runtime: deploy/runtime/worker-compose.yaml uses namespace "agentmemory".
+engine_url = os.environ.get("AGENTMEMORY_III_URL", "ws://127.0.0.1:49134")
+namespace = os.environ.get("AGENTMEMORY_III_NAMESPACE", "agentmemory-3111")
+iii = register_worker(engine_url, InitOptions(namespace=namespace))
 
-iii.trigger({
-    "function_id": "mem::smart-search",
-    "payload": {"project": "demo", "query": "how do tokens refresh"},
-})
+try:
+    hits = iii.trigger({
+        "function_id": "mem::smart-search",
+        "payload": {"project": "demo", "query": "how do tokens refresh", "limit": 5},
+    })
+    print(hits)
+finally:
+    iii.shutdown()
 ```
 
 実例: [`examples/python/`](../examples/python/)(クイックスタート + 観測/リコールフロー)。iii ランタイムがないホスト向けに、`:3111` の REST も引き続き利用可能です。
