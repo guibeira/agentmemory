@@ -4,7 +4,7 @@ From the repository root, create the app and persistent volume, then deploy:
 
 ```bash
 fly apps create <unique-app-name>
-fly volumes create agentmemory_data --region iad --size 1
+fly volumes create agentmemory_data --region iad --size 1 --app <unique-app-name>
 fly deploy --config deploy/fly/fly.toml --app <unique-app-name>
 ```
 

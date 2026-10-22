@@ -48,7 +48,7 @@ primary_region = "iad"
     timeout = "5s"
     grace_period = "60s"
     method = "GET"
-    path = "/"
+    path = "/agentmemory/livez"
 
 [[vm]]
   size = "shared-cpu-1x"
