@@ -31,10 +31,16 @@ describe("Worker Compose project", () => {
     expect(text).not.toContain("dependencies:");
     expect(text).not.toContain("      configuration: latest");
     expect(text).toContain("save_interval_ms: 2000");
+    expect(text.match(/condition: on-failure/g)).toHaveLength(3);
     expect(text).toContain("default_timeout: 180000");
     expect(text).toContain("allowed_methods: [GET, POST, PUT, DELETE, OPTIONS]");
     expect(text).toContain("start_after: [state, http]");
     expect(text).toContain("required_default: true");
+    expect(text.match(/condition: on-failure/g)).toHaveLength(3);
+    expect(text.match(/max_attempts: 5/g)).toHaveLength(3);
+    expect(text.match(/delay: 500ms/g)).toHaveLength(3);
+    expect(text.match(/max_delay: 30s/g)).toHaveLength(3);
+    expect(text.match(/window: 60s/g)).toHaveLength(3);
     for (const retired of ["iii-stream", "iii-pubsub", "iii-http", "iii-state", "queue"]) expect(text).not.toContain(retired);
   });
 
@@ -46,6 +52,20 @@ describe("Worker Compose project", () => {
     expect(text).toContain("run: '/opt/am/workers-local/http'");
     expect(text).not.toContain("version: '");
     expect(text).not.toContain("file_path: '/opt/am/workers-local");
+  });
+
+  it("uses and validates the configured state flush interval", () => {
+    expect(renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: "9000" } }))).toContain("save_interval_ms: 9000");
+    for (const invalid of ["nope", "99", "3600001", "1.5"]) {
+      expect(() => renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: invalid } }))).toThrow(/AGENTMEMORY_STATE_SAVE_INTERVAL_MS/);
+    }
+  });
+
+  it("honors disableRestartPolicy for every worker", () => {
+    const disabled = parse(renderWorkerCompose(options({ disableRestartPolicy: true }))) as {
+      containers: Record<string, { restart: string }>;
+    };
+    expect(Object.values(disabled.containers).map((container) => container.restart)).toEqual(["no", "no", "no"]);
   });
 
   it("passes configured embedding credentials/settings only to the application container", () => {

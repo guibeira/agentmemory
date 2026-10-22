@@ -77,6 +77,28 @@ const COMPOSE_RESERVED_ENV = new Set([
   "III_WORKER_NAME",
 ]);
 
+function stateSaveInterval(value: string | undefined): number {
+  if (value === undefined || value.trim() === "") return 2000;
+  if (!/^\d+$/.test(value.trim())) throw new Error("AGENTMEMORY_STATE_SAVE_INTERVAL_MS must be an integer between 100 and 3600000.");
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 100 || parsed > 3_600_000) {
+    throw new Error("AGENTMEMORY_STATE_SAVE_INTERVAL_MS must be an integer between 100 and 3600000.");
+  }
+  return parsed;
+}
+
+function restartPolicyLines(indent: string, enabled: boolean): string[] {
+  if (!enabled) return [`${indent}restart: no`];
+  return [
+    `${indent}restart:`,
+    `${indent}  condition: on-failure`,
+    `${indent}  delay: 500ms`,
+    `${indent}  max_delay: 30s`,
+    `${indent}  max_attempts: 5`,
+    `${indent}  window: 60s`,
+  ];
+}
+
 function yamlString(value: string): string {
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) {
     throw new Error("A Compose path or configuration value contains an unsupported control character.");
@@ -163,6 +185,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
       : localWorkerDirectory(options.workerBinDir, options.cwd ?? process.cwd(), options.projectRoot)
     : null;
   const startupSeconds = Math.ceil((options.startupTimeoutMs ?? 300_000) / 1000);
+  const restartEnabled = !options.disableRestartPolicy;
   if (!Number.isSafeInteger(startupSeconds) || startupSeconds < 1 || startupSeconds * 1000 > MAX_STARTUP_TIMEOUT_MS + 999) {
     throw new Error("Compose worker startup timeout must be between 1 and 3600000 milliseconds.");
   }
@@ -201,6 +224,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     `    worker: ${yamlString(workerSource("state"))}`,
     ...(!workerBinDir ? [`    version: ${yamlString(COMPOSE_WORKER_VERSIONS.state)}`] : []),
     "    config_name: state",
+    ...restartPolicyLines("    ", restartEnabled),
     ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(stateScript)}`] : []),
     "    config_override:",
     "      adapter:",
@@ -220,7 +244,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     lines.push(
       "          store_method: file_based",
       `          file_path: ${yamlString(join(options.dataDir, "state_store.db"))}`,
-      "          save_interval_ms: 2000",
+      `          save_interval_ms: ${stateSaveInterval(options.workerEnvironment?.AGENTMEMORY_STATE_SAVE_INTERVAL_MS)}`,
     );
   }
 
@@ -230,6 +254,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     `    worker: ${yamlString(workerSource("http"))}`,
     ...(!workerBinDir ? [`    version: ${yamlString(COMPOSE_WORKER_VERSIONS.http)}`] : []),
     "    config_name: http",
+    ...restartPolicyLines("    ", restartEnabled),
     ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(httpScript)}`] : []),
     "    config_override:",
     "      host: 127.0.0.1",
@@ -250,6 +275,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     "    start_after: [state, http]",
     `    startup_timeout: ${startupSeconds}s`,
     "    config_name: agentmemory",
+    ...restartPolicyLines("    ", restartEnabled),
     "    scripts:",
     `      run: ${yamlString(`${options.nodeBin} dist/index.mjs`)}`,
   );

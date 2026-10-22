@@ -18,6 +18,12 @@ containers:
     worker: package://api.workers.iii.dev/state
     version: "${STATE_VERSION}"
     config_name: state
+    restart:
+      condition: on-failure
+      delay: 500ms
+      max_delay: 30s
+      max_attempts: 5
+      window: 60s
     config_override:
       adapter:
         name: kv
@@ -29,6 +35,12 @@ containers:
     worker: package://api.workers.iii.dev/http
     version: "${HTTP_VERSION}"
     config_name: http
+    restart:
+      condition: on-failure
+      delay: 500ms
+      max_delay: 30s
+      max_attempts: 5
+      window: 60s
     config_override:
       host: 0.0.0.0
       port: 3111
@@ -42,6 +54,12 @@ containers:
     start_after: [state, http]
     startup_timeout: 300s
     config_name: agentmemory
+    restart:
+      condition: on-failure
+      delay: 500ms
+      max_delay: 30s
+      max_attempts: 5
+      window: 60s
     scripts:
       run: node /opt/agentmemory/dist/index.mjs
     environment:

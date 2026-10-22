@@ -33,6 +33,11 @@ describe("Docker Worker Compose runtime", () => {
     expect(workerCompose).toContain("state:");
     expect(workerCompose).toContain("http:");
     expect(workerCompose).toContain("agentmemory:");
+    expect(workerCompose.match(/condition: on-failure/g)).toHaveLength(3);
+    expect(workerCompose.match(/max_attempts: 5/g)).toHaveLength(3);
+    expect(workerCompose.match(/delay: 500ms/g)).toHaveLength(3);
+    expect(workerCompose.match(/max_delay: 30s/g)).toHaveLength(3);
+    expect(workerCompose.match(/window: 60s/g)).toHaveLength(3);
     expect(workerCompose).not.toMatch(/^  (?:queue|cron|pubsub|stream):/m);
   });
 
