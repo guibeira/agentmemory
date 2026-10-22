@@ -908,14 +908,13 @@ Render의 원클릭 배포 버튼은 저장소 루트에 `render.yaml`이 있어
 REST는 `3111`, 뷰어는 `3113`에서 제공되며 별도의 보호된 경로를 지원하는 플랫폼 템플릿에서만 뷰어를 따로 게시합니다. 실시간 업데이트는 REST endpoint `/agentmemory/viewer/events`에서 bearer 인증 SSE를 사용합니다. 엔진 WebSocket `49134`는 내부용이므로 게시하면 안 됩니다. 플랫폼별 안내는 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### CLI 관리형 레거시 Docker 설치 마이그레이션
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+현재 CLI는 Docker 배포를 시작하거나 관리하지 않습니다. 레거시 Docker 수명 주기 레코드를 찾으면 메타데이터를 보존하고 정확한 `docker stop ...` 명령을 출력합니다. 마이그레이션 전에 해당 명령을 실행하세요. 이전 컨테이너에 volume이 마운트된 상태에서는 새 runtime을 시작하지 마세요.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+이전 영구 volume(보통 `iii-data`)을 보존하고 백업하거나 `/data`의 내용을 bind mount로 복사하세요. state worker는 기존 `/data/state_store.db`를 내보내기나 변환 없이 직접 읽습니다. 이전 runtime은 UID/GID `65532:65532`를 사용했습니다. 새 image는 소유권을 `node:node` (`1000:1000`)로 한 번 재귀적으로 마이그레이션하고 `/data/.ownership-migrated-node-v1`을 기록합니다. 이 마이그레이션 후에는 해당 volume을 이전 runtime에 다시 마운트하지 마세요.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+이전 runtime은 생성한 bearer secret도 `/data/.hmac`에 저장했습니다. 새 image는 마이그레이션 중 이 secret을 보존하며, 명시적으로 설정한 `AGENTMEMORY_SECRET`이 우선합니다. 저장소 루트에서 `docker compose up --build -d`를 실행해 새 Compose 프로젝트를 시작하세요. 이전 volume 이름에 `iii-data` 대신 프로젝트 접두사가 포함되어 있다면 명시적으로 재사용하거나 이름을 변경하세요. 실수로 빈 volume을 초기화하지 마세요. `/agentmemory/livez`를 확인하고 이전 memory와 새 memory를 모두 찾을 수 있는지 확인하세요. 데이터를 의도적으로 삭제하는 경우가 아니라면 `docker compose down -v`를 사용하지 마세요.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="왜 agentmemory인가" height="32" /></picture></h2>

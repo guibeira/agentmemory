@@ -909,14 +909,13 @@ Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפ�
 REST פועל ב-`3111`; המציג ב-`3113` ונחשף בנפרד רק בתבניות פלטפורמה שמספקות נתיב מוגן. עדכונים חיים משתמשים ב-SSE עם bearer דרך `/agentmemory/viewer/events` של REST. WebSocket המנוע ב-`49134` פנימי ואסור לפרסם אותו. לפרטי חשיפה לכל פלטפורמה ראו [`deploy/README.md`](../deploy/README.md).
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### העברת התקנות Docker ישנות המנוהלות באמצעות ה־CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+ה־CLI הנוכחי אינו מפעיל פריסות Docker ואינו מנהל אותן. אם הוא מוצא רשומת מחזור חיים ישנה של Docker, הוא משמר את המטא־נתונים ומציג את הפקודה המדויקת `docker stop ...`; יש להריץ את הפקודה לפני ההעברה. אין להפעיל את סביבת הריצה החדשה כל עוד הקונטיינר הישן עדיין מחבר אליו את ה־volume.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+יש לשמור ולגבות את ה־volume המתמיד הישן (בדרך כלל `iii-data`), או להעתיק את התוכן של `/data` אל bind mount. ה־state worker קורא ישירות את `/data/state_store.db` הקיים, ללא ייצוא או המרה. סביבת הריצה הישנה השתמשה ב־UID/GID `65532:65532`; התמונה החדשה מבצעת פעם אחת העברה רקורסיבית של הבעלות אל `node:node` (`1000:1000`) וכותבת את `/data/.ownership-migrated-node-v1`. לאחר ההעברה, אין לחבר את ה־volume בחזרה לסביבת הריצה הישנה.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+סביבת הריצה הישנה גם שמרה את ה־bearer secret שנוצר ב־`/data/.hmac`. התמונה החדשה משמרת את הסוד הזה במהלך ההעברה; ערך `AGENTMEMORY_SECRET` שהוגדר במפורש מקבל עדיפות. יש להפעיל את פרויקט Compose החדש משורש המאגר באמצעות `docker compose up --build -d`. אם שם ה־volume הישן כולל קידומת של הפרויקט במקום להיות `iii-data`, יש להשתמש בו מחדש או לשנות את שמו במפורש — אין ליצור בטעות volume ריק. יש לבדוק את `/agentmemory/livez` ולאשר שאפשר למצוא גם זיכרונות ישנים וגם חדשים. יש להימנע מ־`docker compose down -v`, אלא אם מחיקת הנתונים מכוונת.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="למה agentmemory" height="32" /></picture></h2>

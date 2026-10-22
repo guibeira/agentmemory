@@ -910,14 +910,13 @@ a konténeren belül a loopbackhez marad kötve; minden sablon README-je dokumen
 az SSH-tunnel mintát az eléréséhez.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### A CLI által kezelt örökölt Docker-telepítések migrálása
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+A jelenlegi CLI nem indít el és nem kezel Docker-telepítéseket. Ha örökölt Docker-életciklusrekordot talál, megőrzi a metaadatokat, és kiírja a pontos `docker stop ...` parancsot; futtasd ezt a parancsot a migrálás előtt. Ne indítsd el az új futtatókörnyezetet, amíg a régi konténer még csatlakoztatja a kötetet.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Őrizd meg és mentsd biztonságos helyre a régi állandó kötetet (általában `iii-data`), vagy másold a `/data` tartalmát egy bind mountba. A state worker közvetlenül, exportálás és átalakítás nélkül olvassa a meglévő `/data/state_store.db` fájlt. A régi futtatókörnyezet `65532:65532` UID/GID-t használt; az új image egyszeri, rekurzív tulajdonosmigrálást végez `node:node` (`1000:1000`) értékre, és létrehozza a `/data/.ownership-migrated-node-v1` fájlt. A migrálás után ne csatlakoztasd vissza a kötetet a régi futtatókörnyezethez.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+A régi futtatókörnyezet a létrehozott bearer secretet is a `/data/.hmac` fájlban tárolta. Az új image megőrzi ezt a titkot a migrálás során; a kifejezetten beállított `AGENTMEMORY_SECRET` elsőbbséget élvez. Az új Compose-projektet a repository gyökeréből indítsd el a `docker compose up --build -d` paranccsal. Ha a régi kötet neve `iii-data` helyett a projekt előtagját tartalmazza, használd újra vagy nevezd át kifejezetten — ne hozz létre véletlenül üres kötetet. Ellenőrizd az `/agentmemory/livez` végpontot, és győződj meg róla, hogy a régi és az új memóriák is megtalálhatók. Kerüld a `docker compose down -v` parancsot, kivéve, ha szándékosan törlöd az adatokat.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Miért agentmemory" height="32" /></picture></h2>

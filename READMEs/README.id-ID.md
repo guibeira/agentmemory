@@ -908,14 +908,13 @@ batas bawah biaya) ada di [`deploy/`](.././deploy/README.md):
 REST berada di `3111`; viewer di `3113` dan hanya dipublikasikan terpisah pada template platform yang menyediakan rute terlindungi. Pembaruan langsung menggunakan SSE bearer-authenticated pada `/agentmemory/viewer/events` di REST. WebSocket engine `49134` bersifat internal dan tidak boleh dipublikasikan. Lihat [`deploy/README.md`](../deploy/README.md) untuk panduan platform.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Migrasi instalasi Docker lama yang dikelola CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+CLI saat ini tidak memulai atau mengelola deployment Docker. Jika menemukan catatan siklus hidup Docker lama, CLI mempertahankan metadatanya dan menampilkan perintah persis `docker stop ...`; jalankan perintah tersebut sebelum migrasi. Jangan mulai runtime baru selagi kontainer lama masih memasang volume.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Pertahankan dan cadangkan volume persisten lama (biasanya `iii-data`), atau salin isi `/data` ke bind mount. state worker membaca langsung `/data/state_store.db` yang sudah ada, tanpa ekspor atau konversi. Runtime lama menggunakan UID/GID `65532:65532`; image baru melakukan migrasi kepemilikan rekursif satu kali ke `node:node` (`1000:1000`) dan menulis `/data/.ownership-migrated-node-v1`. Setelah migrasi ini, jangan pasang kembali volume tersebut ke runtime lama.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Runtime lama juga menyimpan bearer secret yang dibuatnya di `/data/.hmac`. Image baru mempertahankan secret ini selama migrasi; `AGENTMEMORY_SECRET` yang ditetapkan secara eksplisit akan diutamakan. Mulai proyek Compose baru dari root repositori dengan `docker compose up --build -d`. Jika nama volume lama memiliki awalan nama proyek, bukan `iii-data`, gunakan kembali atau ganti namanya secara eksplisit—jangan sampai tanpa sengaja membuat volume kosong. Periksa `/agentmemory/livez` dan pastikan memori lama maupun baru dapat ditemukan. Hindari `docker compose down -v` kecuali penghapusan data memang disengaja.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Mengapa agentmemory" height="32" /></picture></h2>

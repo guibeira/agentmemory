@@ -912,14 +912,13 @@ loopback से bound रहता है; हर template का README उस 
 SSH-tunnel pattern को document करता है।
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### CLI द्वारा प्रबंधित पुराने Docker इंस्टॉलेशन का माइग्रेशन
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+मौजूदा CLI Docker डिप्लॉयमेंट शुरू या प्रबंधित नहीं करता। यदि उसे कोई पुराना Docker लाइफ़सायकल रिकॉर्ड मिलता है, तो वह मेटाडेटा सुरक्षित रखता है और सटीक `docker stop ...` कमांड दिखाता है; माइग्रेशन से पहले वह कमांड चलाएँ। जब तक पुराने कंटेनर में volume माउंट है, तब तक नया runtime शुरू न करें।
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+पुराने persistent volume (आमतौर पर `iii-data`) को सुरक्षित रखें और उसका बैकअप लें, या `/data` की सामग्री को bind mount में कॉपी करें। state worker मौजूदा `/data/state_store.db` को सीधे पढ़ता है; export या conversion की ज़रूरत नहीं है। पुराना runtime UID/GID `65532:65532` इस्तेमाल करता था; नई image एक बार recursively ownership को `node:node` (`1000:1000`) में माइग्रेट करती है और `/data/.ownership-migrated-node-v1` लिखती है। इस माइग्रेशन के बाद volume को पुराने runtime में फिर से माउंट न करें।
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+पुराना runtime अपना बनाया हुआ bearer secret `/data/.hmac` में भी रखता था। नई image माइग्रेशन के दौरान इस secret को सुरक्षित रखती है; स्पष्ट रूप से सेट किया गया `AGENTMEMORY_SECRET` प्राथमिकता पाता है। repository root से `docker compose up --build -d` चलाकर नया Compose project शुरू करें। अगर पुराने volume का नाम `iii-data` के बजाय project prefix वाला है, तो उसे स्पष्ट रूप से दोबारा इस्तेमाल करें या उसका नाम बदलें—गलती से खाली volume शुरू न करें। `/agentmemory/livez` जाँचें और पुष्टि करें कि पुरानी तथा नई, दोनों memories मिल रही हैं। जब तक डेटा मिटाना जानबूझकर न हो, `docker compose down -v` से बचें।
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Why agentmemory" height="32" /></picture></h2>
