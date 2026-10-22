@@ -85,15 +85,15 @@ describe.runIf(process.platform === "linux" && process.env.AM_R3_SKIP_LIVE_TESTS
       const supervisorLog = childLogs.get(child) ?? "";
       expect(supervisorLog).toMatch(/state did not stay up after 1 restart attempts: giving up/);
       const runtime = join(project.root, "home", ".agentmemory"); mkdirSync(runtime, { recursive: true });
-      const composeStateDir = join(project.data, "compose-state");
       const projectState = JSON.parse(readFileSync(stateFile(project)!, "utf8"));
       writeFileSync(join(runtime, "engine-state.json"), JSON.stringify({
         kind: "compose", restPort: project.rest, viewerPort: project.rest + 2, enginePort: project.enginePort,
         engineUrl: `ws://127.0.0.1:${project.enginePort}`, namespace: project.namespace, file: project.compose,
-        stateDir: composeStateDir, logFile: join(project.data, "compose-daemon.log"), binPath: engine,
+        stateDir: join(project.data, "compose-state"), logFile: join(project.data, "compose-daemon.log"), binPath: engine,
         composePid: child.pid, enginePid: projectState.owner?.pid, workerVersions: { local: true },
       }));
-      const status = spawnSync(process.execPath, [join(process.cwd(), "dist/cli.mjs"), "status", "--port", String(project.rest)], { env: { ...cleanEnv(), HOME: join(project.root, "home"), AGENTMEMORY_DATA_DIR: project.data, AGENTMEMORY_RUNTIME_DIR: runtime, III_REST_PORT: String(project.rest) }, encoding: "utf8", timeout: 20_000 });
+      const status = spawnSync(process.execPath, [join(process.cwd(), "dist/cli.mjs"), "status", "--port", String(project.rest)], { env: { ...cleanEnv(), HOME: join(project.root, "home"), AGENTMEMORY_DATA_DIR: project.data, III_REST_PORT: String(project.rest), III_ENGINE_PORT: String(project.enginePort), III_VIEWER_PORT: String(project.rest + 2) }, encoding: "utf8", timeout: 20_000 });
+      expect(status.status).toBe(0);
       expect(status.stdout + status.stderr).toMatch(/state did not stay up after 1 restart attempts|restart attempts exhausted|Worker Compose failure/i);
     } finally { if (child.pid) killTree(child.pid); }
   }, 120_000);
