@@ -48,7 +48,9 @@ primary_region = "iad"
     timeout = "5s"
     grace_period = "60s"
     method = "GET"
-    path = "/agentmemory/livez"
+    path = "/"
+    [services.http_checks.headers]
+      Host = "localhost:3113"
 
 [[vm]]
   size = "shared-cpu-1x"
