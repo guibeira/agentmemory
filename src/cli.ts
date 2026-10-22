@@ -1764,6 +1764,13 @@ async function main() {
   // Mark splash as something to skip on subsequent runs. This is a
   // no-op if onboarding already flipped the flag (idempotent merge).
   writePrefs({ skipSplash: true });
+  // Worker Compose owns the service lifecycle independently of this startup
+  // launcher. Do not leave readiness-probe keep-alive sockets referenced after
+  // printing the ready hint; the daemon and its worker remain detached.
+  if (managedCompose?.kind === "compose") {
+    await new Promise<void>((resolve) => process.stdout.write("", () => resolve()));
+    process.exit(0);
+  }
 }
 
 async function apiFetch<T = unknown>(base: string, path: string, timeoutMs = 5000): Promise<T | null> {
