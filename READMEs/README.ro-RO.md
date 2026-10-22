@@ -1780,7 +1780,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,700+ tests
+npm test                  # 3,800+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

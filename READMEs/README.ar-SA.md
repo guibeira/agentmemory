@@ -1389,7 +1389,7 @@ fi
 | Prometheus / Grafana | OTEL في iii + مراقب الحالة الصحية |
 | أنظمة إضافات مخصصة | `iii worker add <name>` |
 
-**246 ملف مصدري · ~56,000 سطر برمجي · 3,700+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
+**246 ملف مصدري · ~56,000 سطر برمجي · 3,800+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Configuration" height="32" /></picture></h2>
@@ -1795,7 +1795,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,700+ tests
+npm test                  # 3,800+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 
