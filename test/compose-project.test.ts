@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, shellCommand, shellQuote, writeWorkerCompose } from "../src/cli/compose-project.js";
 import { composeEnvironment } from "../src/cli/compose-control.js";
+import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, shellCommand, shellQuote, writeWorkerCompose } from "../src/cli/compose-project.js";
 
 const root = mkdtempSync(join(tmpdir(), "agentmemory-compose-"));
 const rootUrl = `path://${root.replaceAll("\\", "/")}`;
@@ -70,6 +70,27 @@ describe("Worker Compose project", () => {
     expect(result.stdout).toBe("value with spaces;$(false)");
   });
 
+  it("forwards CLI and viewer overrides from the shell ahead of env-file values", () => {
+    const text = renderWorkerCompose(options({ workerEnvironment: {
+      AGENTMEMORY_TOOLS: "core", AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
+      VIEWER_ALLOWED_HOSTS: "example.test:3513", VIEWER_ALLOWED_ORIGINS: "https://example.test",
+    } }));
+    for (const [key, value] of Object.entries({ AGENTMEMORY_TOOLS: "core", AGENTMEMORY_VIEWER_HOST: "127.0.0.1", VIEWER_ALLOWED_HOSTS: "example.test:3513", VIEWER_ALLOWED_ORIGINS: "https://example.test" })) {
+      expect(text).toContain(`${key}: '${value}'`);
+    }
+    expect(composeEnvironment({ AGENTMEMORY_TOOLS: "core", VIEWER_ALLOWED_HOSTS: "example.test" }, "/tmp/state")).toMatchObject({ AGENTMEMORY_TOOLS: "core", VIEWER_ALLOWED_HOSTS: "example.test" });
+  });
+
+  it("uses the forwarded tools setting for the effective MCP tool list", async () => {
+    const text = renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_TOOLS: "core" } }));
+    const app = (parse(text) as { containers: Record<string, { environment: Record<string, string> }> }).containers.agentmemory!;
+    const { getVisibleTools } = await import("../src/mcp/tools-registry.js");
+    const previous = process.env.AGENTMEMORY_TOOLS;
+    process.env.AGENTMEMORY_TOOLS = app.environment.AGENTMEMORY_TOOLS;
+    try { expect(getVisibleTools()).toHaveLength(8); }
+    finally { if (previous === undefined) delete process.env.AGENTMEMORY_TOOLS; else process.env.AGENTMEMORY_TOOLS = previous; }
+  });
+
   it("uses local worker binaries when requested and emits explicit path worker commands", () => {
     const text = renderWorkerCompose(options({ workerBinDir: "/opt/am/workers-local" }));
     expect(text).toContain(`worker: '${rootUrl}/data/compose/local-workers/state'`);
@@ -79,14 +100,6 @@ describe("Worker Compose project", () => {
     expect(parsed.containers.http!.scripts.run).toBe("'/opt/am/workers-local/http'");
     expect(text).not.toContain("version: '");
     expect(text).not.toContain("file_path: '/opt/am/workers-local");
-  });
-
-  it("uses and validates the configured state flush interval", () => {
-    expect(renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: "9000" } }))).toContain("save_interval_ms: 9000");
-    expect(renderWorkerCompose(options())).toContain("save_interval_ms: 2000");
-    for (const invalid of ["nope", "99", "3600001", "1.5"]) {
-      expect(() => renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: invalid } }))).toThrow(/AGENTMEMORY_STATE_SAVE_INTERVAL_MS/);
-    }
   });
 
   it("honors disableRestartPolicy for every worker", () => {

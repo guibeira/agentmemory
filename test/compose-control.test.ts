@@ -17,12 +17,17 @@ describe("Compose control plane", () => {
       III_URL: "ws://foreign-engine",
       AGENTMEMORY_REDIS_URL: "redis://secret",
       MALLOC_ARENA_MAX: "10",
+      AGENTMEMORY_TOOLS: "core",
+      AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
+      VIEWER_ALLOWED_HOSTS: "example.test",
+      VIEWER_ALLOWED_ORIGINS: "https://example.test",
     }, "/tmp/state");
     expect(env).toMatchObject({ HOME: "/tmp/home", PATH: "/bin", III_COMPOSE_STATE_DIR: "/tmp/state", III_TELEMETRY_ENABLED: "false" });
     expect(env.MALLOC_ARENA_MAX).toBe(process.platform === "linux" ? "2" : "10");
     expect(env).not.toHaveProperty("ANTHROPIC_API_KEY");
     expect(env).not.toHaveProperty("III_URL");
     expect(env).not.toHaveProperty("AGENTMEMORY_REDIS_URL");
+    expect(env).toMatchObject({ AGENTMEMORY_TOOLS: "core", AGENTMEMORY_VIEWER_HOST: "127.0.0.1", VIEWER_ALLOWED_HOSTS: "example.test", VIEWER_ALLOWED_ORIGINS: "https://example.test" });
   });
 
   it("turns a registry resolution failure into a quick actionable CLI diagnostic", () => {

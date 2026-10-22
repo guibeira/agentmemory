@@ -64,7 +64,7 @@ export function ownedComposeProject(status: ComposeStatus, file: string): Compos
 
 function cleanDaemonEnv(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
   const out: NodeJS.ProcessEnv = {};
-  for (const key of ["HOME", "PATH", "LANG", "LC_ALL", "TERM", "NO_COLOR", "III_TELEMETRY_ENABLED", "MALLOC_ARENA_MAX", "III_BUNDLE_WORKERS_DISABLED", "III_COMPOSE_MAX_PARALLEL_WORKERS"]) {
+  for (const key of ["HOME", "PATH", "LANG", "LC_ALL", "TERM", "NO_COLOR", "III_TELEMETRY_ENABLED", "MALLOC_ARENA_MAX", "III_BUNDLE_WORKERS_DISABLED", "III_COMPOSE_MAX_PARALLEL_WORKERS", "AGENTMEMORY_TOOLS", "AGENTMEMORY_VIEWER_HOST", "VIEWER_ALLOWED_HOSTS", "VIEWER_ALLOWED_ORIGINS"]) {
     const value = env[key];
     if (value !== undefined) out[key] = value;
   }
