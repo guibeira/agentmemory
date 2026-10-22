@@ -3045,6 +3045,11 @@ async function runStop(): Promise<void> {
     p.log.error(legacyDockerStateMessage(savedState));
     process.exit(1);
   }
+  if (savedState?.kind === "compose" && engineStateRestPort(savedState) !== getRestPort()) {
+    p.intro("agentmemory stop");
+    p.log.error(`Saved Compose lifecycle state belongs to REST port ${engineStateRestPort(savedState)}, not requested port ${getRestPort()}. Refusing to signal processes or clear metadata.`);
+    process.exit(1);
+  }
   await assertRuntimePortOwnership();
   p.intro("agentmemory stop");
   const port = getRestPort();
