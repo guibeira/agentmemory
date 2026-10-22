@@ -87,7 +87,13 @@ const temporary = `${configPath}.tmp`;
 fs.writeFileSync(temporary, stringify(entry), { mode: 0o600 });
 fs.renameSync(temporary, configPath);
 fs.chmodSync(configPath, 0o600);
-fs.mkdirSync(`${process.env.AGENTMEMORY_DATA_DIR}/observability/traces`, { recursive: true, mode: 0o700 });
+const observabilityDir = `${process.env.AGENTMEMORY_DATA_DIR}/observability`;
+const tracesDir = `${observabilityDir}/traces`;
+fs.mkdirSync(tracesDir, { recursive: true, mode: 0o700 });
+fs.chownSync(observabilityDir, 1000, 1000);
+fs.chmodSync(observabilityDir, 0o700);
+fs.chownSync(tracesDir, 1000, 1000);
+fs.chmodSync(tracesDir, 0o700);
 if (process.env.AGENTMEMORY_STATE_BACKEND === "redis") {
   const legacy = `        name: kv\n        config:\n          store_method: file_based\n          file_path: /data/state_store.db\n          save_interval_ms: 2000`;
   if (!input.includes(legacy)) throw new Error("Could not locate file-based state adapter config");
