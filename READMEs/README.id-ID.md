@@ -1236,9 +1236,7 @@ Ini menjalankan `iii console` dari engine yang dipin terhadap port hasil resolus
 Hal yang sama secara manual, berguna saat `agentmemory` tidak ada di PATH:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Apa yang bisa Anda lakukan dari console:**

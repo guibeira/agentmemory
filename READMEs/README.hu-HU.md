@@ -1238,9 +1238,7 @@ Ez a pinnelt engine `iii console`-ját futtatja az agentmemory által feloldott 
 Ugyanaz kézzel, hasznos, ha az `agentmemory` nincs a PATH-on:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Mit tehetsz a konzolból:**

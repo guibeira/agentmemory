@@ -1235,9 +1235,7 @@ Tämä ajaa kiinnitetyn moottorin `iii console` -komennon agentmemoryn ratkaisem
 Sama asia käsin, hyödyllinen kun `agentmemory` ei ole PATH:ssa:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Mitä voit tehdä konsolista:**

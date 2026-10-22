@@ -1236,9 +1236,7 @@ Isso roda o `iii console` do engine fixado contra as portas que o agentmemory re
 A mesma coisa na mão, útil quando `agentmemory` não está no PATH:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **O que você pode fazer a partir do console:**

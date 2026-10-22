@@ -1238,9 +1238,7 @@ Bu, sabitlenmiş engine'in `iii console`'unu agentmemory'nin çözümlediği por
 Aynı şeyi elle yapmak, `agentmemory` PATH'te olmadığında kullanışlıdır:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Console'dan yapabilecekleriniz:**

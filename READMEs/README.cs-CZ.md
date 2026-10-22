@@ -1236,9 +1236,7 @@ Tím se spustí `iii console` pinned enginu proti portům, které agentmemory vy
 Totéž manuálně, užitečné, když `agentmemory` není v PATH:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Co lze z console dělat:**

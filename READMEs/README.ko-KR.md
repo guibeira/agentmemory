@@ -1236,9 +1236,7 @@ agentmemory console
 `agentmemory`가 PATH에 없을 때 유용한, 동일한 작업을 수동으로 수행하는 방법:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **콘솔에서 할 수 있는 일:**

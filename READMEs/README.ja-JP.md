@@ -1235,9 +1235,7 @@ agentmemory console
 PATH に `agentmemory` が通っていない場合に便利な、手動での同じ操作:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **コンソールでできること:**

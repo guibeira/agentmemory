@@ -1237,9 +1237,7 @@ Cela exécute la `iii console` du moteur épinglé contre les ports résolus par
 La même chose à la main, utile quand `agentmemory` n'est pas dans le PATH :
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Ce que vous pouvez faire depuis la console :**

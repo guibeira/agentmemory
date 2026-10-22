@@ -1239,9 +1239,7 @@ Pinapatakbo nito ang `iii console` ng pinned engine laban sa mga port na nireres
 Ang parehong bagay nang manu-mano, kapaki-pakinabang kapag wala ang `agentmemory` sa PATH:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Ang magagawa mo mula sa console:**

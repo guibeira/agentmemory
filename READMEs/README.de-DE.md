@@ -1236,9 +1236,7 @@ Dies führt `iii console` der gepinnten Engine mit den von agentmemory aufgelös
 Dasselbe von Hand, nützlich, wenn `agentmemory` nicht im PATH liegt:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Was Sie aus der Console heraus tun können:**

@@ -1238,9 +1238,7 @@ Lệnh này chạy `iii console` của engine đã pin dựa trên các port mà
 Làm tương tự bằng tay, hữu ích khi `agentmemory` không có trong PATH:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Những gì bạn có thể làm từ console:**

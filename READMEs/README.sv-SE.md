@@ -1236,9 +1236,7 @@ Detta kör den fastlåsta enginens `iii console` mot de portar agentmemory har l
 Samma sak för hand, användbart när `agentmemory` inte finns i PATH:
 
 ```bash
-~/.agentmemory/bin/iii console --port 3114 \
-  --engine-port 49134 \
-  --bridge-port 3111
+~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
 ```
 
 **Vad du kan göra från konsolen:**
