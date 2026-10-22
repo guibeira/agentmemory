@@ -91,6 +91,9 @@ export async function probeComposeEngine(port: number, signal: AbortSignal): Pro
       resolve(ready);
     };
     const abort = () => finish(false);
+    // The caller normally supplies a larger engine-readiness deadline. Keep
+    // each TCP probe bounded independently so a half-open route/proxy can never
+    // pin one iteration until the whole startup budget expires.
     socket.setTimeout(1000);
     socket.once("connect", () => finish(true));
     socket.once("error", () => finish(false));

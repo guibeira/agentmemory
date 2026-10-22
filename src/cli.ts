@@ -70,6 +70,7 @@ import {
   startupDeadline,
   startupTimeoutMessage,
   startupTimeouts,
+  managedComposeReadinessUrl,
   waitForReadiness,
   withinStartupDeadline,
   type StartupDeadline,
@@ -98,7 +99,7 @@ import { runCaptureCommand } from "./cli/capture.js";
 import { runCompressionCommand } from "./cli/compression.js";
 import { runGraphIndexCommand } from "./cli/graph-index.js";
 import { bearerHeaders, resolveClientSecret } from "./secret-store.js";
-import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, composeWorkerFailureSummary, ownedComposeProject, probeComposeEngine, readComposeLogFromOffset, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
+import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, composeWorkerFailureSummary, ownedComposeProject, readComposeLogFromOffset, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
 import { COMPOSE_WORKER_VERSIONS, composeNamespace } from "./cli/compose-project.js";
 import { legacyDockerStateMessage, type LegacyDockerEngineState } from "./cli/legacy-docker-state.js";
 
@@ -1411,12 +1412,19 @@ async function startEngine(): Promise<boolean> {
 
 async function waitForEngine(timeoutMs = startupTimeouts().engineMs): Promise<boolean> {
   const state = readEngineState();
-  const endpoint = state?.kind === "compose" ? `http://127.0.0.1:${state.enginePort}` : getBaseUrl();
+  // A composed engine's websocket port is internal control-plane detail and
+  // may be unavailable while its HTTP workers are still binding. The owned
+  // loopback REST listener is the readiness contract consumed by the CLI and
+  // does not depend on AGENTMEMORY_URL (which is for client commands only).
+  const endpoint = state?.kind === "compose"
+    ? managedComposeReadinessUrl(state.restPort)
+    : getBaseUrl();
   const probe = state?.kind === "compose"
-    ? (signal: AbortSignal) => probeComposeEngine(state.enginePort, signal)
+    ? (signal: AbortSignal) => probeEngine(endpoint, signal)
     : (signal: AbortSignal) => probeEngine(endpoint, signal);
   return waitForReadiness(engineReadinessDeadline ?? startupDeadline(timeoutMs), probe, {
-    intervalMs: 500,
+    intervalMs: 250,
+    probeTimeoutMs: 750,
     stopped: () => startupInterrupted || engineStartupFailed(),
   });
 }
