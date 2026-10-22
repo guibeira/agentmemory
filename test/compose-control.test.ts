@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const temp = mkdtempSync(join(tmpdir(), "compose-state-error-"));
 afterEach(() => rmSync(temp, { recursive: true, force: true }));
-import { composeEnvironment, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, readComposeLogFromOffset, startComposeDaemon, type ComposeStatus } from "../src/cli/compose-control.js";
+import { composeEnvironment, composeRegistryFailureMessage, composeStateRegistryFailure, composeWorkerFailureSummary, ownedComposeProject, readComposeLogFromOffset, startComposeDaemon, type ComposeStatus } from "../src/cli/compose-control.js";
 
 describe("Compose control plane", () => {
   it("does not leak arbitrary machine credentials to the Compose daemon", () => {
@@ -88,6 +88,15 @@ describe("Compose control plane", () => {
   it("keeps the Compose daemon log under the durable per-user metadata root", () => {
     const source = readFileSync(new URL("../src/cli.ts", import.meta.url), "utf8");
     expect(source).toContain('logFile: join(homedir(), ".agentmemory", `compose-${getRestPort()}.log`)');
+  });
+
+  it("summarizes exhausted worker restart attempts for CLI status", () => {
+    expect(composeWorkerFailureSummary(null)).toBeNull();
+    expect(composeWorkerFailureSummary({ containers: [
+      { container: "state", state: "ready" },
+      { container: "agentmemory", state: "failed", last_error: "restart attempts exhausted (5/5): exited unexpectedly" },
+      { container: "http", state: "failed" },
+    ] })).toBe("agentmemory: restart attempts exhausted (5/5): exited unexpectedly\nhttp: failed after restart attempts were exhausted");
   });
 
   it("accepts the current Compose status payload with a project at its top level", () => {

@@ -51,6 +51,13 @@ export function composeStateRegistryFailure(dataDir: string, file: string): stri
   return null;
 }
 
+export function composeWorkerFailureSummary(project: ComposeProjectStatus | null): string | null {
+  if (!project) return null;
+  const failed = (project.containers ?? []).filter((container) => container.state === "failed");
+  if (!failed.length) return null;
+  return failed.map((container) => `${container.container ?? "worker"}: ${container.last_error ?? "failed after restart attempts were exhausted"}`).join("\n");
+}
+
 export type ComposeContainerStatus = { container?: string; state?: string; version?: string; pid?: number; owned?: boolean; log_path?: string; last_error?: string };
 export type ComposeProjectStatus = { file?: string; state_dir?: string; namespace?: string; daemon_pid?: number; containers?: ComposeContainerStatus[]; [key: string]: unknown };
 export type ComposeStatus = ComposeProjectStatus & {

@@ -98,7 +98,7 @@ import { runCaptureCommand } from "./cli/capture.js";
 import { runCompressionCommand } from "./cli/compression.js";
 import { runGraphIndexCommand } from "./cli/graph-index.js";
 import { bearerHeaders, resolveClientSecret } from "./secret-store.js";
-import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, ownedComposeProject, probeComposeEngine, readComposeLogFromOffset, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
+import { assertComposePortsFree, composeCall, composeRegistryFailureMessage, composeStateRegistryFailure, composeWorkerFailureSummary, ownedComposeProject, probeComposeEngine, readComposeLogFromOffset, startComposeDaemon, writeComposeState, type ComposeStatus } from "./cli/compose-control.js";
 import { COMPOSE_WORKER_VERSIONS, composeNamespace } from "./cli/compose-project.js";
 import { legacyDockerStateMessage, type LegacyDockerEngineState } from "./cli/legacy-docker-state.js";
 
@@ -1789,6 +1789,27 @@ async function runStatus() {
 
   const up = await isEngineRunning();
   if (!up) {
+    if (savedState?.kind === "compose" && savedState.composePid && pidAlive(savedState.composePid)) {
+      try {
+        const composeStatus = await composeCall<ComposeStatus>({
+          engineUrl: savedState.engineUrl,
+          namespace: savedState.namespace,
+          functionId: "compose::status",
+          file: savedState.file,
+        });
+        const project = ownedComposeProject(composeStatus, savedState.file);
+        const failure = composeWorkerFailureSummary(project);
+        if (failure) {
+          p.log.error(`Worker Compose failed after exhausting restart attempts; REST is unavailable at ${base}.`);
+          p.log.error(failure);
+          p.log.info(`Inspect ${savedState.logFile}, then run agentmemory stop before retrying.`);
+          process.exit(1);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        p.log.warn(`Worker Compose status unavailable: ${message}`);
+      }
+    }
     p.log.error(`Not running — no response at ${base}`);
     p.log.info("Start with: npx @agentmemory/agentmemory");
     process.exit(1);
@@ -1878,6 +1899,8 @@ async function runStatus() {
         const composeStatus = await composeCall<ComposeStatus>({ engineUrl: managed.engineUrl, namespace: managed.namespace, functionId: "compose::status", file: managed.file });
         const composeProject = ownedComposeProject(composeStatus, managed.file);
         const containers = composeProject?.containers ?? [];
+        const failed = composeWorkerFailureSummary(composeProject ?? null);
+        if (failed) lines.push("", "Worker Compose failure (restart attempts exhausted):", ...failed.split("\n").map((line) => `  ${line}`));
         lines.push("", "Compose workers:", ...containers.map((container) => `  ${container.container ?? "?"}: ${container.state ?? "unknown"}${container.last_error ? ` — ${container.last_error}` : ""}`));
       } catch (error) {
         lines.push("", `Compose status unavailable: ${error instanceof Error ? error.message : String(error)}`);
