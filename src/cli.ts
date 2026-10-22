@@ -456,7 +456,9 @@ function getEnginePort(): number {
 
 async function isEngineRunning(): Promise<boolean> {
   const state = readEngineState();
-  const endpoint = state?.kind === "compose" && state.restPort === getRestPort() ? `http://127.0.0.1:${state.restPort}` : getBaseUrl();
+  const endpoint = state?.kind === "compose" && state.restPort === getRestPort() && !shouldUseAgentmemoryUrl()
+    ? `http://127.0.0.1:${state.restPort}`
+    : getBaseUrl();
   const result = await withinStartupDeadline(startupDeadline(2000), (signal) => probeEngine(endpoint, signal)).catch(() => null);
   return result?.completed === true && result.value;
 }
