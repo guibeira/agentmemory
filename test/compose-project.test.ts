@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, writeWorkerCompose } from "../src/cli/compose-project.js";
+import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, shellCommand, shellQuote, writeWorkerCompose } from "../src/cli/compose-project.js";
+import { composeEnvironment } from "../src/cli/compose-control.js";
 
 const root = mkdtempSync(join(tmpdir(), "agentmemory-compose-"));
 const rootUrl = `path://${root.replaceAll("\\", "/")}`;
@@ -44,18 +45,45 @@ describe("Worker Compose project", () => {
     for (const retired of ["iii-stream", "iii-pubsub", "iii-http", "iii-state", "queue"]) expect(text).not.toContain(retired);
   });
 
+  it("quotes worker shell commands correctly on POSIX and Windows", () => {
+    const weird = "/tmp/Program Files/worker 'one';$(touch /tmp/should-not-exist)";
+    const posix = shellCommand(weird, ["arg with spaces", "x;$()|&<>*?[]\\\""], false);
+    expect(posix).toContain(`\'"\'"\'`);
+    expect(shellQuote("C:\\Program Files\\Worker & Tools\\node.exe", true)).toBe(`"C:\\Program Files\\Worker & Tools\\node.exe"`);
+    expect(shellCommand("C:\\Program Files\\Node Runtime\\node.exe", ["dist/index.mjs"], true)).toBe(`""C:\\Program Files\\Node Runtime\\node.exe" "dist/index.mjs""`);
+    expect(shellQuote("100%", true)).toBe('"100%%"');
+  });
+
+  it("executes generated commands through sh -c even with spaces and metacharacters", () => {
+    const { spawnSync } = require("node:child_process") as typeof import("node:child_process");
+    const dir = join(root, "Node Runtime & (stable)");
+    mkdirSync(dir, { recursive: true });
+    const node = join(dir, "node; safe");
+    writeFileSync(node, "#!/bin/sh\nprintf '%s' \"$1\"\n", { mode: 0o755 });
+    chmodSync(node, 0o755);
+    const rendered = renderWorkerCompose(options({ nodeBin: node }));
+    const appRun = (parse(rendered) as { containers: Record<string, { scripts: { run: string } }> }).containers.agentmemory!.scripts.run;
+    expect(appRun).toBe(shellCommand(node, ["dist/index.mjs"], false));
+    const command = shellCommand(node, ["value with spaces;$(false)"], false);
+    const result = spawnSync("sh", ["-c", command], { encoding: "utf8" });
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("value with spaces;$(false)");
+  });
+
   it("uses local worker binaries when requested and emits explicit path worker commands", () => {
     const text = renderWorkerCompose(options({ workerBinDir: "/opt/am/workers-local" }));
     expect(text).toContain(`worker: '${rootUrl}/data/compose/local-workers/state'`);
     expect(text).toContain("local-workers/state");
-    expect(text).toContain("run: '/opt/am/workers-local/state'");
-    expect(text).toContain("run: '/opt/am/workers-local/http'");
+    const parsed = parse(text) as { containers: Record<string, { scripts: { run: string } }> };
+    expect(parsed.containers.state!.scripts.run).toBe("'/opt/am/workers-local/state'");
+    expect(parsed.containers.http!.scripts.run).toBe("'/opt/am/workers-local/http'");
     expect(text).not.toContain("version: '");
     expect(text).not.toContain("file_path: '/opt/am/workers-local");
   });
 
   it("uses and validates the configured state flush interval", () => {
     expect(renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: "9000" } }))).toContain("save_interval_ms: 9000");
+    expect(renderWorkerCompose(options())).toContain("save_interval_ms: 2000");
     for (const invalid of ["nope", "99", "3600001", "1.5"]) {
       expect(() => renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_STATE_SAVE_INTERVAL_MS: invalid } }))).toThrow(/AGENTMEMORY_STATE_SAVE_INTERVAL_MS/);
     }
@@ -75,6 +103,37 @@ describe("Worker Compose project", () => {
     expect(app).toContain("OPENAI_API_KEY: 'fake-gate-key'");
     expect(app).toContain("OPENAI_BASE_URL: 'http://127.0.0.1:4555'");
     expect(text.slice(0, text.indexOf("containers:")).concat(text.slice(text.indexOf("  state:"), text.indexOf("  agentmemory:")))).not.toContain("fake-gate-key");
+  });
+
+  it("forwards CLI and viewer overrides from the shell ahead of env-file values", () => {
+    const text = renderWorkerCompose(options({
+      workerEnvironment: {
+        AGENTMEMORY_TOOLS: "core",
+        AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
+        VIEWER_ALLOWED_HOSTS: "example.test:3513",
+        VIEWER_ALLOWED_ORIGINS: "https://example.test",
+      },
+    }));
+    for (const [key, value] of Object.entries({
+      AGENTMEMORY_TOOLS: "core",
+      AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
+      VIEWER_ALLOWED_HOSTS: "example.test:3513",
+      VIEWER_ALLOWED_ORIGINS: "https://example.test",
+    })) expect(text).toContain(`${key}: '${value}'`);
+    expect(composeEnvironment({ AGENTMEMORY_TOOLS: "core", VIEWER_ALLOWED_HOSTS: "example.test" }, "/tmp/state")).toMatchObject({
+      AGENTMEMORY_TOOLS: "core",
+      VIEWER_ALLOWED_HOSTS: "example.test",
+    });
+  });
+
+  it("uses the forwarded tools setting for the effective MCP tool list", async () => {
+    const text = renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_TOOLS: "core" } }));
+    const app = (parse(text) as { containers: Record<string, { environment: Record<string, string> }> }).containers.agentmemory!;
+    const { getVisibleTools } = await import("../src/mcp/tools-registry.js");
+    const previous = process.env.AGENTMEMORY_TOOLS;
+    process.env.AGENTMEMORY_TOOLS = app.environment.AGENTMEMORY_TOOLS;
+    try { expect(getVisibleTools()).toHaveLength(8); }
+    finally { if (previous === undefined) delete process.env.AGENTMEMORY_TOOLS; else process.env.AGENTMEMORY_TOOLS = previous; }
   });
 
   it("supports Redis state without leaking Redis configuration into the daemon", () => {
@@ -123,10 +182,12 @@ describe("Worker Compose project", () => {
     const configFile = join(root, "data", "compose", "config", "iii-observability.yaml");
     const entry = parse(readFileSync(configFile, "utf8")) as {
       id: string;
-      value: { trace_storage: { directory: string } };
+      value: { trace_storage: { directory: string }; sampling_ratio: number; logs_console_output: boolean };
     };
     expect(entry.id).toBe("iii-observability");
     expect(entry.value.trace_storage.directory).toBe(join(root, "data", "observability", "traces"));
+    expect(entry.value.sampling_ratio).toBe(0.1);
+    expect(entry.value.logs_console_output).toBe(false);
     expect(statSync(configFile).mode & 0o777).toBe(0o600);
   });
 
@@ -140,6 +201,8 @@ describe("Worker Compose project", () => {
       "schema: {}",
       "value:",
       "  service_name: agentmemory-test",
+      "  sampling_ratio: 0.75",
+      "  logs_console_output: true",
       "  trace_storage:",
       "    directory: ./data/observability/traces",
       "    max_disk_bytes: 67108864",
@@ -148,9 +211,11 @@ describe("Worker Compose project", () => {
 
     writeWorkerCompose(options());
     const entry = parse(readFileSync(join(configDir, "iii-observability.yaml"), "utf8")) as {
-      value: { service_name: string; trace_storage: { directory: string; max_disk_bytes: number } };
+      value: { service_name: string; sampling_ratio: number; logs_console_output: boolean; trace_storage: { directory: string; max_disk_bytes: number } };
     };
     expect(entry.value.service_name).toBe("agentmemory-test");
+    expect(entry.value.sampling_ratio).toBe(0.75);
+    expect(entry.value.logs_console_output).toBe(true);
     expect(entry.value.trace_storage).toEqual({
       directory: join(root, "data", "observability", "traces"),
       max_disk_bytes: 67108864,

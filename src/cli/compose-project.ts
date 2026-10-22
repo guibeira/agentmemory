@@ -2,6 +2,7 @@ import { chmodSync, existsSync, readFileSync, mkdirSync, renameSync, writeFileSy
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { parse, stringify } from "yaml";
 import { MAX_STARTUP_TIMEOUT_MS } from "./readiness.js";
+import { getStateSaveIntervalMs } from "../config.js";
 
 export interface EngineRuntimePorts {
   restPort: number;
@@ -57,7 +58,8 @@ const AGENTMEMORY_WORKER_ENV_ALLOWLIST = new Set([
   "AGENTMEMORY_SESSION_SWEEP_STALE_HOURS", "AGENTMEMORY_FINALIZE_IDLE_MS",
   "AGENTMEMORY_GRAPH_COMPACT_ON_BOOT", "AGENTMEMORY_DROP_STALE_INDEX",
   "AGENTMEMORY_AUDIT_RETENTION_MONTHS", "AGENTMEMORY_AUDIT_MIGRATE_MAX_BYTES",
-  "AGENTMEMORY_STATE_SAVE_INTERVAL_MS", "AGENTMEMORY_SECRET", "AGENT_ID", "TEAM_ID",
+  "AGENTMEMORY_STATE_SAVE_INTERVAL_MS", "AGENTMEMORY_TOOLS", "AGENTMEMORY_VIEWER_HOST",
+  "VIEWER_ALLOWED_HOSTS", "VIEWER_ALLOWED_ORIGINS", "AGENTMEMORY_SECRET", "AGENT_ID", "TEAM_ID",
   "TEAM_MODE", "USER_ID", "AGENTMEMORY_AGENT_SCOPE", "SNAPSHOT_DIR", "SNAPSHOT_ENABLED",
   "SNAPSHOT_INTERVAL", "STANDALONE_PERSIST_PATH", "CLAUDE_MEMORY_BRIDGE",
   "CLAUDE_MEMORY_LINE_BUDGET", "CLAUDE_PROJECT_PATH", "AGENTMEMORY_SUPPRESS_COST_WARNING",
@@ -78,7 +80,7 @@ const COMPOSE_RESERVED_ENV = new Set([
 ]);
 
 function stateSaveInterval(value: string | undefined): number {
-  if (value === undefined || value.trim() === "") return 2000;
+  if (value === undefined || value.trim() === "") return getStateSaveIntervalMs();
   if (!/^\d+$/.test(value.trim())) throw new Error("AGENTMEMORY_STATE_SAVE_INTERVAL_MS must be an integer between 100 and 3600000.");
   const parsed = Number(value);
   if (!Number.isSafeInteger(parsed) || parsed < 100 || parsed > 3_600_000) {
@@ -97,6 +99,24 @@ function restartPolicyLines(indent: string, enabled: boolean): string[] {
     `${indent}  max_attempts: 5`,
     `${indent}  window: 60s`,
   ];
+}
+
+export function shellQuote(value: string, windows: boolean): string {
+  if (/[\u0000-\u001f\u007f]/.test(value)) throw new Error("A shell command argument contains an unsupported control character.");
+  if (windows) {
+    // Windows paths cannot contain quotes. Doubling percent signs keeps literal
+    // percent characters in cmd.exe; quotes protect whitespace and metacharacters.
+    if (value.includes('"')) throw new Error("Windows shell arguments cannot contain a double quote.");
+    return `"${value.replace(/%/g, "%%")}"`;
+  }
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
+export function shellCommand(program: string, args: string[], windows: boolean): string {
+  const command = [program, ...args].map((part) => shellQuote(part, windows)).join(" ");
+  // cmd.exe /C treats an initial quote specially. The outer quote pair makes
+  // the quoted executable and its arguments one command string.
+  return windows ? `"${command}"` : command;
 }
 
 function yamlString(value: string): string {
@@ -134,7 +154,10 @@ function ensureEngineTraceStorageConfig(configDir: string, dataDir: string): voi
       throw new Error(`Unexpected configuration id in ${configFile}; refusing to replace it.`);
     }
   } else {
-    entry = { id: "iii-observability", name: "Observability", description: "", schema: {} };
+    entry = {
+      id: "iii-observability", name: "Observability", description: "", schema: {},
+      value: { sampling_ratio: 0.1, logs_console_output: false },
+    };
   }
 
   const value = entry.value && typeof entry.value === "object" && !Array.isArray(entry.value)
@@ -173,6 +196,7 @@ export interface ComposeProjectOptions {
   startupTimeoutMs?: number;
   linux?: boolean;
   disableRestartPolicy?: boolean;
+  windows?: boolean;
 }
 
 export function renderWorkerCompose(options: ComposeProjectOptions): string {
@@ -225,7 +249,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     ...(!workerBinDir ? [`    version: ${yamlString(COMPOSE_WORKER_VERSIONS.state)}`] : []),
     "    config_name: state",
     ...restartPolicyLines("    ", restartEnabled),
-    ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(stateScript)}`] : []),
+    ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(shellCommand(stateScript, [], options.windows ?? process.platform === "win32"))}`] : []),
     "    config_override:",
     "      adapter:",
     "        name: kv",
@@ -255,7 +279,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     ...(!workerBinDir ? [`    version: ${yamlString(COMPOSE_WORKER_VERSIONS.http)}`] : []),
     "    config_name: http",
     ...restartPolicyLines("    ", restartEnabled),
-    ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(httpScript)}`] : []),
+    ...(workerBinDir ? [`    scripts:`, `      run: ${yamlString(shellCommand(httpScript, [], options.windows ?? process.platform === "win32"))}`] : []),
     "    config_override:",
     "      host: 127.0.0.1",
     `      port: ${restPort}`,
@@ -277,7 +301,7 @@ export function renderWorkerCompose(options: ComposeProjectOptions): string {
     "    config_name: agentmemory",
     ...restartPolicyLines("    ", restartEnabled),
     "    scripts:",
-    `      run: ${yamlString(`${options.nodeBin} dist/index.mjs`)}`,
+    `      run: ${yamlString(shellCommand(options.nodeBin, ["dist/index.mjs"], options.windows ?? process.platform === "win32"))}`,
   );
   if (filteredEnvFile) lines.push(`    env_file: [${yamlString(filteredEnvFile)}]`);
   const explicitWorkerEnvironment = Object.entries(options.workerEnvironment ?? {})
