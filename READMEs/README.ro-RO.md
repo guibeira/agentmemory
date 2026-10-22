@@ -900,14 +900,13 @@ Detaliile complete de configurare (capturarea HMAC, tunel SSH pentru vizualizato
 REST este pe `3111`; vizualizatorul este pe `3113` și este publicat doar acolo unde șablonul platformei suportă o rută separată protejată. Actualizările live folosesc SSE autentificat cu bearer la endpoint-ul REST `/agentmemory/viewer/events`. WebSocket-ul engine-ului de pe `49134` este intern și nu trebuie publicat. Consultă [`deploy/README.md`](../deploy/README.md) pentru recomandări privind expunerea și allowlist-urile specifice platformei.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Migrarea instalărilor Docker vechi gestionate de CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+CLI-ul actual nu pornește și nu gestionează implementări Docker. Dacă găsește o înregistrare veche a ciclului de viață Docker, păstrează metadatele și afișează comanda exactă `docker stop ...`; executați comanda înainte de migrare. Nu porniți noul runtime cât timp containerul vechi are volumul montat.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Păstrați și faceți o copie de rezervă a volumului persistent vechi (de obicei `iii-data`) sau copiați conținutul din `/data` într-un bind mount. Workerul state citește direct fișierul existent `/data/state_store.db`, fără export sau conversie. Vechiul runtime folosea UID/GID `65532:65532`; noua imagine efectuează o singură migrare recursivă a proprietarului la `node:node` (`1000:1000`) și scrie `/data/.ownership-migrated-node-v1`. După această migrare, nu montați din nou volumul în vechiul runtime.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Vechiul runtime stoca și bearer secret-ul generat în `/data/.hmac`. Noua imagine păstrează acest secret în timpul migrării; o valoare `AGENTMEMORY_SECRET` setată explicit are prioritate. Porniți noul proiect Compose din rădăcina depozitului cu `docker compose up --build -d`. Dacă vechiul volum are un nume cu prefixul proiectului în loc de `iii-data`, reutilizați-l sau redenumiți-l explicit — nu inițializați din greșeală un volum gol. Verificați `/agentmemory/livez` și confirmați că pot fi găsite atât memoriile vechi, cât și cele noi. Evitați `docker compose down -v`, cu excepția cazului în care intenționați să ștergeți datele.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="De ce agentmemory" height="32" /></picture></h2>

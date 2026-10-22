@@ -909,14 +909,13 @@ loopback ภายใน container; README ของทุกเทมเพล�
 pattern การทำ SSH-tunnel เพื่อเข้าถึงมัน
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### การย้ายการติดตั้ง Docker เดิมที่จัดการโดย CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+CLI ปัจจุบันไม่เริ่มทำงานหรือจัดการการติดตั้ง Docker หากพบระเบียนวงจรชีวิต Docker เดิม จะเก็บข้อมูลเมตาไว้และแสดงคำสั่ง `docker stop ...` ที่แน่นอน ให้เรียกใช้คำสั่งนั้นก่อนย้าย อย่าเริ่ม runtime ใหม่ขณะที่คอนเทนเนอร์เดิมยังเมานต์โวลุ่มอยู่
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+เก็บโวลุ่มถาวรเดิมไว้และสำรองข้อมูล (โดยปกติคือ `iii-data`) หรือคัดลอกเนื้อหาใน `/data` ไปยัง bind mount. worker state อ่านไฟล์ `/data/state_store.db` ที่มีอยู่โดยตรง โดยไม่ต้องส่งออกหรือแปลงข้อมูล runtime เดิมใช้ UID/GID `65532:65532`; image ใหม่จะย้าย ownership แบบ recursive ไปยัง `node:node` (`1000:1000`) เพียงครั้งเดียว และเขียนไฟล์ `/data/.ownership-migrated-node-v1` หลังย้ายแล้ว อย่าเมานต์โวลุ่มกลับเข้า runtime เดิม
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+runtime เดิมยังจัดเก็บ bearer secret ที่สร้างขึ้นไว้ใน `/data/.hmac` ด้วย image ใหม่จะเก็บรักษา secret นี้ระหว่างการย้าย; `AGENTMEMORY_SECRET` ที่กำหนดไว้อย่างชัดเจนจะมีลำดับความสำคัญสูงกว่า เริ่มโปรเจ็กต์ Compose ใหม่จาก root ของ repository ด้วย `docker compose up --build -d` หากโวลุ่มเดิมมีชื่อที่ขึ้นต้นด้วยชื่อโปรเจ็กต์แทน `iii-data` ให้ใช้โวลุ่มนั้นซ้ำหรือเปลี่ยนชื่ออย่างชัดเจน อย่าเผลอสร้างโวลุ่มว่าง ตรวจสอบ `/agentmemory/livez` และยืนยันว่าค้นหาความทรงจำทั้งเก่าและใหม่ได้ หลีกเลี่ยง `docker compose down -v` เว้นแต่ตั้งใจลบข้อมูล
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="ทำไมต้อง agentmemory" height="32" /></picture></h2>

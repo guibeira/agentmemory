@@ -908,14 +908,13 @@ Docker поддерживается для self-hosting из этого репо
 REST работает на `3111`, а просмотрщик — на `3113`; отдельный защищённый маршрут для просмотрщика публикуется только там, где его поддерживает шаблон платформы. Живые обновления передаются по SSE с bearer-аутентификацией через REST-эндпоинт `/agentmemory/viewer/events`. WebSocket движка на `49134` внутренний и не должен публиковаться. Инструкции по публикации и спискам разрешённых адресов для каждой платформы см. в [`deploy/README.md`](../deploy/README.md).
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Перенос старых установок Docker, управляемых CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Текущая CLI не запускает и не управляет развертываниями Docker. Если она обнаружит старую запись о жизненном цикле Docker, она сохранит метаданные и выведет точную команду `docker stop ...`; выполните эту команду до переноса. Не запускайте новую среду выполнения, пока старый контейнер подключен к тому.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Сохраните старый постоянный том и сделайте его резервную копию (обычно это `iii-data`) либо скопируйте содержимое `/data` в bind mount. Воркер state напрямую читает существующий файл `/data/state_store.db` без экспорта и преобразования. В старой среде выполнения использовались UID/GID `65532:65532`; новый образ однократно выполняет рекурсивную миграцию владельца на `node:node` (`1000:1000`) и создает `/data/.ownership-migrated-node-v1`. После этой миграции не подключайте том обратно к старой среде выполнения.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Старая среда выполнения также хранила сгенерированный bearer secret в `/data/.hmac`. Новый образ сохраняет этот секрет при переносе; явно заданный `AGENTMEMORY_SECRET` имеет приоритет. Запустите новый проект Compose из корня репозитория командой `docker compose up --build -d`. Если старый том имеет имя с префиксом проекта, а не `iii-data`, явно используйте его повторно или переименуйте — не создавайте случайно пустой том. Проверьте `/agentmemory/livez` и убедитесь, что можно найти как старые, так и новые воспоминания. Не выполняйте `docker compose down -v`, если только вы намеренно не удаляете данные.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Зачем agentmemory" height="32" /></picture></h2>

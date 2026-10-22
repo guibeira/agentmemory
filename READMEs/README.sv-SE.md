@@ -908,14 +908,13 @@ Fullständiga installationsdetaljer (HMAC-infångning, SSH-tunnel för viewern, 
 REST finns på `3111` och viewern på `3113`; en separat skyddad viewer-route publiceras bara där plattformsmallen stöder det. Liveuppdateringar använder bearer-autentiserad SSE på REST-endpointen `/agentmemory/viewer/events`. Engine-WebSocket på `49134` är intern och får inte publiceras. Se [`deploy/README.md`](../deploy/README.md) för plattformsspecifik exponering och tillåtelselistor.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Migrera äldre CLI-hanterade Docker-installationer
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Den nuvarande CLI:n startar eller hanterar inte Docker-distributioner. Om den hittar en äldre Docker-livscykelpost bevarar den metadata och skriver ut det exakta kommandot `docker stop ...`; kör kommandot före migreringen. Starta inte den nya runtime-miljön medan den gamla containern fortfarande har volymen monterad.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Behåll och säkerhetskopiera den gamla beständiga volymen (vanligtvis `iii-data`), eller kopiera innehållet i `/data` till en bind mount. State-arbetaren läser den befintliga `/data/state_store.db` direkt, utan export eller konvertering. Den gamla runtime-miljön använde UID/GID `65532:65532`; den nya avbildningen utför en engångsmigrering av ägarskapet rekursivt till `node:node` (`1000:1000`) och skriver `/data/.ownership-migrated-node-v1`. Montera inte tillbaka volymen i den gamla runtime-miljön efter migreringen.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Den gamla runtime-miljön lagrade också den genererade bearer-hemligheten i `/data/.hmac`. Den nya avbildningen bevarar hemligheten under migreringen; en uttryckligen angiven `AGENTMEMORY_SECRET` har företräde. Starta det nya Compose-projektet från repositoryts rot med `docker compose up --build -d`. Om den gamla volymen har ett projektnamn som prefix i stället för `iii-data`, återanvänd den eller byt namn på den uttryckligen — initiera inte av misstag en tom volym. Kontrollera `/agentmemory/livez` och bekräfta att både gamla och nya minnen går att hitta. Undvik `docker compose down -v` om du inte avsiktligt vill radera data.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Varför agentmemory" height="32" /></picture></h2>
