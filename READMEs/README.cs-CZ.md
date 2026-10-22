@@ -908,14 +908,13 @@ spodní hranice nákladů) jsou v [`deploy/`](.././deploy/README.md):
 REST používá port `3111`; viewer běží na portu `3113` a zveřejňuje se pouze tam, kde šablona platformy podporuje samostatnou chráněnou trasu. Živé aktualizace používají SSE s bearer autentizací na REST endpointu `/agentmemory/viewer/events`. WebSocket enginu na `49134` je interní a nesmí se zveřejňovat. Pokyny k vystavení a povoleným originům pro jednotlivé platformy najdete v [`deploy/README.md`](../deploy/README.md).
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Migrace starších instalací Dockeru spravovaných CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Současné CLI nespouští ani nespravuje nasazení Dockeru. Pokud najde starý záznam životního cyklu Dockeru, zachová metadata a vypíše přesný příkaz `docker stop ...`; před migrací tento příkaz spusťte. Nové běhové prostředí nespouštějte, dokud má starý kontejner stále připojený svazek.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Starý trvalý svazek (obvykle `iii-data`) si ponechte a zálohujte, nebo zkopírujte obsah `/data` do připojeného svazku (bind mount). Worker state čte existující soubor `/data/state_store.db` přímo, bez exportu či převodu. Staré běhové prostředí používalo UID/GID `65532:65532`; nový image jednorázově rekurzivně změní vlastníka na `node:node` (`1000:1000`) a zapíše `/data/.ownership-migrated-node-v1`. Po této migraci svazek znovu nepřipojujte ke starému běhovému prostředí.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Staré běhové prostředí ukládalo také vygenerovaný bearer secret v `/data/.hmac`. Nový image tento secret během migrace zachová; výslovně nastavená hodnota `AGENTMEMORY_SECRET` má přednost. Nový projekt Compose spusťte z kořene repozitáře příkazem `docker compose up --build -d`. Pokud má starý svazek místo názvu `iii-data` název s prefixem projektu, výslovně jej znovu použijte nebo přejmenujte — omylem neinicializujte prázdný svazek. Ověřte `/agentmemory/livez` a potvrďte, že lze najít staré i nové vzpomínky. Příkazu `docker compose down -v` se vyhněte, pokud není záměrem data smazat.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Proč agentmemory" height="32" /></picture></h2>

@@ -907,14 +907,13 @@ Render-এর ওয়ান-ক্লিক ডিপ্লয় বাটন
 REST `3111`-এ; viewer `3113`-এ এবং platform template আলাদা সুরক্ষিত route সমর্থন করলেই publish হয়। Live update REST endpoint `/agentmemory/viewer/events`-এ bearer-authenticated SSE ব্যবহার করে। Engine WebSocket `49134`-এ অভ্যন্তরীণ এবং publish করা যাবে না। Platform অনুযায়ী exposure ও allowlist নির্দেশিকার জন্য [`deploy/README.md`](../deploy/README.md) দেখুন।
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### CLI-পরিচালিত পুরোনো Docker ইনস্টলেশন স্থানান্তর
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+বর্তমান CLI Docker deployment চালু বা পরিচালনা করে না। এটি যদি Docker-এর কোনো পুরোনো lifecycle record খুঁজে পায়, তবে metadata অক্ষত রাখে এবং সঠিক `docker stop ...` কমান্ডটি দেখায়; স্থানান্তরের আগে কমান্ডটি চালান। পুরোনো container-এ volume মাউন্ট করা থাকা অবস্থায় নতুন runtime চালু করবেন না।
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+পুরোনো persistent volume (সাধারণত `iii-data`) রেখে দিন এবং এর backup নিন, অথবা `/data`-এর বিষয়বস্তু bind mount-এ কপি করুন। state worker বিদ্যমান `/data/state_store.db` সরাসরি পড়ে—কোনো export বা conversion ছাড়াই। পুরোনো runtime `65532:65532` UID/GID ব্যবহার করত; নতুন image একবারের জন্য recursive ownership migration করে `node:node` (`1000:1000`) মালিকানা সেট করে এবং `/data/.ownership-migrated-node-v1` লেখে। এই migration-এর পর volume-টি পুরোনো runtime-এ আবার মাউন্ট করবেন না।
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+পুরোনো runtime `/data/.hmac`-এ তৈরি করা bearer secret-টিও রাখত। নতুন image migration-এর সময় সেই secret অক্ষত রাখে; স্পষ্টভাবে সেট করা `AGENTMEMORY_SECRET` অগ্রাধিকার পায়। repository root থেকে `docker compose up --build -d` চালিয়ে নতুন Compose project শুরু করুন। পুরোনো volume-এর নামে `iii-data`-এর বদলে project prefix থাকলে, সেটি স্পষ্টভাবে পুনর্ব্যবহার বা rename করুন—ভুল করে খালি volume তৈরি করবেন না। `/agentmemory/livez` পরীক্ষা করুন এবং পুরোনো ও নতুন—দুই ধরনের memory-ই খুঁজে পাওয়া যায় কি না নিশ্চিত করুন। ইচ্ছাকৃতভাবে data মুছতে না চাইলে `docker compose down -v` এড়িয়ে চলুন।
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="কেন agentmemory" height="32" /></picture></h2>

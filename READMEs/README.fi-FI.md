@@ -907,14 +907,13 @@ kustannuslattia) löytyvät kansiosta [`deploy/`](.././deploy/README.md):
 REST käyttää porttia `3111`; katseluohjelma käyttää porttia `3113` ja julkaistaan vain, kun alustan mallipohja tukee erillistä suojattua reittiä. Reaaliaikaiset päivitykset käyttävät bearer-todennettua SSE:tä REST-päätepisteessä `/agentmemory/viewer/events`. Moottorin WebSocket portissa `49134` on sisäinen, eikä sitä pidä julkaista. Katso alustakohtaiset julkaisu- ja sallittujen osoitteiden ohjeet tiedostosta [`deploy/README.md`](../deploy/README.md).
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### Vanhojen CLI:n hallinnoimien Docker-asennusten siirtäminen
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+Nykyinen CLI ei käynnistä eikä hallinnoi Docker-käyttöönottoja. Jos se löytää vanhan Dockerin elinkaaritietueen, se säilyttää metatiedot ja tulostaa tarkan komennon `docker stop ...`; suorita komento ennen siirtoa. Älä käynnistä uutta suoritusaikaa, kun vanhan säilön liitos on yhä käytössä.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+Säilytä vanha pysyvä taltio (tavallisesti `iii-data`) ja ota siitä varmuuskopio tai kopioi `/data`-hakemiston sisältö bind mount -liitokseen. State-työntekijä lukee olemassa olevan `/data/state_store.db`-tiedoston suoraan ilman vientiä tai muunnosta. Vanha suoritusaika käytti UID/GID-tunnuksia `65532:65532`; uusi levykuva siirtää omistajuuden kertaalleen rekursiivisesti käyttäjälle ja ryhmälle `node:node` (`1000:1000`) ja kirjoittaa tiedoston `/data/.ownership-migrated-node-v1`. Älä liitä taltiota siirron jälkeen takaisin vanhaan suoritusaikaan.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+Vanha suoritusaika tallensi myös luodun bearer-secretin tiedostoon `/data/.hmac`. Uusi levykuva säilyttää salaisuuden siirron aikana; erikseen asetettu `AGENTMEMORY_SECRET` on etusijalla. Käynnistä uusi Compose-projekti repositorion juuresta komennolla `docker compose up --build -d`. Jos vanhan taltion nimessä on projektin etuliite `iii-data`-nimen sijaan, ota se nimenomaisesti uudelleen käyttöön tai nimeä se uudelleen — älä vahingossa alusta tyhjää taltiota. Tarkista `/agentmemory/livez` ja varmista, että sekä vanhat että uudet muistot löytyvät. Vältä komentoa `docker compose down -v`, ellet aio poistaa tietoja.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Miksi agentmemory" height="32" /></picture></h2>

@@ -909,14 +909,13 @@ npx -y @agentmemory/mcp
 تعمل REST على `3111`؛ ويعمل العارض على `3113` ولا يُنشر إلا عندما يدعم قالب المنصة مسارًا منفصلًا محميًا. تستخدم التحديثات الحية SSE موثّقًا برمز الحامل على نقطة REST `/agentmemory/viewer/events`. ويظل WebSocket المحرك على `49134` داخليًا ويجب عدم نشره. راجع [`deploy/README.md`](../deploy/README.md) لإرشادات الإتاحة وقوائم السماح الخاصة بكل منصة.
 
 
-### Migração de instalações Docker gerenciadas pelo CLI
+### ترحيل عمليات تثبيت Docker القديمة التي يديرها CLI
 
-A CLI atual não inicia nem gerencia implantações Docker. Se ela encontrar um registro de ciclo de vida Docker legado, preservará os metadados e mostrará o comando exato `docker stop ...`; execute esse comando antes da migração. Não inicie o runtime novo enquanto o contêiner antigo ainda tiver o volume montado.
+لا يبدأ CLI الحالي عمليات نشر Docker ولا يديرها. إذا عثر على سجل دورة حياة قديم لـ Docker، فسيحافظ على البيانات الوصفية ويطبع الأمر الدقيق `docker stop ...`؛ نفّذ هذا الأمر قبل الترحيل. لا تبدأ بيئة التشغيل الجديدة ما دامت الحاوية القديمة موصولة بوحدة التخزين.
 
-Preserve e faça backup do volume persistente antigo (normalmente `iii-data`) ou copie o conteúdo de `/data` para um bind mount. O worker state lê `/data/state_store.db` existente diretamente, sem exportação ou conversão. O runtime antigo usava UID/GID `65532:65532`; a imagem nova faz uma migração de propriedade recursiva uma única vez para `node:node` (`1000:1000`) e grava `/data/.ownership-migrated-node-v1`. Depois disso, não volte a montar esse volume no runtime antigo.
+احتفِظ بوحدة التخزين الدائمة القديمة (عادةً `iii-data`) وأنشئ نسخة احتياطية منها، أو انسخ محتويات `/data` إلى نقطة ربط (bind mount). يقرأ عامل state ملف `/data/state_store.db` الموجود مباشرةً، من دون تصدير أو تحويل. استخدمت بيئة التشغيل القديمة UID/GID `65532:65532`؛ وتجري الصورة الجديدة مرة واحدة ترحيلًا تكراريًا لملكية الملفات إلى `node:node` (`1000:1000`) وتكتب `/data/.ownership-migrated-node-v1`. لا تُعِد تركيب وحدة التخزين في بيئة التشغيل القديمة بعد هذا الترحيل.
 
-O runtime antigo também guardava o bearer secret gerado em `/data/.hmac`. A nova imagem preserva esse segredo durante a migração; um `AGENTMEMORY_SECRET` explicitamente definido tem precedência. Inicie o Compose novo a partir da raiz do repositório com `docker compose up --build -d`. Se o volume antigo tiver nome com prefixo do projeto em vez de `iii-data`, reutilize-o ou renomeie-o explicitamente — não inicialize um volume vazio por engano. Verifique `/agentmemory/livez` e confirme que memórias antigas e novas podem ser encontradas. Evite `docker compose down -v` a menos que a exclusão dos dados seja intencional.
-
+كانت بيئة التشغيل القديمة تخزّن أيضًا السر الحامل المُنشأ في `/data/.hmac`. وتحافظ الصورة الجديدة على هذا السر أثناء الترحيل؛ وتكون الأولوية لقيمة `AGENTMEMORY_SECRET` إذا تم تعيينها صراحةً. ابدأ مشروع Compose الجديد من جذر المستودع باستخدام `docker compose up --build -d`. إذا كان اسم وحدة التخزين القديمة يتضمن بادئة المشروع بدلًا من `iii-data`، فأعِد استخدامها أو أعد تسميتها صراحةً — ولا تُنشئ وحدة تخزين فارغة عن طريق الخطأ. تحقّق من `/agentmemory/livez` وتأكد من إمكانية العثور على الذكريات القديمة والجديدة. تجنّب `docker compose down -v` ما لم يكن حذف البيانات مقصودًا.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Why agentmemory" height="32" /></picture></h2>
