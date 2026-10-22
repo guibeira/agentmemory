@@ -54,17 +54,21 @@ function readSecretFile(path) {
 		return "";
 	}
 }
-function legacyDataDirSecretPath(env = process.env) {
+function legacyDataDirSecretPaths(env = process.env) {
 	const dataDir = env["AGENTMEMORY_DATA_DIR"];
-	if (!dataDir) return null;
-	const path = join(dataDir, "secret");
-	return path === secretFilePath() ? null : path;
+	if (!dataDir) return [];
+	const paths = [
+		join(dataDir, "secret"),
+		join(dataDir, ".hmac"),
+		join(dataDir, "..", ".hmac")
+	];
+	return [...new Set(paths.filter((path) => path !== secretFilePath()))];
 }
 function readStoredSecret(env = process.env) {
 	const canonicalPath = canonicalSecretPath();
 	const localPath = secretFilePath();
-	const legacyPath = legacyDataDirSecretPath(env);
-	return readSecretFile(canonicalPath) || (localPath === canonicalPath ? "" : readSecretFile(localPath)) || (legacyPath && legacyPath !== canonicalPath && legacyPath !== localPath ? readSecretFile(legacyPath) : "");
+	const legacyPaths = legacyDataDirSecretPaths(env);
+	return readSecretFile(canonicalPath) || (localPath === canonicalPath ? "" : readSecretFile(localPath)) || legacyPaths.map(readSecretFile).find(Boolean) || "";
 }
 function isLoopbackUrl(url) {
 	let hostname;
