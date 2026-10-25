@@ -80,7 +80,6 @@ import {
   engineStateConfigPaths,
 } from "./cli/engine-config.js";
 import { SHUTDOWN_HARD_EXIT_MS, registerStartupCleanup, runStartupCleanup } from "./shutdown.js";
-import { consoleArgs, defaultConsolePort, parseConsoleArgs } from "./cli/console.js";
 import { processStatIsRunning } from "./cli/process-state.js";
 import { readUnixProcessExecutable, sameResolvedExecutable } from "./cli/compose-process.js";
 import { renderSplash } from "./cli/splash.js";
@@ -212,8 +211,7 @@ Commands:
                      No arg = interactive picker. --all wires every detected agent.
                      --dry-run shows what would change. --force re-installs.
   status             Show connection status, memory count, flags, and health
-  console            Launch the iii web console for this engine (workers, functions,
-                     triggers, queues, traces). --console-port N, default viewer+1
+  console            Show migration guidance for the retired iii console
   doctor             Interactive diagnostic + fixer. [F]ix · [S]kip · [?]more · [Q]uit
                      --all: apply every fix without prompting (CI)
                      --dry-run: show what each fix would do, don't execute
@@ -1486,16 +1484,12 @@ function printReadyHint(): void {
   const viewerUrl = getViewerUrl();
   const engineUrl = process.env["III_ENGINE_URL"] || `ws://localhost:${getEnginePort()}`;
   const invocation = isInvokedViaNpx() ? "npx @agentmemory/agentmemory" : "agentmemory";
-  const consolePort = defaultConsolePort(getConfiguredViewerPort());
   const portFlags = portFlagSuffix(getRestPort(), selectedInstance);
-
-  const consoleLine = `${c.label("iii console")}  ${c.cmd(`${invocation} console${portFlags}`)}  ${c.dim(`(serves on :${consolePort}; first run downloads the console next to the pinned iii)`)}`;
 
   const lines = [
     `${c.label("REST API")}     ${c.url(restUrl)}`,
     `${c.label("Viewer")}       ${c.url(viewerUrl)}`,
     `${c.label("Engine")}       ${c.url(engineUrl)}`,
-    consoleLine,
   ];
   // p.note renders a bordered panel with a title — same affordance
   // used elsewhere in this CLI for "Troubleshooting" / "Setup
@@ -3590,63 +3584,13 @@ async function runRemove(): Promise<void> {
 }
 
 async function runConsole(): Promise<void> {
-  const iiiBin = pickCompatibleIii([
-    whichBinary("iii"),
-    ...fallbackIiiPaths().filter((candidate) => existsSync(candidate)),
-  ]);
-  if (!iiiBin) {
-    p.log.error(
-      `No iii v${IIPINNED_VERSION} found. Start agentmemory once so it installs the pinned engine into ${privateIiiPath()}, then run this again.`,
-    );
-    process.exit(1);
-  }
-  let parsed: ReturnType<typeof parseConsoleArgs>;
-  try {
-    parsed = parseConsoleArgs(
-      args.slice(1),
-      defaultConsolePort(getConfiguredViewerPort()),
-    );
-  } catch (err) {
-    p.log.error(err instanceof Error ? err.message : String(err));
-    process.exit(1);
-  }
-  const launch = {
-    iiiBin,
-    consolePort: parsed.consolePort,
-    restPort: getRestPort(),
-    enginePort: getEnginePort(),
-    extraArgs: parsed.extraArgs,
-  };
-  if (!(await isEngineRunning())) {
-    p.log.warn(
-      `No engine responding on port ${launch.restPort}. The console starts anyway and connects once agentmemory is up.`,
-    );
-  }
-  p.log.info(
-    `iii console: http://127.0.0.1:${launch.consolePort} (engine REST ${launch.restPort}, bridge ${launch.enginePort}). The first run downloads the console binary next to the pinned iii.`,
-  );
-  const child = spawn(iiiBin, consoleArgs(launch), {
-    stdio: "inherit",
-    detached: true,
-  });
-  const forward = (signal: NodeJS.Signals): void => {
-    try {
-      process.kill(-child.pid!, signal);
-    } catch {
-      child.kill(signal);
-    }
-  };
-  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
-    process.on(signal, () => forward(signal));
-  }
-  const code = await new Promise<number>((resolve) => {
-    child.on("exit", (status, signal) => resolve(status ?? (signal ? 1 : 0)));
-    child.on("error", (err) => {
-      p.log.error(err.message);
-      resolve(1);
-    });
-  });
-  process.exit(code);
+  await discoverViewerPort();
+  p.log.warn("iii 0.25 retired the bundled engine console; --console-port and console launch flags no longer apply.");
+  p.note([
+    `AgentMemory viewer: ${getViewerUrl()} (start agentmemory first if it is offline).`,
+    "Use agentmemory status for runtime health and worker status.",
+    "Engine console migration: https://github.com/iii-hq/iii/blob/iii/v0.25.0/docs/using-iii/console.mdx",
+  ].join("\n"), "Console migration");
 }
 
 async function runCapture(): Promise<void> {

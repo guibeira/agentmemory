@@ -100,7 +100,7 @@
 
 - Node.js 20 以降(npm と npx を含む。`node -v`、`npm -v`、`npx -v` で確認)。
 - macOS/Linux での iii-engine 自動インストールには `curl`、POSIX 準拠の `sh`、`tar` も必要です。`node:20-slim` のような最小構成のイメージには含まれていないことがあります。
-- ネイティブ Windows では、ピン留めされた iii-engine v0.24.6 の `iii.exe` を手動でインストールする必要があります。WSL2 では Linux と同じ自動インストール経路を使います。
+- ネイティブ Windows では、ピン留めされた iii-engine v0.25.0 の `iii.exe` を手動でインストールする必要があります。WSL2 では Linux と同じ自動インストール経路を使います。
 
 標準的な新規インストールコマンド:
 
@@ -132,7 +132,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-最も簡単なのは WSL2 です。ネイティブ Windows ではピン留めされた v0.24.6 の ZIP をダウンロードし、`iii.exe` を手動で展開します。手順は[Windows の注意事項](#windows)を参照してください。
+最も簡単なのは WSL2 です。ネイティブ Windows ではピン留めされた v0.25.0 の ZIP をダウンロードし、`iii.exe` を手動で展開します。手順は[Windows の注意事項](#windows)を参照してください。
 
 </details>
 
@@ -157,7 +157,7 @@ npx はバージョン単位でキャッシュします。`npx -y @agentmemory/a
 <details>
 <summary><strong>自前の iii エンジンを既に動かしている</strong></summary>
 
-agentmemory は iii 0.24.6 にピン留めされており、異なるバージョンには接続しません(worker は別のエンジンのプロトコルを話せません)。他のエンジンを停止してから `npx -y @agentmemory/agentmemory@latest` を実行してください。CLI は専用のピン留め済みエンジンを `~/.agentmemory/bin` にインストールして実行し、ユーザー自身の `iii` には触れません。
+agentmemory は iii 0.25.0 にピン留めされており、異なるバージョンには接続しません(worker は別のエンジンのプロトコルを話せません)。他のエンジンを停止してから `npx -y @agentmemory/agentmemory@latest` を実行してください。CLI は専用のピン留め済みエンジンを `~/.agentmemory/bin` にインストールして実行し、ユーザー自身の `iii` には触れません。
 
 </details>
 
@@ -556,7 +556,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Quick Start" height="32" /></picture></h2>
 
-互換性: このリリースは iii 0.24.6 と、レジストリ worker の state 0.22.20 および http 0.22.7 を対象としています。
+互換性: このリリースは iii 0.25.0 と、レジストリ worker の state 0.22.20 および http 0.22.7 を対象としています。
 
 ### 30 秒で試す
 
@@ -635,7 +635,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-proje
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-警告: このコマンドは現在のワークスペース/ランタイムを変更します。JavaScript 依存関係を更新し、ピン留めされた iii 0.24.6 エンジンバイナリをインストールする場合があります。
+警告: このコマンドは現在のワークスペース/ランタイムを変更します。JavaScript 依存関係を更新し、ピン留めされた iii 0.25.0 エンジンバイナリをインストールする場合があります。
 
 実装の詳細は `src/cli.ts` を参照してください(`src/cli.ts:544-595` 付近の `runUpgrade`)。
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` は CLI と同じ iii Worker Compose ランタイムを起動します: iii 0.24.6 と、レジストリ worker の state 0.22.20 および http 0.22.7 を使用します。macOS/Linux では CLI がピン留め済みエンジンバイナリを `~/.agentmemory/bin` にダウンロードします。自動インストールには `curl`、POSIX `sh`、`tar` が必要です。ローカル REST とビューワーの listener は `127.0.0.1` に bind します。ビューワーの更新は REST ポートの `GET /agentmemory/viewer/events` で SSE により届きます。`/agentmemory/status` はピン留めされたエンジンバージョンを `enginePinnedVersion` として返します。サポート対象のデフォルトは iii 0.24.6 です。意図的な上書きには `AGENTMEMORY_III_VERSION` を使用できます。
+`npm start` は CLI と同じ iii Worker Compose ランタイムを起動します: iii 0.25.0 と、レジストリ worker の state 0.22.20 および http 0.22.7 を使用します。macOS/Linux では CLI がピン留め済みエンジンバイナリを `~/.agentmemory/bin` にダウンロードします。自動インストールには `curl`、POSIX `sh`、`tar` が必要です。ローカル REST とビューワーの listener は `127.0.0.1` に bind します。ビューワーの更新は REST ポートの `GET /agentmemory/viewer/events` で SSE により届きます。`/agentmemory/status` はピン留めされたエンジンバージョンを `enginePinnedVersion` として返します。サポート対象のデフォルトは iii 0.25.0 です。意図的な上書きには `AGENTMEMORY_III_VERSION` を使用できます。
 
 ### Windows
 
-agentmemory は Windows 10/11 で動作します。WSL2 は Linux の経路に従い、ピン留めされたエンジンを自動インストールできます。ネイティブ Windows では、ピン留めされた iii-engine v0.24.6 バイナリを手動でインストールしてください。[iii v0.24.6 リリースページ](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6)から該当アーカイブをダウンロードして checksum を確認し、`iii.exe` を `PATH` に配置します(例: `%USERPROFILE%\.local\bin\iii.exe`)。CLI は Windows ZIP を自動展開しません。
+agentmemory は Windows 10/11 で動作します。WSL2 は Linux の経路に従い、ピン留めされたエンジンを自動インストールできます。ネイティブ Windows では、ピン留めされた iii-engine v0.25.0 バイナリを手動でインストールしてください。[iii v0.25.0 リリースページ](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0)から該当アーカイブをダウンロードして checksum を確認し、`iii.exe` を `PATH` に配置します(例: `%USERPROFILE%\.local\bin\iii.exe`)。CLI は Windows ZIP を自動展開しません。
 
 ネイティブ Windows の自動 MCP 接続は `agentmemory connect copilot-cli` のみをサポートします。それ以外のネイティブ Windows エージェントには[その他のエージェント](#other-agents)の手動 MCP ブロックを使用してください。`connect` を WSL 内で実行するのは、対象エージェントも同じ WSL 環境にインストールされている場合に限ります。
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">デプロイ</h2>
 
-Docker はこのリポジトリからのセルフホストに対応しており、CLI の起動モードではありません。ワンクリックテンプレートは [`deploy/Dockerfile`](../deploy/Dockerfile) と [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使い、iii 0.24.6 ランタイムを固定し、状態、トレース、生成された secret を永続 `/data` ボリュームに保存します。Docker Compose はデフォルトで名前付きボリューム `iii-data` を使います。bind mount には `AGENTMEMORY_DATA_DIR` にホストパスを設定してください。0.22.1 からの既存のファイルベース store は、移行や変換なしで `/data/state_store.db` から直接読み込まれます。REST CORS はデフォルトでローカル REST と viewer の origin を許可します。信頼するブラウザー origin を追加するには、カンマ区切りの正確な origin を `REST_ALLOWED_ORIGINS` に設定してください。設定とセキュリティについては [`deploy/README.md`](../deploy/README.md) を参照してください。
+Docker はこのリポジトリからのセルフホストに対応しており、CLI の起動モードではありません。ワンクリックテンプレートは [`deploy/Dockerfile`](../deploy/Dockerfile) と [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使い、iii 0.25.0 ランタイムを固定し、状態、トレース、生成された secret を永続 `/data` ボリュームに保存します。Docker Compose はデフォルトで名前付きボリューム `iii-data` を使います。bind mount には `AGENTMEMORY_DATA_DIR` にホストパスを設定してください。0.22.1 からの既存のファイルベース store は、移行や変換なしで `/data/state_store.db` から直接読み込まれます。REST CORS はデフォルトでローカル REST と viewer の origin を許可します。信頼するブラウザー origin を追加するには、カンマ区切りの正確な origin を `REST_ALLOWED_ORIGINS` に設定してください。設定とセキュリティについては [`deploy/README.md`](../deploy/README.md) を参照してください。
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1226,61 +1226,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113` のビューワーはエージェントが**覚えたこと**を表示します。[iii コンソール](https://iii.dev/docs/console)はエージェントが**行ったこと**を表示します。メモリ操作の OpenTelemetry trace、編集可能な KV entry、実行可能な function、エンジン channel のアクティビティを確認できます。
+iii 0.25 では同梱コンソールが廃止されました。`agentmemory console` は移行手順を表示します。AgentMemory ビューアーは引き続きポート 3113 で利用できます。状態は `agentmemory status` で確認してください。
 
-`memory_smart_search` の発火を眺め、BM25 スキャン → 埋め込み参照 → RRF 融合 → リランカーをウォーターフォールで見ます。KV ブラウザで詰まった統合タイマーを編集します。調整したペイロードで `PostToolUse` hook を再生します。WebSocket ストリームをピンして観測がライブで着地するのを眺めます。
-
-agentmemory はこれを無料で提供します。すべての function 呼び出しとトリガーが iii を通って発火するからです。カスタム実装も計装も不要です。
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii console Workers page: connected workers including agentmemory instances with live function counts and runtime metadata" width="720" />
-  <br/>
-  <em>Workers ページ: agentmemory 自身を含む、接続中のすべての worker と PID、function 数、ランタイム、最終応答時刻。</em>
-</p>
-
-**インストール済みです。** コンソールはピン留めされた `iii` エンジン(0.24.6)に同梱されており、別途インストールするものはありません。初回起動時に、エンジンの隣にコンソールのバイナリがダウンロードされます。
-
-**agentmemory と並行して起動:**
-
-```bash
-agentmemory console
-```
-
-これは、ピン留めされたエンジンの `iii console` を agentmemory が解決したポート(REST、ストリーム、bridge)に対して実行し、ビューワーより 1 つ上のポート、デフォルトでは `http://localhost:3114` で提供します。`--console-port N` で別のポートを選べます。`--port` と `--instance` は、`stop` のときと同じ方法で agentmemory のインスタンスを選択します。その他のフラグはそのまま渡されます。例えば、実験的なアーキテクチャグラフページ用の `--enable-flow` です。
-
-PATH に `agentmemory` が通っていない場合に便利な、手動での同じ操作:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**コンソールでできること:**
-
-| ページ | 用途 |
-|------|-----------|
-| **Workers** | agentmemory worker 自身を含む、接続中の各 worker とライブメトリクスを表示。 |
-| **Functions** | JSON ペイロードを与えて agentmemory の任意の function を直接呼び出せます。クライアントを配線せずに `memory.recall`、`memory.consolidate`、`graph.query` をテストできて便利です。 |
-| **Triggers** | HTTP、cron、イベント、ステートのトリガーを再生します: 統合 cron を手動で発火、HTTP ルートを再試行、ステート変更を発行。 |
-| **States** | セッション、メモリスロット、ライフサイクルタイマー、埋め込みインデックスに対するフル CRUD の KV ブラウザ。値をその場で編集できます。 |
-
-| **Traces** | OpenTelemetry のウォーターフォール / フレーム / サービスブレークダウンのビュー。`trace_id` でフィルタすれば、単一の `memory.search` がどの function、DB 呼び出し、埋め込みリクエストを生んだか正確にわかります。 |
-| **Logs** | trace/span ID に絞り込み・関連付けされた構造化 OTEL ログ。 |
-| **Config** | ランタイム設定: エンジンがどの worker、プロバイダー、ポートで動いているかを正確に確認できます。 |
-| **Flow** | (オプション、`--enable-flow`)各 worker、トリガー、ストリームの対話型アーキテクチャグラフ。 |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall view showing per-span duration" width="720" />
-  <br/>
-  <em>Traces: すべてのメモリ操作についてのウォーターフォール / フレーム / サービスブレークダウン。</em>
-</p>
-
-**Traces は既にオンです:**
-
-**トレースとログ:** iii コンソールでランタイムのテレメトリを確認できます。exporter と sampling の設定は [iii observability ドキュメント](https://iii.dev/docs)を参照してください。
-
-
-
-> **注意:** コンソール自体には認証が強制されていません。デフォルトの `127.0.0.1` バインドのままにし、決して公開しないでください。
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1295,11 +1243,13 @@ agentmemory は [iii](https://iii.dev) ランタイム上の worker です。Wor
 ランタイムはレジストリの `state` (KV) と `http` worker を agentmemory と組み合わせます。[iii レジストリ](https://workers.iii.dev)の他の worker も Worker Compose プロジェクトに追加できます。
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | agentmemory の上に得られるもの |
@@ -1314,7 +1264,7 @@ workers:
 
 ### CLI ランタイムと bind アドレス
 
-`agentmemory`(またはサブコマンドなしのパッケージ)を実行すると、選択したデータディレクトリ内の独立 manifest で iii Worker Compose が起動します。iii 0.24.6、`state@0.22.20`、`http@0.22.7` を使用します。CLI のローカル REST と viewer listener は `127.0.0.1` に bind し、エンジン WebSocket はランタイム内部通信です。リポジトリベースの Docker デプロイでは別の [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使います。詳細は [`deploy/README.md`](../deploy/README.md) を参照してください。
+`agentmemory`(またはサブコマンドなしのパッケージ)を実行すると、選択したデータディレクトリ内の独立 manifest で iii Worker Compose が起動します。iii 0.25.0、`state@0.22.20`、`http@0.22.7` を使用します。CLI のローカル REST と viewer listener は `127.0.0.1` に bind し、エンジン WebSocket はランタイム内部通信です。リポジトリベースの Docker デプロイでは別の [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) を使います。詳細は [`deploy/README.md`](../deploy/README.md) を参照してください。
 
 ### ストレージ backend: file (デフォルト) と Redis
 
@@ -1389,7 +1339,7 @@ fi
 | Prometheus / Grafana | iii OTEL + ヘルスモニタ |
 | カスタムプラグインシステム | `iii worker add <name>` |
 
-**246 ソースファイル · ~56,000 LOC · 3,800+ テスト · 322 functions · 65 KV スコープ** — すべて 3 つのプリミティブ上に。`agentmemory plugin install` はありません。プラグインシステムは iii そのものです。
+**245 ソースファイル · ~56,000 LOC · 3,800+ テスト · 322 functions · 65 KV スコープ** — すべて 3 つのプリミティブ上に。`agentmemory plugin install` はありません。プラグインシステムは iii そのものです。
 
 ---
 

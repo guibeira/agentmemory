@@ -100,7 +100,7 @@
 
 - Node.js 20 或更新版本,並具備 npm 和 npx(`node -v`、`npm -v` 和 `npx -v`)。
 - macOS/Linux 的自動 iii-engine 安裝還需要 `curl`、POSIX `sh` 和 `tar`。像 `node:20-slim` 這類最小化映像檔可能不包含它們。
-原生 Windows 必須手動安裝釘選的 iii v0.24.6 `iii.exe`；WSL2 使用 macOS/Linux 自動安裝程式
+原生 Windows 必須手動安裝釘選的 iii v0.25.0 `iii.exe`；WSL2 使用 macOS/Linux 自動安裝程式
 
 標準全新安裝指令:
 
@@ -132,7 +132,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-最快的方式是 WSL2；原生 Windows 必須手動安裝 v0.24.6 執行檔。步驟請見 [Windows 說明](#windows)
+最快的方式是 WSL2；原生 Windows 必須手動安裝 v0.25.0 執行檔。步驟請見 [Windows 說明](#windows)
 
 </details>
 
@@ -157,7 +157,7 @@ npx 會依版本快取。用 `npx -y @agentmemory/agentmemory@latest` 強制使�
 <details>
 <summary><strong>已經在執行你自己的 iii engine</strong></summary>
 
-相容性：iii 0.24.6，以及 registry worker `state` 0.22.20 和 `http` 0.22.7
+相容性：iii 0.25.0，以及 registry worker `state` 0.22.20 和 `http` 0.22.7
 
 </details>
 
@@ -556,7 +556,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Quick Start" height="32" /></picture></h2>
 
-相容性：iii 0.24.6，以及 registry worker `state` 0.22.20 和 `http` 0.22.7
+相容性：iii 0.25.0，以及 registry worker `state` 0.22.20 和 `http` 0.22.7
 
 ### 30 秒內試用
 
@@ -635,7 +635,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-proje
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-警告：此指令會變更目前的 workspace/runtime，可能更新 JavaScript 相依套件並安裝釘選的 iii 0.24.6 engine 執行檔。
+警告：此指令會變更目前的 workspace/runtime，可能更新 JavaScript 相依套件並安裝釘選的 iii 0.25.0 engine 執行檔。
 
 實作細節位於 `src/cli.ts`(參見 `src/cli.ts:544-595` 附近的 `runUpgrade`)。
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` 會啟動與 CLI 相同的 iii Worker Compose：iii 0.24.6、`state@0.22.20` 和 `http@0.22.7`。macOS/Linux 上 CLI 會將 engine 下載到 `~/.agentmemory/bin`；自動安裝需要 `curl`、POSIX `sh` 和 `tar`。本機 REST 和檢視器綁定 `127.0.0.1`，更新透過 REST SSE 傳送。`/agentmemory/status` 回報 `enginePinnedVersion`；可用 `AGENTMEMORY_III_VERSION` 覆寫 pin
+`npm start` 會啟動與 CLI 相同的 iii Worker Compose：iii 0.25.0、`state@0.22.20` 和 `http@0.22.7`。macOS/Linux 上 CLI 會將 engine 下載到 `~/.agentmemory/bin`；自動安裝需要 `curl`、POSIX `sh` 和 `tar`。本機 REST 和檢視器綁定 `127.0.0.1`，更新透過 REST SSE 傳送。`/agentmemory/status` 回報 `enginePinnedVersion`；可用 `AGENTMEMORY_III_VERSION` 覆寫 pin
 
 ### Windows
 
-agentmemory 可在 Windows 10/11 執行；WSL2 可依 Linux 流程自動安裝 engine。原生 Windows 需手動安裝 iii-engine v0.24.6：從 [iii v0.24.6 發行頁面](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6) 下載相符封存檔、驗證 checksum，並將 `iii.exe` 放入 `PATH`。CLI 不會自動解壓 ZIP
+agentmemory 可在 Windows 10/11 執行；WSL2 可依 Linux 流程自動安裝 engine。原生 Windows 需手動安裝 iii-engine v0.25.0：從 [iii v0.25.0 發行頁面](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0) 下載相符封存檔、驗證 checksum，並將 `iii.exe` 放入 `PATH`。CLI 不會自動解壓 ZIP
 
 原生 Windows 僅支援 `agentmemory connect copilot-cli` 自動設定 MCP；其他 agent 請使用 [Other agents](#other-agents) 的手動設定。只有目標 agent 也安裝在相同 WSL 環境時，才在 WSL 執行 `connect`
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">部署</h2>
 
-Docker 支援從此 repository 自行託管，不是 CLI 啟動模式。使用 [`../deploy/Dockerfile`](../deploy/Dockerfile) 和 [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) 執行 iii 0.24.6；state、traces 和 secret 儲存在持久化 `/data` volume。預設 named volume 為 `iii-data`；將 `AGENTMEMORY_DATA_DIR` 設為 host 路徑即可使用 bind mount。0.22.1 檔案式儲存可直接從 `/data/state_store.db` 讀取，無需遷移。REST CORS 預設允許本機 origin；透過 `REST_ALLOWED_ORIGINS` 加入可信 origin。詳情請見 [`../deploy/README.md`](../deploy/README.md)。
+Docker 支援從此 repository 自行託管，不是 CLI 啟動模式。使用 [`../deploy/Dockerfile`](../deploy/Dockerfile) 和 [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) 執行 iii 0.25.0；state、traces 和 secret 儲存在持久化 `/data` volume。預設 named volume 為 `iii-data`；將 `AGENTMEMORY_DATA_DIR` 設為 host 路徑即可使用 bind mount。0.22.1 檔案式儲存可直接從 `/data/state_store.db` 讀取，無需遷移。REST CORS 預設允許本機 origin；透過 `REST_ALLOWED_ORIGINS` 加入可信 origin。詳情請見 [`../deploy/README.md`](../deploy/README.md)。
 
 
 <p>
@@ -1222,60 +1222,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-:3113 上的檢視器展示你的代理**記住了什麼**。[iii console](https://iii.dev/docs/console) 展示你的代理**做了什麼**:每個記憶操作都是一個 OpenTelemetry trace,每個 KV 條目都可編輯,每個函式都可呼叫,每個串流都可掛接監看。同一份記憶的兩個視窗:一個以產品為形,一個以引擎為形。
+iii 0.25 已移除內建主控台。`agentmemory console` 現在顯示遷移說明。AgentMemory 檢視器仍在連接埠 3113 提供服務；使用 `agentmemory status` 檢查執行狀態。
 
-觀察一次 `memory_smart_search` 的觸發,以瀑布圖的形式看到 BM25 掃描 → 嵌入查找 → RRF 融合 → 重新排序器。在 KV 瀏覽器中編輯卡住的整合計時器。用調整過的負載重播一個 `PostToolUse` hook。釘選 WebSocket 串流,即時觀察觀測資料落地。
-
-agentmemory 免費提供這一切,因為每個函式呼叫和觸發器都經由 iii 觸發;沒有自訂內容,也沒有需要插樁的地方。
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii console Workers 頁面:已連接的 workers,包括 agentmemory 實例,顯示即時函式數與執行階段元資料" width="720" />
-  <br/>
-  <em>Workers 頁面:每個已連接的 worker,包括 agentmemory 本身,顯示 PID、函式數、執行階段和最後上線時間。</em>
-</p>
-
-**已經內建安裝。** 主控台隨釘住版本的 iii engine(0.22+)一起提供;不需要另外安裝。第一次啟動會在引擎旁邊下載主控台執行檔。
-
-**與 agentmemory 一起啟動:**
-
-```bash
-agentmemory console
-```
-
-這會針對 agentmemory 解析出的連接埠(REST、串流、橋接)執行釘住版本引擎的 `iii console`,並在檢視器連接埠之上一個連接埠提供服務,預設為 `http://localhost:3114`。`--console-port N` 可選用另一個連接埠;`--port` 和 `--instance` 會以和 `stop` 相同的方式選取 agentmemory 實例;任何其他旗標都會被原樣傳遞,例如 `--enable-flow` 用於實驗性的架構圖頁面。
-
-手動執行同樣的事情,在 `agentmemory` 不在 PATH 中時很有用:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**你可以在主控台中做的事:**
-
-| 頁面 | 用途 |
-|------|-----------|
-| **Workers** | 查看每個已連接的 worker 及其即時指標,包括 agentmemory worker 本身。 |
-| **Functions** | 直接以 JSON 負載呼叫 agentmemory 的任何函式;方便測試 `memory.recall`、`memory.consolidate`、`graph.query`,不需要接入用戶端。 |
-| **Triggers** | 重播 HTTP、cron、事件和狀態觸發器:手動觸發整合 cron、重試某個 HTTP 路由、發出狀態變更。 |
-| **States** | KV 瀏覽器,對會話、記憶槽位、生命週期計時器和嵌入索引提供完整的 CRUD;可就地編輯值。 |
-| **Queues** | 持久化佇列主題 + dead-letter 管理。重播或捨棄失敗的嵌入 / 壓縮工作。 |
-| **Traces** | OpenTelemetry 瀑布圖 / 火焰圖 / 服務分解視圖。依 `trace_id` 過濾,精確查看單次 `memory.search` 產生了哪些函式、DB 呼叫和嵌入請求。 |
-| **Logs** | 結構化的 OTEL 日誌,已與 trace/span ID 過濾並關聯。 |
-| **Config** | 執行階段設定:精確查看你的引擎目前使用哪些 workers、提供者和連接埠。 |
-| **Flow** | (選用,`--enable-flow`)每個 worker、觸發器和串流的互動式架構圖。 |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace 瀑布圖視圖,顯示每個 span 的耗時" width="720" />
-  <br/>
-  <em>Traces:每個記憶操作的瀑布圖 / 火焰圖 / 服務分解視圖。</em>
-</p>
-
-**Traces 預設已開啟:**
-
-**Tracing 與日誌：** 使用 iii console 檢視執行階段 telemetry。Exporter 和 sampling 設定請參閱 [iii observability 文件](https://iii.dev/docs)。
-
-
-> **提醒:** 主控台本身不強制要求驗證;請讓它維持綁定在 `127.0.0.1`(預設值),絕對不要公開曝露它。
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1292,11 +1241,13 @@ agentmemory 是 [iii](https://iii.dev) runtime 上的 worker。Worker Compose �
 
 執行階段將 agentmemory 與 registry `state`（KV）和 `http` worker 組合；也可把 [iii registry](https://workers.iii.dev) 的其他 worker 加入 Worker Compose 專案。
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | 在 agentmemory 之上多得到什麼 |
@@ -1311,7 +1262,7 @@ workers:
 CLI 產生的 Worker Compose 專案釘選 registry package `state@0.22.20` 和 `http@0.22.7`。
 ### CLI 執行階段與綁定位址
 
-執行 `agentmemory` 會在選取的資料目錄中以獨立 manifest 啟動 iii Worker Compose：iii 0.24.6、`state@0.22.20`、`http@0.22.7`。本機 REST 和檢視器綁定 `127.0.0.1`；engine WebSocket 是內部流量。Repository Docker 部署使用 [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)，詳見 [`../deploy/README.md`](../deploy/README.md)。
+執行 `agentmemory` 會在選取的資料目錄中以獨立 manifest 啟動 iii Worker Compose：iii 0.25.0、`state@0.22.20`、`http@0.22.7`。本機 REST 和檢視器綁定 `127.0.0.1`；engine WebSocket 是內部流量。Repository Docker 部署使用 [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)，詳見 [`../deploy/README.md`](../deploy/README.md)。
 
 ### 儲存後端:file(預設)對比 redis
 
@@ -1379,7 +1330,7 @@ fi
 | Prometheus / Grafana | iii OTEL + 健康監控 |
 | 自訂外掛系統 | `iii worker add <name>` |
 
-**246 個原始檔 · ~56,000 行程式碼 · 3,800+ 測試 · 322 個函式 · 65 個 KV 範圍**,全部基於三種原語。沒有 `agentmemory plugin install`。外掛系統就是 iii 本身。
+**245 個原始檔 · ~56,000 行程式碼 · 3,800+ 測試 · 322 個函式 · 65 個 KV 範圍**,全部基於三種原語。沒有 `agentmemory plugin install`。外掛系統就是 iii 本身。
 
 ---
 

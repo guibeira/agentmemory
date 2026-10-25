@@ -100,7 +100,7 @@ Vaatimukset:
 
 - Node.js 20 tai uudempi, mukana npm ja npx (`node -v`, `npm -v` ja `npx -v`).
 - macOS/Linux-automaattiasennus iii-moottorille vaatii lisäksi `curl`:n, POSIX-yhteensopivan `sh`:n ja `tar`:n. Minimaaliset levykuvat kuten `node:20-slim` eivät välttämättä sisällä niitä.
-- Natiivi Windows vaatii kiinnitetyn iii-engine v0.24.6:n `iii.exe`-tiedoston asentamista käsin; WSL2 käyttää macOS/Linux-automaattiasennusta.
+- Natiivi Windows vaatii kiinnitetyn iii-engine v0.25.0:n `iii.exe`-tiedoston asentamista käsin; WSL2 käyttää macOS/Linux-automaattiasennusta.
 
 Kanoninen tuore asennuskomento:
 
@@ -132,7 +132,7 @@ Kytke lisää agentteja milloin tahansa komennolla `agentmemory connect <agent>`
 <details>
 <summary><strong>Windows</strong></summary>
 
-Nopea reitti on WSL2. Natiivi Windows vaatii kiinnitetyn v0.24.6-ZIP-paketin lataamisen ja `iii.exe`-tiedoston purkamisen käsin. Katso vaiheet kohdasta [Windows](#windows).
+Nopea reitti on WSL2. Natiivi Windows vaatii kiinnitetyn v0.25.0-ZIP-paketin lataamisen ja `iii.exe`-tiedoston purkamisen käsin. Katso vaiheet kohdasta [Windows](#windows).
 
 </details>
 
@@ -157,7 +157,7 @@ npx käyttää välimuistia versioittain. Pakota uusin versio komennolla `npx -y
 <details>
 <summary><strong>Oma iii-moottori on jo käynnissä</strong></summary>
 
-agentmemory kiinnittää iii-engine-version v0.24.6 eikä yhdistä toiseen versioon (worker ei osaa puhua toisen moottorin protokollaa). Pysäytä toinen moottori ja suorita `npx -y @agentmemory/agentmemory@latest`. Se asentaa ja käynnistää kiinnitetyn v0.24.6-version polussa `~/.agentmemory/bin` ja jättää oman `iii`-asennuksesi koskemattomaksi.
+agentmemory kiinnittää iii-engine-version v0.25.0 eikä yhdistä toiseen versioon (worker ei osaa puhua toisen moottorin protokollaa). Pysäytä toinen moottori ja suorita `npx -y @agentmemory/agentmemory@latest`. Se asentaa ja käynnistää kiinnitetyn v0.25.0-version polussa `~/.agentmemory/bin` ja jättää oman `iii`-asennuksesi koskemattomaksi.
 
 </details>
 
@@ -556,7 +556,7 @@ Mikään näistä ei tallenna automaattisesti koodausagenttien hookeista, toimit
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Pika-aloitus" height="32" /></picture></h2>
 
-Yhteensopivuus: tämä julkaisu käyttää iii 0.24.6:ta sekä rekisterin workereita state 0.22.20 ja http 0.22.7.
+Yhteensopivuus: tämä julkaisu käyttää iii 0.25.0:ta sekä rekisterin workereita state 0.22.20 ja http 0.22.7.
 
 ### Kokeile 30 sekunnissa
 
@@ -635,7 +635,7 @@ Käytä ylläpitokomentoa, kun haluat tarkoituksella päivittää paikallisen aj
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Varoitus: tämä komento muuttaa nykyistä työtilaa/ajonaikaista ympäristöä. Se voi päivittää JavaScript-riippuvuuksia ja asentaa iii 0.24.6:n kiinnitetyn moottoribinäärin.
+Varoitus: tämä komento muuttaa nykyistä työtilaa/ajonaikaista ympäristöä. Se voi päivittää JavaScript-riippuvuuksia ja asentaa iii 0.25.0:n kiinnitetyn moottoribinäärin.
 
 Toteutuksen yksityiskohdat löytyvät tiedostosta `src/cli.ts` (katso `runUpgrade` alueen `src/cli.ts:544-595` kohdalla).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` käynnistää saman iii Worker Compose -ajoympäristön kuin CLI: iii 0.24.6:n sekä rekisterin workerit `state@0.22.20` ja `http@0.22.7`. macOS/Linux-järjestelmissä CLI lataa kiinnitetyn moottoribinäärin polkuun `~/.agentmemory/bin`; automaattinen asennus vaatii `curl`:n, POSIX-yhteensopivan `sh`:n ja `tar`:n. Paikalliset REST- ja katseluohjelmakuuntelijat sitoutuvat osoitteeseen `127.0.0.1`. Katseluohjelman päivitykset kulkevat SSE:nä REST-portissa osoitteessa `GET /agentmemory/viewer/events`. `/agentmemory/status` ilmoittaa moottorin kiinnitetyn version kentässä `enginePinnedVersion`; tuettu oletusversio on iii 0.24.6. `AGENTMEMORY_III_VERSION`-muuttujalla voi halutessaan ohittaa version.
+`npm start` käynnistää saman iii Worker Compose -ajoympäristön kuin CLI: iii 0.25.0:n sekä rekisterin workerit `state@0.22.20` ja `http@0.22.7`. macOS/Linux-järjestelmissä CLI lataa kiinnitetyn moottoribinäärin polkuun `~/.agentmemory/bin`; automaattinen asennus vaatii `curl`:n, POSIX-yhteensopivan `sh`:n ja `tar`:n. Paikalliset REST- ja katseluohjelmakuuntelijat sitoutuvat osoitteeseen `127.0.0.1`. Katseluohjelman päivitykset kulkevat SSE:nä REST-portissa osoitteessa `GET /agentmemory/viewer/events`. `/agentmemory/status` ilmoittaa moottorin kiinnitetyn version kentässä `enginePinnedVersion`; tuettu oletusversio on iii 0.25.0. `AGENTMEMORY_III_VERSION`-muuttujalla voi halutessaan ohittaa version.
 
 ### Windows
 
-agentmemory toimii Windows 10/11:ssä. WSL2 noudattaa Linuxin polkua ja voi asentaa kiinnitetyn moottorin automaattisesti. Natiivi Windows vaatii iii-engine v0.24.6:n kiinnitetyn binäärin asentamisen käsin; lataa sopiva paketti [iii v0.24.6 -julkaisusivulta](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), tarkista sen tarkistussumma ja sijoita `iii.exe` `PATH`-polkuun (esimerkiksi `%USERPROFILE%\.local\bin\iii.exe`). CLI ei pura Windows-ZIP-pakettia automaattisesti.
+agentmemory toimii Windows 10/11:ssä. WSL2 noudattaa Linuxin polkua ja voi asentaa kiinnitetyn moottorin automaattisesti. Natiivi Windows vaatii iii-engine v0.25.0:n kiinnitetyn binäärin asentamisen käsin; lataa sopiva paketti [iii v0.25.0 -julkaisusivulta](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), tarkista sen tarkistussumma ja sijoita `iii.exe` `PATH`-polkuun (esimerkiksi `%USERPROFILE%\.local\bin\iii.exe`). CLI ei pura Windows-ZIP-pakettia automaattisesti.
 
 Natiivin Windowsin automaattinen MCP-kytkentä tukee vain komentoa `agentmemory connect copilot-cli`. Muiden natiivien Windows-agenttien kanssa käytä manuaalista MCP-lohkoa kohdasta [Muut agentit](#other-agents). Suorita `connect` WSL:ssä vain, kun kohdeagentti on asennettu samaan WSL-ympäristöön.
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Käyttöönotto</h2>
 
-Dockeria tuetaan itse ylläpidettävään käyttöönottoon tästä repositoriosta, ei CLI:n käynnistystilana. Yhden napsautuksen mallipohjat käyttävät tiedostoja [`deploy/Dockerfile`](../deploy/Dockerfile) ja [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), kiinnittävät saman iii 0.24.6 -ajoympäristön ja tallentavat tilan, jäljitykset sekä luodun salaisuuden pysyvään `/data`-taltioon. Docker Compose käyttää oletuksena olemassa olevaa nimettyä `iii-data`-taltioita; aseta `AGENTMEMORY_DATA_DIR` isäntäkoneen polkuun, jos haluat käyttää bind-liitosta. Olemassa oleva tiedostopohjainen tallennus (0.22.1:n tiedostomuodossa) luetaan suoraan polusta `/data/state_store.db` ilman siirtoa tai muunnosta. REST CORS sallii oletuksena paikalliset REST- ja katseluohjelmaoriginit; aseta `REST_ALLOWED_ORIGINS` pilkuilla erotelluksi luetteloksi täsmällisiä originitunnuksia, jos luotetun selaimen origin tarvitsee pääsyn. Katso käyttöönotto- ja suojaustiedot tiedostosta [`deploy/README.md`](../deploy/README.md).
+Dockeria tuetaan itse ylläpidettävään käyttöönottoon tästä repositoriosta, ei CLI:n käynnistystilana. Yhden napsautuksen mallipohjat käyttävät tiedostoja [`deploy/Dockerfile`](../deploy/Dockerfile) ja [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), kiinnittävät saman iii 0.25.0 -ajoympäristön ja tallentavat tilan, jäljitykset sekä luodun salaisuuden pysyvään `/data`-taltioon. Docker Compose käyttää oletuksena olemassa olevaa nimettyä `iii-data`-taltioita; aseta `AGENTMEMORY_DATA_DIR` isäntäkoneen polkuun, jos haluat käyttää bind-liitosta. Olemassa oleva tiedostopohjainen tallennus (0.22.1:n tiedostomuodossa) luetaan suoraan polusta `/data/state_store.db` ilman siirtoa tai muunnosta. REST CORS sallii oletuksena paikalliset REST- ja katseluohjelmaoriginit; aseta `REST_ALLOWED_ORIGINS` pilkuilla erotelluksi luetteloksi täsmällisiä originitunnuksia, jos luotetun selaimen origin tarvitsee pääsyn. Katso käyttöönotto- ja suojaustiedot tiedostosta [`deploy/README.md`](../deploy/README.md).
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Ota käyttöön fly.io:ssa" /></a>
   <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Ota käyttöön Railwayssa" /></a>
@@ -1226,55 +1226,9 @@ Katseluohjelman palvelin sitoutuu oletuksena osoitteeseen `127.0.0.1` ja liittä
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii-konsoli" height="32" /></picture></h2>
 
-Katseluohjelma portissa `:3113` näyttää, mitä agenttisi **muisti**. [iii-konsoli](https://iii.dev/docs/console) näyttää, mitä agenttisi **teki**: joka muistioperaatio OpenTelemetry-jäljityksenä, joka KV-merkintä muokattavana, joka funktio kutsuttavana. Kaksi ikkunaa samaan muistiin: yksi tuoteksikin, yksi moottoriksikin muotoiltu.
+iii 0.25 poistaa mukana toimitetun konsolin. `agentmemory console` näyttää siirtymisohjeet. AgentMemoryn katselin toimii edelleen portissa 3113; tarkista tila komennolla `agentmemory status`.
 
-Katso `memory_smart_search`-kutsun laukeavan ja näe BM25-skannaus → upotushaku → RRF-fuusio → uudelleenluokittelu vesiputousnäkymänä. Muokkaa jumittunutta konsolidointiajastinta KV-selaimessa. Toista `PostToolUse`-hook muokatulla hyötykuormalla.
-
-agentmemory toimittaa tämän ilmaiseksi, koska joka funktiokutsu ja triggeri laukeaa iii:n läpi; ei mitään mukautettua, ei mitään instrumentoitavaa.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii-konsolin Workers-sivu: yhdistetyt workerit mukaan lukien agentmemory-instanssit live-funktiolaskureilla ja ajonaikaisella metadatalla" width="720" />
-  <br/>
-  <em>Workers-sivu: joka yhdistetty worker, mukaan lukien agentmemory itse, PID:llä, funktiomäärällä, ajonaikaisella ympäristöllä ja viimeisimmällä näkymisajalla.</em>
-</p>
-
-**Jo asennettu.** Konsoli toimitetaan kiinnitetyn `iii` 0.24.6 -moottorin mukana; mitään erillistä ei tarvitse asentaa. Ensimmäinen käynnistys lataa konsolin binäärin moottorin viereen.
-
-**Käynnistä agentmemoryn rinnalla:**
-
-```bash
-agentmemory console
-```
-
-Tämä ajaa kiinnitetyn moottorin `iii console` -komennon agentmemoryn ratkaisemilla porteilla (REST ja workerien WebSocket) ja tarjoaa konsolin yhtä porttia katseluohjelman yläpuolella, oletuksena osoitteessa `http://localhost:3114`. `--console-port N` valitsee toisen portin; `--port` ja `--instance` valitsevat agentmemory-instanssin kuten `stop`-komennossa; muut liput välitetään sellaisinaan, esimerkiksi `--enable-flow` kokeellista arkkitehtuurikaaviosivua varten.
-
-Sama asia käsin, hyödyllinen kun `agentmemory` ei ole PATH:ssa:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Mitä voit tehdä konsolista:**
-
-| Sivu | Käytä tätä |
-|------|-----------|
-| **Workers** | Näe joka yhdistetty worker ja sen live-mittarit, mukaan lukien agentmemory-worker itse. |
-| **Functions** | Kutsu mitä tahansa agentmemoryn funktiota suoraan JSON-hyötykuormalla; kätevä testaamaan `memory.recall`, `memory.consolidate`, `graph.query` kytkemättä asiakasta. |
-| **Triggers** | Toista HTTP-, cron-, tapahtuma- ja tilatriggereitä: laukaise konsolidointi-cron käsin, yritä HTTP-reittiä uudelleen, lähetä tilamuutos. |
-| **States** | KV-selain täydellä CRUD:lla istuntoihin, muistipaikkoihin, elinkaariajastimiin ja upotusindeksiin; muokkaa arvoja paikan päällä. |
-| **Traces** | OpenTelemetry-vesiputous-/liekki-/palvelujaotellut näkymät. Suodata `trace_id`:llä nähdäksesi tarkalleen, mitkä funktiot, tietokantakutsut ja upotuspyynnöt yksi `memory.search` tuotti. |
-| **Logs** | Rakenteelliset OTEL-lokit suodatettuna ja korreloituna trace-/span-ID:ihin. |
-| **Config** | Ajonaikainen konfiguraatio: näe tarkalleen, millä workereilla, tarjoajilla ja porteilla moottorisi käy. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii-konsolin jäljitysvesiputousnäkymä, joka näyttää keston per span" width="720" />
-  <br/>
-  <em>Traces: vesiputous-/liekki-/palvelujaottelu joka muistioperaatiolle.</em>
-</p>
-
-**Jäljitys ja lokit:** iii-konsolissa voi tarkastella ajonaikaisen ympäristön telemetriaa. Noudata viejän ja näytteenoton asetuksissa [iii:n havainnoitavuusdokumentaatiota](https://iii.dev/docs).
-
-> **Huomio:** konsolissa itsessään ei ole pakotettua autentikointia; pidä se sidottuna osoitteeseen `127.0.0.1` (oletus) ja älä koskaan paljasta sitä julkisesti.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1289,11 +1243,13 @@ Yksi komento siis lisää agentmemoryyn kokonaan uuden ominaisuuden.
 Ajoympäristö koostaa rekisterin `state`- (KV) ja `http`-workerit agentmemoryn rinnalle. Muita workereita [iii-rekisteristä](https://workers.iii.dev) voi lisätä Worker Compose -projektiin.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Mitä saat agentmemoryn lisäksi |
@@ -1308,7 +1264,7 @@ Koko rekisteri: [workers.iii.dev](https://workers.iii.dev). Kaikki sen workerit 
 
 ### CLI-ajoympäristö ja sidontaosoitteet
 
-`agentmemory`-komennon (tai paketin ilman alikomentoa) suorittaminen käynnistää iii Worker Composen, jonka eristetty manifesti on valitussa datakansiossa. Käytössä ovat iii 0.24.6, `state@0.22.20` ja `http@0.22.7`. CLI:n paikalliset REST- ja katseluohjelmakuuntelijat sitoutuvat osoitteeseen `127.0.0.1`; moottorin WebSocket on sisäistä ajonaikaista liikennettä. Repositoriosta tehtävissä Docker-käyttöönotoissa käytetään erillistä tiedostoa [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); katso [`deploy/README.md`](../deploy/README.md).
+`agentmemory`-komennon (tai paketin ilman alikomentoa) suorittaminen käynnistää iii Worker Composen, jonka eristetty manifesti on valitussa datakansiossa. Käytössä ovat iii 0.25.0, `state@0.22.20` ja `http@0.22.7`. CLI:n paikalliset REST- ja katseluohjelmakuuntelijat sitoutuvat osoitteeseen `127.0.0.1`; moottorin WebSocket on sisäistä ajonaikaista liikennettä. Repositoriosta tehtävissä Docker-käyttöönotoissa käytetään erillistä tiedostoa [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); katso [`deploy/README.md`](../deploy/README.md).
 
 ### Tallennustaustaosa: tiedosto (oletus) vai Redis
 
@@ -1387,7 +1343,7 @@ fi
 | Prometheus / Grafana | iii OTEL + terveysmonitori |
 | Mukautetut plugin-järjestelmät | `iii worker add <name>` |
 
-**246 lähdetiedostoa · noin 56 000 LOC · 3,600+ testiä · 322 funktiota · 65 KV-scopea**, kaikki kolmen primitiivin päällä. Ei `agentmemory plugin install` -komentoa. Plugin-järjestelmä on iii itse.
+**245 lähdetiedostoa · noin 56 000 LOC · 3,600+ testiä · 322 funktiota · 65 KV-scopea**, kaikki kolmen primitiivin päällä. Ei `agentmemory plugin install` -komentoa. Plugin-järjestelmä on iii itse.
 
 ---
 
@@ -1799,7 +1755,7 @@ npm test                  # 3,800+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 
-**Edellytykset:** Node.js >= 20 npm/npx:llä; iii 0.24.6. macOS/Linux-automaattinen moottorin asennus vaatii myös `curl`:n, POSIX-yhteensopivan `sh`:n ja `tar`:n; natiivi Windows käyttää käsin asennettua kiinnitettyä `iii.exe`-tiedostoa tai WSL2:ta.
+**Edellytykset:** Node.js >= 20 npm/npx:llä; iii 0.25.0. macOS/Linux-automaattinen moottorin asennus vaatii myös `curl`:n, POSIX-yhteensopivan `sh`:n ja `tar`:n; natiivi Windows käyttää käsin asennettua kiinnitettyä `iii.exe`-tiedostoa tai WSL2:ta.
 
 <h2 id="license"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-license.svg"><img src="../assets/tags/section-license.svg" alt="Lisenssi" height="32" /></picture></h2>
 

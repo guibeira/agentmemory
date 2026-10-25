@@ -102,7 +102,7 @@
 
 - يتطلب الأمر Node.js الإصدار 20 أو أحدث مع npm وnpx (تحقّق بـ `node -v` و`npm -v` و`npx -v`).
 - يحتاج التثبيت الآلي لـ iii-engine على macOS/Linux أيضًا إلى `curl` وصدفة POSIX من نوع `sh` وأداة `tar`. قد لا تتضمنها الصور الدنيا مثل `node:20-slim`.
-- يتطلب Windows الأصلي تثبيت ملف `iii.exe` الخاص بمحرك iii 0.24.6 المثبَّت يدويًا؛ أما WSL2 فيتبع مسار Linux ويمكنه تثبيت المحرك تلقائيًا.
+- يتطلب Windows الأصلي تثبيت ملف `iii.exe` الخاص بمحرك iii 0.25.0 المثبَّت يدويًا؛ أما WSL2 فيتبع مسار Linux ويمكنه تثبيت المحرك تلقائيًا.
 
 أمر التثبيت الجديد المعياري:
 
@@ -134,7 +134,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-المسار الأسرع هو WSL2. يتطلب Windows الأصلي تنزيل ملف ZIP الخاص بالمحرك المثبَّت 0.24.6 واستخراج `iii.exe` يدويًا. راجع [ملاحظات Windows](#windows) للخطوات.
+المسار الأسرع هو WSL2. يتطلب Windows الأصلي تنزيل ملف ZIP الخاص بالمحرك المثبَّت 0.25.0 واستخراج `iii.exe` يدويًا. راجع [ملاحظات Windows](#windows) للخطوات.
 
 </details>
 
@@ -159,7 +159,7 @@ npm install -g @agentmemory/agentmemory@latest
 <details>
 <summary><strong>لديك محرك iii خاص بك يعمل مسبقًا</strong></summary>
 
-يُثبّت agentmemory محرك iii 0.24.6 تحديدًا، ولن يتصل بإصدار مختلف (لأن العامل لا يستطيع استخدام بروتوكول محرك آخر). أوقف المحرك الآخر، ثم شغّل `npx -y @agentmemory/agentmemory@latest`. يثبّت الأمر الإصدار المثبَّت 0.24.6 ويشغّله في `~/.agentmemory/bin`، دون المساس بنسخة `iii` الخاصة بك.
+يُثبّت agentmemory محرك iii 0.25.0 تحديدًا، ولن يتصل بإصدار مختلف (لأن العامل لا يستطيع استخدام بروتوكول محرك آخر). أوقف المحرك الآخر، ثم شغّل `npx -y @agentmemory/agentmemory@latest`. يثبّت الأمر الإصدار المثبَّت 0.25.0 ويشغّله في `~/.agentmemory/bin`، دون المساس بنسخة `iii` الخاصة بك.
 
 </details>
 
@@ -558,7 +558,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Quick Start" height="32" /></picture></h2>
 
-التوافق: يستخدم هذا الإصدار iii 0.24.6 مع عمّال السجل `state` بالإصدار 0.22.20 و`http` بالإصدار 0.22.7.
+التوافق: يستخدم هذا الإصدار iii 0.25.0 مع عمّال السجل `state` بالإصدار 0.22.20 و`http` بالإصدار 0.22.7.
 
 ### جرّبه في 30 ثانية
 
@@ -637,7 +637,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-proje
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-تحذير: يغيّر هذا الأمر مساحة العمل/بيئة التشغيل الحالية. قد يحدّث اعتماديات JavaScript ويثبّت الملف التنفيذي لمحرك iii 0.24.6 المحدد.
+تحذير: يغيّر هذا الأمر مساحة العمل/بيئة التشغيل الحالية. قد يحدّث اعتماديات JavaScript ويثبّت الملف التنفيذي لمحرك iii 0.25.0 المحدد.
 
 تفاصيل التنفيذ موجودة في `src/cli.ts` (راجع `runUpgrade` حول نطاق `src/cli.ts:544-595`).
 
@@ -863,11 +863,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-يُشغِّل `npm start` بيئة Worker Compose نفسها التي يستخدمها CLI: iii 0.24.6 مع عمّال السجل `state@0.22.20` و`http@0.22.7`. على macOS/Linux، ينزّل CLI ملف المحرك المثبّت إلى `~/.agentmemory/bin`؛ ويتطلب التثبيت التلقائي `curl` وصدفة POSIX من نوع `sh` و`tar`. ترتبط مستمعات REST والعارض المحلية بـ `127.0.0.1`. تستخدم تحديثات العارض SSE عند `GET /agentmemory/viewer/events` على منفذ REST. يعرض `/agentmemory/status` إصدار المحرك المثبّت تحت `enginePinnedVersion`؛ والإصدار الافتراضي المدعوم هو iii 0.24.6. يتوفر `AGENTMEMORY_III_VERSION` لتجاوز التثبيت عمدًا.
+يُشغِّل `npm start` بيئة Worker Compose نفسها التي يستخدمها CLI: iii 0.25.0 مع عمّال السجل `state@0.22.20` و`http@0.22.7`. على macOS/Linux، ينزّل CLI ملف المحرك المثبّت إلى `~/.agentmemory/bin`؛ ويتطلب التثبيت التلقائي `curl` وصدفة POSIX من نوع `sh` و`tar`. ترتبط مستمعات REST والعارض المحلية بـ `127.0.0.1`. تستخدم تحديثات العارض SSE عند `GET /agentmemory/viewer/events` على منفذ REST. يعرض `/agentmemory/status` إصدار المحرك المثبّت تحت `enginePinnedVersion`؛ والإصدار الافتراضي المدعوم هو iii 0.25.0. يتوفر `AGENTMEMORY_III_VERSION` لتجاوز التثبيت عمدًا.
 
 ### Windows
 
-يعمل agentmemory على Windows 10/11. يتبع WSL2 مسار Linux ويمكنه تثبيت المحرك المثبّت تلقائيًا. يتطلب Windows الأصلي تثبيت ملف iii-engine 0.24.6 المثبّت يدويًا؛ نزّل الأرشيف المطابق من [صفحة إصدار iii 0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6)، وتحقق من بصمته، وضع `iii.exe` على `PATH` (مثل `%USERPROFILE%\.local\bin\iii.exe`). لا يستخرج CLI ملف ZIP الخاص بـ Windows تلقائيًا.
+يعمل agentmemory على Windows 10/11. يتبع WSL2 مسار Linux ويمكنه تثبيت المحرك المثبّت تلقائيًا. يتطلب Windows الأصلي تثبيت ملف iii-engine 0.25.0 المثبّت يدويًا؛ نزّل الأرشيف المطابق من [صفحة إصدار iii 0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0)، وتحقق من بصمته، وضع `iii.exe` على `PATH` (مثل `%USERPROFILE%\.local\bin\iii.exe`). لا يستخرج CLI ملف ZIP الخاص بـ Windows تلقائيًا.
 
 لا يدعم الربط الآلي لـ MCP على Windows الأصلي إلا `agentmemory connect copilot-cli`. أما وكلاء Windows الأصليون الآخرون، فاستخدم كتلة MCP اليدوية من [وكلاء آخرون](#other-agents). شغّل `connect` داخل WSL فقط عندما يكون الوكيل المستهدف مثبتًا في بيئة WSL نفسها.
 
@@ -885,7 +885,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">النشر</h2>
 
-يدعم Docker الاستضافة الذاتية من هذا المستودع، وليس وضع بدء تشغيل CLI. تستخدم القوالب بنقرة واحدة [`deploy/Dockerfile`](../deploy/Dockerfile) و[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)، وتثبّت عمّال runtime iii 0.24.6 أنفسهم، وتحفظ الحالة والتتبّعات والسر المُنشأ على وحدة تخزين دائمة عند `/data`. يستخدم Docker Compose وحدة التخزين المسماة الموجودة `iii-data` افتراضيًا؛ اضبط `AGENTMEMORY_DATA_DIR` على مسار مضيف لاستخدام ربط مجلد بدلًا منها. تُقرأ مباشرةً البيانات المخزنة بصيغة 0.22.1 في `/data/state_store.db` دون ترحيل أو تحويل. يسمح REST CORS بمنشأَي REST والعارض المحليين افتراضيًا؛ اضبط `REST_ALLOWED_ORIGINS` على قائمة مفصولة بفواصل من المنشأات الدقيقة عندما يحتاج منشأ متصفح موثوق إلى الوصول. راجع [`deploy/README.md`](../deploy/README.md) لتفاصيل الإعداد والأمان.
+يدعم Docker الاستضافة الذاتية من هذا المستودع، وليس وضع بدء تشغيل CLI. تستخدم القوالب بنقرة واحدة [`deploy/Dockerfile`](../deploy/Dockerfile) و[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)، وتثبّت عمّال runtime iii 0.25.0 أنفسهم، وتحفظ الحالة والتتبّعات والسر المُنشأ على وحدة تخزين دائمة عند `/data`. يستخدم Docker Compose وحدة التخزين المسماة الموجودة `iii-data` افتراضيًا؛ اضبط `AGENTMEMORY_DATA_DIR` على مسار مضيف لاستخدام ربط مجلد بدلًا منها. تُقرأ مباشرةً البيانات المخزنة بصيغة 0.22.1 في `/data/state_store.db` دون ترحيل أو تحويل. يسمح REST CORS بمنشأَي REST والعارض المحليين افتراضيًا؛ اضبط `REST_ALLOWED_ORIGINS` على قائمة مفصولة بفواصل من المنشأات الدقيقة عندما يحتاج منشأ متصفح موثوق إلى الوصول. راجع [`deploy/README.md`](../deploy/README.md) لتفاصيل الإعداد والأمان.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1228,56 +1228,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-يُظهر العارض على `:3113` ما **تذكّره** وكيلك. أما [لوحة تحكم iii](https://iii.dev/docs/console) فتُظهر ما **فعله** وكيلك: كل عملية ذاكرة كتتبّع OpenTelemetry، وكل إدخال KV قابل للتعديل، وكل دالة قابلة للاستدعاء، وكل تيار قابل للفحص. نافذتان على الذاكرة نفسها: واحدة بشكل المنتج، وأخرى بشكل المحرك.
+أُوقفت وحدة تحكم iii المرفقة في الإصدار 0.25. يطبع `agentmemory console` إرشادات الانتقال. تظل واجهة AgentMemory متاحة على المنفذ 3113؛ استخدم `agentmemory status` لفحص حالة النظام.
 
-شاهد `memory_smart_search` وهو يُطلَق وتابع مسح BM25 ← البحث في التضمينات ← دمج RRF ← إعادة الترتيب (reranker) كشكل شلالي (waterfall). عدِّل مؤقّت توحيد عالقًا في مستعرض KV. أعد تشغيل خطاف `PostToolUse` بحمولة معدّلة. افحص قنوات محرك WebSocket ونشاطها.
-
-يقدّم agentmemory هذا مجانًا لأن كل استدعاء دالة ومحفِّز يمر عبر iii؛ فلا شيء مخصص، ولا شيء يحتاج إلى تثبيت أدوات قياس (instrumentation).
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="صفحة العمّال في لوحة تحكم iii: العمّال المتصلون بما فيهم نُسخ agentmemory مع عدادات الدوال الحية وبيانات التعريف الخاصة ببيئة التشغيل" width="720" />
-  <br/>
-  <em>صفحة العمّال: كل عامل متصل، بما في ذلك agentmemory نفسه، مع PID، وعدد الدوال، وبيئة التشغيل، وآخر ظهور.</em>
-</p>
-
-**مثبَّت مسبقًا.** تأتي لوحة التحكم مع محرك `iii` 0.24.6 المثبّت؛ فلا حاجة إلى تثبيت منفصل. ينزّل التشغيل الأول الملف التنفيذي للوحة التحكم بجانب المحرك.
-
-**التشغيل جنبًا إلى جنب مع agentmemory:**
-
-```bash
-agentmemory console
-```
-
-يُشغّل هذا أمر `iii console` الخاص بالمحرك المثبّت على المنافذ التي حلّلها agentmemory (REST وWebSocket الخاص بالعمّال)، ويقدّمه على منفذ واحد أعلى من العارض، أي `http://localhost:3114` افتراضيًا. يختار `--console-port N` منفذًا آخر؛ ويختار `--port` و`--instance` نسخة agentmemory بالطريقة نفسها المستخدمة مع `stop`؛ وتُمرّر أي راية أخرى كما هي، مثل `--enable-flow` لصفحة الرسم البياني المعماري التجريبية.
-
-نفس الأمر يدويًا، وهو مفيد عندما لا يكون `agentmemory` موجودًا في PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**ما يمكنك فعله من لوحة التحكم:**
-
-| الصفحة | استخدمها لـ |
-|------|-----------|
-| **العمّال (Workers)** | رؤية كل عامل متصل ومقاييسه الحية، بما في ذلك عامل agentmemory نفسه. |
-| **الدوال (Functions)** | استدعاء أي من دوال agentmemory مباشرة بحمولة JSON؛ مفيد لاختبار `memory.recall` و`memory.consolidate` و`graph.query` دون ربط عميل. |
-| **المحفِّزات (Triggers)** | إعادة تشغيل محفِّزات HTTP وcron والأحداث والحالة: تفعيل مهمة cron للتوحيد يدويًا، وإعادة محاولة مسار HTTP، وبث تغيّر حالة. |
-| **الحالات (States)** | مستعرض KV بعمليات CRUD كاملة على الجلسات، وفُتحات الذاكرة، ومؤقِّتات دورة الحياة، وفهرس التضمينات؛ وتعديل القيم في مكانها. |
-| **التتبّعات (Traces)** | عروض شلالية (waterfall) / لهبية (flame) / تفصيلية بالخدمة لـ OpenTelemetry. رشِّح حسب `trace_id` لمعرفة بالضبط أي الدوال، واستدعاءات قاعدة البيانات، وطلبات التضمين التي أنتجها استدعاء واحد لـ `memory.search`. |
-| **السجلات (Logs)** | سجلات OTEL البنيوية مُرشَّحة ومرتبطة بمعرِّفات trace/span. |
-| **الإعدادات (Config)** | إعدادات بيئة التشغيل: رؤية بالضبط أي عمّال ومزوّدين ومنافذ يعمل محركك بها. |
-| **التدفّق (Flow)** | (اختياري، `--enable-flow`) رسم بياني معماري تفاعلي لكل عامل ومحفّز وتيار. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="عرض شلالي للتتبّعات في لوحة تحكم iii يُظهر مدة كل span" width="720" />
-  <br/>
-  <em>التتبّعات: عرض شلالي / لهبي / تفصيلي بالخدمة لكل عملية ذاكرة.</em>
-</p>
-
-**التتبّع والسجلات:** تستطيع لوحة تحكم iii فحص قياسات بيئة التشغيل. لإعداد التصدير وأخذ العينات، اتبع [مستندات المراقبة في iii](https://iii.dev/docs).
-
-> **تنبيه:** لا تُفرَض أي مصادقة على لوحة التحكم نفسها؛ احتفظ بارتباطها بـ `127.0.0.1` (الافتراضي) ولا تُعرِّضها علنًا مطلقًا.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1292,11 +1245,13 @@ agentmemory عامل على بيئة تشغيل [iii](https://iii.dev). يتول
 تجمع بيئة التشغيل عامل السجل `state` (KV) وعامل `http` مع agentmemory. ويمكن إضافة عمّال آخرين من [سجل iii](https://workers.iii.dev) إلى مشروع Worker Compose.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | العامل | ما تحصل عليه إضافة إلى agentmemory |
@@ -1311,7 +1266,7 @@ workers:
 
 ### بيئة تشغيل CLI وعناوين الارتباط
 
-يبدأ تشغيل `agentmemory` (أو الحزمة دون أمر فرعي) iii Worker Compose بملف manifest معزول داخل دليل البيانات المحدد. ويستخدم iii 0.24.6 و`state@0.22.20` و`http@0.22.7`. ترتبط مستمعات REST والعارض المحلية في CLI بـ `127.0.0.1`؛ أما WebSocket المحرك فهو حركة مرور داخلية لبيئة التشغيل. تستخدم عمليات نشر Docker المعتمدة على المستودع الملف المنفصل [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)؛ راجع [`deploy/README.md`](../deploy/README.md).
+يبدأ تشغيل `agentmemory` (أو الحزمة دون أمر فرعي) iii Worker Compose بملف manifest معزول داخل دليل البيانات المحدد. ويستخدم iii 0.25.0 و`state@0.22.20` و`http@0.22.7`. ترتبط مستمعات REST والعارض المحلية في CLI بـ `127.0.0.1`؛ أما WebSocket المحرك فهو حركة مرور داخلية لبيئة التشغيل. تستخدم عمليات نشر Docker المعتمدة على المستودع الملف المنفصل [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)؛ راجع [`deploy/README.md`](../deploy/README.md).
 
 ### خلفية التخزين: ملف (افتراضي) في مقابل Redis
 
@@ -1389,7 +1344,7 @@ fi
 | Prometheus / Grafana | OTEL في iii + مراقب الحالة الصحية |
 | أنظمة إضافات مخصصة | `iii worker add <name>` |
 
-**246 ملف مصدري · ~56,000 سطر برمجي · 3,800+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
+**245 ملف مصدري · ~56,000 سطر برمجي · 3,800+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Configuration" height="32" /></picture></h2>

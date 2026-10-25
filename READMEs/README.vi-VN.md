@@ -100,7 +100,7 @@ Yêu cầu:
 
 - Node.js 20 hoặc mới hơn kèm npm và npx (`node -v`, `npm -v`, và `npx -v`).
 - Cài đặt iii-engine tự động trên macOS/Linux cũng cần `curl`, một `sh` chuẩn POSIX, và `tar`. Các image tối giản như `node:20-slim` có thể không có sẵn những công cụ này.
-Windows native cần cài thủ công `iii.exe` của iii v0.24.6 đã pin; WSL2 dùng trình cài tự động cho macOS/Linux
+Windows native cần cài thủ công `iii.exe` của iii v0.25.0 đã pin; WSL2 dùng trình cài tự động cho macOS/Linux
 
 Lệnh cài mới chuẩn (canonical):
 
@@ -132,7 +132,7 @@ Kết nối thêm agent bất kỳ lúc nào với `agentmemory connect <agent>`
 <details>
 <summary><strong>Windows</strong></summary>
 
-WSL2 là cách nhanh nhất; Windows native cần cài thủ công binary v0.24.6. Xem các bước trong [ghi chú Windows](#windows)
+WSL2 là cách nhanh nhất; Windows native cần cài thủ công binary v0.25.0. Xem các bước trong [ghi chú Windows](#windows)
 
 </details>
 
@@ -157,7 +157,7 @@ npx cache theo từng phiên bản. Buộc dùng bản mới nhất với `npx -
 <details>
 <summary><strong>Đã chạy sẵn iii engine riêng của bạn</strong></summary>
 
-Tương thích với iii 0.24.6 và registry worker `state` 0.22.20, `http` 0.22.7
+Tương thích với iii 0.25.0 và registry worker `state` 0.22.20, `http` 0.22.7
 
 </details>
 
@@ -556,7 +556,7 @@ Không cái nào trong số này tự động capture từ hook của coding age
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Bắt đầu nhanh" height="32" /></picture></h2>
 
-Tương thích với iii 0.24.6 và registry worker `state` 0.22.20, `http` 0.22.7
+Tương thích với iii 0.25.0 và registry worker `state` 0.22.20, `http` 0.22.7
 
 ### Thử trong 30 giây
 
@@ -635,7 +635,7 @@ Dùng lệnh bảo trì khi bạn chủ động muốn cập nhật runtime cụ
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Cảnh báo: lệnh này thay đổi workspace/runtime hiện tại; có thể cập nhật dependency JavaScript và cài binary iii 0.24.6 đã pin.
+Cảnh báo: lệnh này thay đổi workspace/runtime hiện tại; có thể cập nhật dependency JavaScript và cài binary iii 0.25.0 đã pin.
 
 Chi tiết triển khai nằm trong `src/cli.ts` (xem `runUpgrade` quanh khu vực `src/cli.ts:544-595`).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` khởi chạy cùng iii Worker Compose như CLI: iii 0.24.6, `state@0.22.20`, `http@0.22.7`. Trên macOS/Linux, CLI tải engine vào `~/.agentmemory/bin`; cần `curl`, POSIX `sh` và `tar` để cài tự động. REST và viewer cục bộ bind vào `127.0.0.1`; cập nhật viewer dùng SSE trên REST. `/agentmemory/status` báo `enginePinnedVersion`; có thể ghi đè pin bằng `AGENTMEMORY_III_VERSION`
+`npm start` khởi chạy cùng iii Worker Compose như CLI: iii 0.25.0, `state@0.22.20`, `http@0.22.7`. Trên macOS/Linux, CLI tải engine vào `~/.agentmemory/bin`; cần `curl`, POSIX `sh` và `tar` để cài tự động. REST và viewer cục bộ bind vào `127.0.0.1`; cập nhật viewer dùng SSE trên REST. `/agentmemory/status` báo `enginePinnedVersion`; có thể ghi đè pin bằng `AGENTMEMORY_III_VERSION`
 
 ### Windows
 
-agentmemory chạy trên Windows 10/11; WSL2 có thể tự cài engine theo quy trình Linux. Windows native cần cài thủ công iii-engine v0.24.6: tải archive từ [trang phát hành iii v0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), xác minh checksum và đặt `iii.exe` trong `PATH`. CLI không tự giải nén ZIP Windows
+agentmemory chạy trên Windows 10/11; WSL2 có thể tự cài engine theo quy trình Linux. Windows native cần cài thủ công iii-engine v0.25.0: tải archive từ [trang phát hành iii v0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), xác minh checksum và đặt `iii.exe` trong `PATH`. CLI không tự giải nén ZIP Windows
 
 Cấu hình MCP tự động trên Windows native chỉ hỗ trợ `agentmemory connect copilot-cli`; agent khác dùng khối MCP thủ công trong [Other agents](#other-agents). Chỉ chạy `connect` trong WSL nếu agent đích cũng cài trong cùng môi trường WSL
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Triển khai</h2>
 
-Docker được hỗ trợ để self-host từ repository, không phải chế độ khởi động CLI. [`../deploy/Dockerfile`](../deploy/Dockerfile) và [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) dùng runtime iii 0.24.6; lưu state, traces và secret trong volume `/data` bền vững. Named volume mặc định là `iii-data`; đặt `AGENTMEMORY_DATA_DIR` thành đường dẫn host để bind mount. File store từ 0.22.1 được đọc trực tiếp tại `/data/state_store.db`, không cần migration. REST CORS mặc định cho phép origin cục bộ; thêm origin tin cậy bằng `REST_ALLOWED_ORIGINS`. Xem [`../deploy/README.md`](../deploy/README.md).
+Docker được hỗ trợ để self-host từ repository, không phải chế độ khởi động CLI. [`../deploy/Dockerfile`](../deploy/Dockerfile) và [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) dùng runtime iii 0.25.0; lưu state, traces và secret trong volume `/data` bền vững. Named volume mặc định là `iii-data`; đặt `AGENTMEMORY_DATA_DIR` thành đường dẫn host để bind mount. File store từ 0.22.1 được đọc trực tiếp tại `/data/state_store.db`, không cần migration. REST CORS mặc định cho phép origin cục bộ; thêm origin tin cậy bằng `REST_ALLOWED_ORIGINS`. Xem [`../deploy/README.md`](../deploy/README.md).
 
 
 <p>
@@ -1229,59 +1229,9 @@ Viewer server bind vào `127.0.0.1` theo mặc định và gắn kèm server sec
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Viewer tại `:3113` cho thấy những gì agent của bạn **đã ghi nhớ**. [iii console](https://iii.dev/docs/console) cho thấy những gì agent của bạn **đã làm**: mọi memory op dưới dạng một OpenTelemetry trace, mọi KV entry có thể sửa, mọi function có thể gọi. Hai cửa sổ trên cùng một bộ nhớ: một có hình dạng product, một có hình dạng engine.
+iii 0.25 loại bỏ console tích hợp. `agentmemory console` hiển thị hướng dẫn chuyển đổi. Viewer của AgentMemory vẫn có trên cổng 3113; dùng `agentmemory status` để kiểm tra trạng thái.
 
-Xem một `memory_smart_search` được bắn ra và theo dõi BM25 scan → embedding lookup → RRF fusion → reranker dưới dạng một waterfall. Sửa một consolidation timer bị kẹt trong KV browser. Replay một hook `PostToolUse` với payload đã chỉnh.
-
-agentmemory có sẵn thứ này miễn phí vì mọi function call và trigger đều bắn qua iii; không có gì custom, không có gì cần instrument.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="Trang Workers của iii console: các worker đã kết nối bao gồm các instance agentmemory với số lượng function live và metadata runtime" width="720" />
-  <br/>
-  <em>Trang Workers: mọi worker đã kết nối, kể cả agentmemory, với PID, số function, runtime, và lần thấy cuối.</em>
-</p>
-
-**Đã được cài sẵn.** Console đi kèm với `iii` engine đã pin (0.22+); không có gì riêng cần cài thêm. Lần khởi chạy đầu tiên sẽ tải binary console nằm cạnh engine.
-
-**Khởi chạy cùng với agentmemory:**
-
-```bash
-agentmemory console
-```
-
-Lệnh này chạy `iii console` của engine đã pin dựa trên các port mà agentmemory đã resolve (REST, bridge) và phục vụ nó ở một port cao hơn viewer một đơn vị, mặc định là `http://localhost:3114`. `--console-port N` chọn một port khác; `--port` và `--instance` chọn instance agentmemory giống như cách chúng làm với `stop`; mọi flag khác được truyền thẳng qua, ví dụ `--enable-flow` cho trang architecture-graph thử nghiệm.
-
-Làm tương tự bằng tay, hữu ích khi `agentmemory` không có trong PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Những gì bạn có thể làm từ console:**
-
-| Trang | Dùng để |
-|------|-----------|
-| **Workers** | Xem mọi worker đã kết nối và metric live của nó, kể cả worker agentmemory. |
-| **Functions** | Gọi trực tiếp bất kỳ function nào của agentmemory bằng một JSON payload; tiện để test `memory.recall`, `memory.consolidate`, `graph.query` mà không cần kết nối một client. |
-| **Triggers** | Replay trigger HTTP, cron, event, và state: bắn cron consolidation thủ công, retry một route HTTP, phát một thay đổi state. |
-| **States** | KV browser với CRUD đầy đủ trên session, memory slot, timer lifecycle, và embedding index; sửa giá trị ngay tại chỗ. |
-| **Queues** | Topic queue bền vững + quản lý dead-letter. Replay hoặc drop các job embedding / compression bị lỗi. |
-| **Traces** | Các view waterfall / flame / service-breakdown của OpenTelemetry. Filter theo `trace_id` để xem chính xác những function, lệnh gọi DB, và request embedding mà một `memory.search` đã tạo ra. |
-| **Logs** | Log OTEL có cấu trúc, được filter và liên kết tới trace/span ID. |
-| **Config** | Cấu hình runtime: xem chính xác engine của bạn đang chạy với worker, provider, và port nào. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="Chế độ xem waterfall của trace trong iii console, hiển thị thời lượng theo từng span" width="720" />
-  <br/>
-  <em>Traces: waterfall / flame / service breakdown cho mọi memory operation.</em>
-</p>
-
-**Trace đã được bật sẵn:**
-
-**Tracing và log:** Dùng iii console để kiểm tra telemetry runtime. Xem [tài liệu observability của iii](https://iii.dev/docs) về cấu hình exporter và sampling.
-
-
-> **Lưu ý:** console bản thân nó không ép buộc auth; hãy giữ nó bind vào `127.0.0.1` (mặc định) và không bao giờ expose nó ra công khai.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1298,11 +1248,13 @@ agentmemory là worker trên runtime [iii](https://iii.dev). Worker Compose qu�
 
 Runtime kết hợp agentmemory với registry worker `state` (KV) và `http`; có thể thêm worker từ [iii registry](https://workers.iii.dev) vào Worker Compose.
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Bạn có thêm gì trên nền agentmemory |
@@ -1317,7 +1269,7 @@ Registry đầy đủ: [workers.iii.dev](https://workers.iii.dev). Mọi worker 
 CLI pin registry package `state@0.22.20` và `http@0.22.7` trong Worker Compose.
 ### Runtime CLI và địa chỉ bind
 
-Chạy `agentmemory` khởi chạy iii Worker Compose với manifest riêng trong data directory đã chọn: iii 0.24.6, `state@0.22.20`, `http@0.22.7`. REST và viewer cục bộ bind vào `127.0.0.1`; WebSocket engine là lưu lượng nội bộ. Docker dùng [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); xem [`../deploy/README.md`](../deploy/README.md).
+Chạy `agentmemory` khởi chạy iii Worker Compose với manifest riêng trong data directory đã chọn: iii 0.25.0, `state@0.22.20`, `http@0.22.7`. REST và viewer cục bộ bind vào `127.0.0.1`; WebSocket engine là lưu lượng nội bộ. Docker dùng [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); xem [`../deploy/README.md`](../deploy/README.md).
 
 ### Storage backend: file (mặc định) so với redis
 
@@ -1385,7 +1337,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Hệ thống plugin tùy chỉnh | `iii worker add <name>` |
 
-**246 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 

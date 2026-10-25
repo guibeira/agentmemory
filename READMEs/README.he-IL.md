@@ -102,7 +102,7 @@
 
 - Node.js 20 ואילך עם npm ו-npx (`node -v`, `npm -v`, ו-`npx -v`).
 - התקנה אוטומטית של iii-engine ב-macOS/Linux דורשת גם `curl`, מעטפת `sh` תואמת POSIX, ו-`tar`. תמונות מינימליות כמו `node:20-slim` לא בהכרח כוללות אותן.
-- Windows מקורי מחייב התקנה ידנית של `iii.exe` מ-iii-engine v0.24.6 הנעוץ; ב-WSL2 נעשה שימוש במסלול Linux להתקנה אוטומטית.
+- Windows מקורי מחייב התקנה ידנית של `iii.exe` מ-iii-engine v0.25.0 הנעוץ; ב-WSL2 נעשה שימוש במסלול Linux להתקנה אוטומטית.
 
 פקודת ההתקנה הראשונית הקנונית:
 
@@ -134,7 +134,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-המסלול המהיר הוא WSL2. ב-Windows מקורי יש להוריד את ZIP v0.24.6 הנעוץ ולחלץ את `iii.exe` ידנית. השלבים נמצאים ב-[הערות Windows](#windows).
+המסלול המהיר הוא WSL2. ב-Windows מקורי יש להוריד את ZIP v0.25.0 הנעוץ ולחלץ את `iii.exe` ידנית. השלבים נמצאים ב-[הערות Windows](#windows).
 
 </details>
 
@@ -159,7 +159,7 @@ npx שומר במטמון לפי גרסה. אפשר לכפות את הגרסה �
 <details>
 <summary><strong>כבר מריצים iii engine משלכם</strong></summary>
 
-agentmemory נעוץ ל-iii 0.24.6 ולא יתחבר לגרסה אחרת (ה-worker אינו תואם לפרוטוקול של מנוע אחר). עצרו את המנוע האחר והריצו `npx -y @agentmemory/agentmemory@latest`. ה-CLI מתקין ומפעיל את המנוע הנעוץ שלו ב-`~/.agentmemory/bin`, בלי לגעת ב-`iii` שלכם.
+agentmemory נעוץ ל-iii 0.25.0 ולא יתחבר לגרסה אחרת (ה-worker אינו תואם לפרוטוקול של מנוע אחר). עצרו את המנוע האחר והריצו `npx -y @agentmemory/agentmemory@latest`. ה-CLI מתקין ומפעיל את המנוע הנעוץ שלו ב-`~/.agentmemory/bin`, בלי לגעת ב-`iii` שלכם.
 
 </details>
 
@@ -558,7 +558,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="התחלה מהירה" height="32" /></picture></h2>
 
-תאימות: גרסה זו משתמשת ב-iii 0.24.6 עם workers מה-registry: ‏state 0.22.20 ו-http 0.22.7.
+תאימות: גרסה זו משתמשת ב-iii 0.25.0 עם workers מה-registry: ‏state 0.22.20 ו-http 0.22.7.
 
 ### נסו את זה ב-30 שניות
 
@@ -637,7 +637,7 @@ sessions מיובאים מופיעים בבורר ה-Replay לצד אלה המק
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-אזהרה: הפקודה הזו משנה את סביבת העבודה/ההרצה הנוכחית. היא עשויה לעדכן תלויות JavaScript ולהתקין את הבינארי הנעוץ של מנוע iii 0.24.6.
+אזהרה: הפקודה הזו משנה את סביבת העבודה/ההרצה הנוכחית. היא עשויה לעדכן תלויות JavaScript ולהתקין את הבינארי הנעוץ של מנוע iii 0.25.0.
 
 פרטי המימוש נמצאים בקובץ `src/cli.ts` (ראו `runUpgrade` באזור `src/cli.ts:544-595`).
 
@@ -863,11 +863,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` מפעיל את אותה סביבת iii Worker Compose כמו ה-CLI: ‏iii 0.24.6 עם ה-workers ‏state 0.22.20 ו-http 0.22.7 מה-registry. ב-macOS/Linux ה-CLI מוריד את הבינארי הנעוץ אל `~/.agentmemory/bin`; התקנה אוטומטית דורשת `curl`,‏ `sh` תואמת POSIX ו-`tar`. מאזיני REST והמַציג המקומיים קשורים ל-`127.0.0.1`. המַציג מקבל עדכונים ב-SSE ב-`GET /agentmemory/viewer/events` דרך REST. ‏`/agentmemory/status` מדווח על גרסת המנוע הנעוצה תחת `enginePinnedVersion`; ברירת המחדל הנתמכת היא iii 0.24.6. אפשר לדרוס את הנעיצה במכוון באמצעות `AGENTMEMORY_III_VERSION`.
+`npm start` מפעיל את אותה סביבת iii Worker Compose כמו ה-CLI: ‏iii 0.25.0 עם ה-workers ‏state 0.22.20 ו-http 0.22.7 מה-registry. ב-macOS/Linux ה-CLI מוריד את הבינארי הנעוץ אל `~/.agentmemory/bin`; התקנה אוטומטית דורשת `curl`,‏ `sh` תואמת POSIX ו-`tar`. מאזיני REST והמַציג המקומיים קשורים ל-`127.0.0.1`. המַציג מקבל עדכונים ב-SSE ב-`GET /agentmemory/viewer/events` דרך REST. ‏`/agentmemory/status` מדווח על גרסת המנוע הנעוצה תחת `enginePinnedVersion`; ברירת המחדל הנתמכת היא iii 0.25.0. אפשר לדרוס את הנעיצה במכוון באמצעות `AGENTMEMORY_III_VERSION`.
 
 ### Windows
 
-agentmemory פועל ב-Windows 10/11. ‏WSL2 פועל במסלול Linux ויכול להתקין את המנוע הנעוץ אוטומטית. ב-Windows מקורי יש להתקין ידנית את הבינארי הנעוץ iii-engine v0.24.6: הורידו את הארכיון המתאים מ-[דף ההפצה של iii 0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), אמתו את ה-checksum והוסיפו את `iii.exe` ל-`PATH` (למשל `%USERPROFILE%\.local\bin\iii.exe`). ה-CLI אינו מחלץ אוטומטית את ZIP של Windows.
+agentmemory פועל ב-Windows 10/11. ‏WSL2 פועל במסלול Linux ויכול להתקין את המנוע הנעוץ אוטומטית. ב-Windows מקורי יש להתקין ידנית את הבינארי הנעוץ iii-engine v0.25.0: הורידו את הארכיון המתאים מ-[דף ההפצה של iii 0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), אמתו את ה-checksum והוסיפו את `iii.exe` ל-`PATH` (למשל `%USERPROFILE%\.local\bin\iii.exe`). ה-CLI אינו מחלץ אוטומטית את ZIP של Windows.
 
 חיבור MCP אוטומטי ב-Windows מקורי נתמך רק עבור `agentmemory connect copilot-cli`. עבור סוכנים מקומיים אחרים ב-Windows, השתמשו בבלוק MCP הידני מתוך [סוכנים אחרים](#other-agents). הפעילו `connect` בתוך WSL רק אם סוכן היעד מותקן באותה סביבת WSL.
 
@@ -885,7 +885,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">פריסה</h2>
 
-Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפעלה של ה-CLI. תבניות הפריסה משתמשות ב-[`deploy/Dockerfile`](../deploy/Dockerfile) וב-[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), נועלות את runtime של iii 0.24.6 ושומרות מצב, traces וסוד שנוצר בכרך מתמשך `/data`. כברירת מחדל Docker Compose משתמש בכרך הנקוב `iii-data`; הגדירו את `AGENTMEMORY_DATA_DIR` לנתיב מארח כדי להשתמש ב-bind mount. מאגר הקבצים הקיים מ-0.22.1 נקרא ישירות מתוך `/data/state_store.db`, ללא הגירה או המרה. CORS של REST מאפשר כברירת מחדל את מקורות REST והמַציג המקומיים; הגדירו `REST_ALLOWED_ORIGINS` כרשימת מקורות מדויקים מופרדת בפסיקים כדי לאפשר דפדפן מהימן. לפרטי התקנה ואבטחה ראו [`deploy/README.md`](../deploy/README.md).
+Docker נתמך לאירוח עצמי מתוך המאגר, ולא כמצב הפעלה של ה-CLI. תבניות הפריסה משתמשות ב-[`deploy/Dockerfile`](../deploy/Dockerfile) וב-[`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), נועלות את runtime של iii 0.25.0 ושומרות מצב, traces וסוד שנוצר בכרך מתמשך `/data`. כברירת מחדל Docker Compose משתמש בכרך הנקוב `iii-data`; הגדירו את `AGENTMEMORY_DATA_DIR` לנתיב מארח כדי להשתמש ב-bind mount. מאגר הקבצים הקיים מ-0.22.1 נקרא ישירות מתוך `/data/state_store.db`, ללא הגירה או המרה. CORS של REST מאפשר כברירת מחדל את מקורות REST והמַציג המקומיים; הגדירו `REST_ALLOWED_ORIGINS` כרשימת מקורות מדויקים מופרדת בפסיקים כדי לאפשר דפדפן מהימן. לפרטי התקנה ואבטחה ראו [`deploy/README.md`](../deploy/README.md).
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="פרסו ל-fly.io" /></a>
@@ -1228,60 +1228,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="קונסולת iii" height="32" /></picture></h2>
 
-המַציג ב-`:3113` מראה מה הסוכן שלכם **זכר**. [קונסולת iii](https://iii.dev/docs/console) מראה מה הוא **עשה**: פעולות זיכרון כ-traces של OpenTelemetry, ערכי KV הניתנים לעריכה, פונקציות להפעלה ופעילות ערוצים של המנוע.
+הקונסולה המובנית הוסרה ב־iii 0.25. הפקודה `agentmemory console` מציגה הנחיות מעבר. מציג AgentMemory נשאר זמין ביציאה 3113; בדקו את מצב המערכת באמצעות `agentmemory status`.
 
-צפו ב-`memory_smart_search` מופעל וראו את סריקת ה-BM25 → חיפוש ה-embedding → fusion של RRF → reranker כ-waterfall. ערכו טיימר קונסולידציה תקוע ב-KV browser. בצעו replay ל-hook `PostToolUse` עם payload משופר.
-
-agentmemory מקבל את זה בחינם כי כל קריאת פונקציה וכל trigger עוברים דרך iii; שום דבר מותאם אישית, שום דבר להתקין לו instrumentation.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="עמוד ה-Workers של קונסולת iii: workers מחוברים כולל instances של agentmemory עם ספירות פונקציות חיות ומטא-דאטה של runtime" width="720" />
-  <br/>
-  <em>עמוד ה-Workers: כל worker מחובר, כולל agentmemory עצמו, עם PID, ספירת פונקציות, runtime, ו-last-seen.</em>
-</p>
-
-**מותקן כבר.** הקונסולה נשלחת עם מנוע ה-`iii` הנעוץ (0.24.6); אין צורך להתקין שום דבר בנפרד. ההפעלה הראשונה מורידה את הבינארי של הקונסולה לצד המנוע.
-
-**הפעלה לצד agentmemory:**
-
-```bash
-agentmemory console
-```
-
-זה מריץ את `iii console` של המנוע הנעוץ מול הפורטים ש-agentmemory פתר (REST, bridge) ומגיש אותה פורט אחד מעל המציג, `http://localhost:3114` כברירת מחדל. `--console-port N` בוחר פורט אחר; `--port` ו-`--instance` בוחרים את instance ה-agentmemory באותו אופן שהם עושים ל-`stop`; כל דגל אחר מועבר הלאה, למשל `--enable-flow` לעמוד גרף הארכיטקטורה הניסיוני.
-
-אותו דבר ביד, שימושי כש-`agentmemory` לא נמצא ב-PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**מה אפשר לעשות מהקונסולה:**
-
-| עמוד | לשם מה להשתמש בו |
-|------|-----------|
-| **Workers** | לראות כל worker מחובר ואת המטריקות החיות שלו, כולל ה-worker של agentmemory עצמו. |
-| **Functions** | להפעיל כל פונקציה של agentmemory ישירות עם payload של JSON; שימושי לבדיקת `memory.recall`, `memory.consolidate`, `graph.query` בלי לחווט לקוח. |
-| **Triggers** | לבצע replay ל-triggers מסוג HTTP, cron, event, ו-state: להפעיל את ה-cron של הקונסולידציה ידנית, לנסות שוב route של HTTP, לפלוט שינוי state. |
-| **States** | KV browser עם CRUD מלא על sessions, memory slots, טיימרי מחזור חיים, ואינדקס ה-embeddings; עריכת ערכים במקום. |
-
-| **Traces** | תצוגות waterfall / flame / פירוק-לפי-שירות של OpenTelemetry. סננו לפי `trace_id` כדי לראות בדיוק אילו functions, קריאות DB, ובקשות embedding יצר `memory.search` בודד. |
-| **Logs** | logs מבניים של OTEL מסוננים ומקושרים (correlated) למזהי trace/span. |
-| **Config** | תצורת runtime: לראות בדיוק עם אילו workers, ספקים, ופורטים המנוע שלכם רץ. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="תצוגת waterfall של trace בקונסולת iii שמציגה משך זמן per-span" width="720" />
-  <br/>
-  <em>Traces: waterfall / flame / פירוק-שירות לכל פעולת זיכרון.</em>
-</p>
-
-**Traces כבר פעילים:**
-
-**Tracing ו-logs:** קונסולת iii מאפשרת לבדוק טלמטריית runtime. להגדרות exporter ו-sampling, עיינו ב-[תיעוד observability של iii](https://iii.dev/docs).
-
-
-
-> **שימו לב:** אין auth מאולץ על הקונסולה עצמה; השאירו אותה קשורה ל-`127.0.0.1` (ברירת המחדל) ואל תחשפו אותה לעולם באופן ציבורי.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1296,11 +1245,13 @@ agentmemory הוא worker בסביבת [iii](https://iii.dev). ‏Worker Compose
 סביבת ההרצה מחברת ל-agentmemory את ה-workers ‏`state` (KV) ו-`http` מה-registry. אפשר להוסיף workers אחרים מ-[רישום iii](https://workers.iii.dev) לפרויקט Worker Compose.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | מה אתם מקבלים בנוסף ל-agentmemory |
@@ -1315,7 +1266,7 @@ workers:
 
 ### סביבת הריצה של ה-CLI וכתובות bind
 
-הרצת `agentmemory` (או החבילה ללא פקודת משנה) מפעילה iii Worker Compose עם manifest מבודד בתיקיית הנתונים שנבחרה. היא משתמשת ב-iii 0.24.6, ב-`state@0.22.20` וב-`http@0.22.7`. מאזיני REST והמַציג המקומיים של ה-CLI קשורים ל-`127.0.0.1`; WebSocket המנוע הוא תעבורה פנימית. פריסות Docker מתוך המאגר משתמשות בקובץ הנפרד [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); ראו [`deploy/README.md`](../deploy/README.md).
+הרצת `agentmemory` (או החבילה ללא פקודת משנה) מפעילה iii Worker Compose עם manifest מבודד בתיקיית הנתונים שנבחרה. היא משתמשת ב-iii 0.25.0, ב-`state@0.22.20` וב-`http@0.22.7`. מאזיני REST והמַציג המקומיים של ה-CLI קשורים ל-`127.0.0.1`; WebSocket המנוע הוא תעבורה פנימית. פריסות Docker מתוך המאגר משתמשות בקובץ הנפרד [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); ראו [`deploy/README.md`](../deploy/README.md).
 
 ### Backend אחסון: file (ברירת מחדל) לעומת Redis
 
@@ -1390,7 +1341,7 @@ fi
 | Prometheus / Grafana | iii OTEL + מוניטור health |
 | מערכות plugin מותאמות אישית | `iii worker add <name>` |
 
-**246 קובצי מקור · ~56,000 LOC · 3,800+ בדיקות · 322 פונקציות · 65 תחומי KV**, הכול על שלושה primitives. אין `agentmemory plugin install`. מערכת התוספים היא iii עצמו.
+**245 קובצי מקור · ~56,000 LOC · 3,800+ בדיקות · 322 פונקציות · 65 תחומי KV**, הכול על שלושה primitives. אין `agentmemory plugin install`. מערכת התוספים היא iii עצמו.
 
 ---
 

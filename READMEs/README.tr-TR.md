@@ -100,7 +100,7 @@ Gereksinimler:
 
 - npm ve npx ile birlikte Node.js 20 veya daha yeni bir sürüm (`node -v`, `npm -v` ve `npx -v`).
 - macOS/Linux üzerinde otomatik iii-engine kurulumu ayrıca `curl`, bir POSIX `sh` ve `tar` gerektirir. `node:20-slim` gibi minimal imajlar bunları içermeyebilir.
-Yerel Windows için sabitlenmiş iii v0.24.6 `iii.exe` elle kurulmalıdır; WSL2 macOS/Linux otomatik yükleyicisini kullanır
+Yerel Windows için sabitlenmiş iii v0.25.0 `iii.exe` elle kurulmalıdır; WSL2 macOS/Linux otomatik yükleyicisini kullanır
 
 Standart, sıfırdan kurulum komutu:
 
@@ -132,7 +132,7 @@ Tüm işi bir kodlama ajanına bırakmayı mı tercih edersiniz? Ona şu tek tal
 <details>
 <summary><strong>Windows</strong></summary>
 
-En hızlı yol WSL2’dir; yerel Windows’ta v0.24.6 binary’sini elle kurun. Adımlar için [Windows notlarına](#windows) bakın
+En hızlı yol WSL2’dir; yerel Windows’ta v0.25.0 binary’sini elle kurun. Adımlar için [Windows notlarına](#windows) bakın
 
 </details>
 
@@ -157,7 +157,7 @@ npx, sürüm bazında önbelleğe alır. En güncel sürümü `npx -y @agentmemo
 <details>
 <summary><strong>Kendi iii engine'inizi zaten çalıştırıyorsanız</strong></summary>
 
-Uyumluluk: iii 0.24.6 ve registry worker’ları `state` 0.22.20 ile `http` 0.22.7
+Uyumluluk: iii 0.25.0 ve registry worker’ları `state` 0.22.20 ile `http` 0.22.7
 
 </details>
 
@@ -556,7 +556,7 @@ Bunların hiçbiri kodlama-ajanı hook'larından otomatik yakalama yapmaz, local
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Quick Start" height="32" /></picture></h2>
 
-Uyumluluk: iii 0.24.6 ve registry worker’ları `state` 0.22.20 ile `http` 0.22.7
+Uyumluluk: iii 0.25.0 ve registry worker’ları `state` 0.22.20 ile `http` 0.22.7
 
 ### 30 saniyede deneyin
 
@@ -635,7 +635,7 @@ Yerel runtime'ınızı kasıtlı olarak güncellemek istediğinizde bakım komut
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Uyarı: bu komut mevcut workspace/runtime’ı değiştirir; JavaScript bağımlılıklarını güncelleyebilir ve sabitlenmiş iii 0.24.6 binary’sini kurabilir.
+Uyarı: bu komut mevcut workspace/runtime’ı değiştirir; JavaScript bağımlılıklarını güncelleyebilir ve sabitlenmiş iii 0.25.0 binary’sini kurabilir.
 
 Uygulama detayları `src/cli.ts` içinde yaşar (`src/cli.ts:544-595` bölgesindeki `runUpgrade`'e bakın).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start`, CLI ile aynı iii Worker Compose runtime’ını başlatır: iii 0.24.6, `state@0.22.20` ve `http@0.22.7`. macOS/Linux’ta CLI engine binary’sini `~/.agentmemory/bin` içine indirir; otomatik kurulum `curl`, POSIX `sh`, `tar` gerektirir. Yerel REST ve viewer `127.0.0.1` adresine bağlanır; viewer güncellemeleri REST SSE üzerinden gelir. `/agentmemory/status` `enginePinnedVersion` bildirir; `AGENTMEMORY_III_VERSION` pin’i değiştirebilir
+`npm start`, CLI ile aynı iii Worker Compose runtime’ını başlatır: iii 0.25.0, `state@0.22.20` ve `http@0.22.7`. macOS/Linux’ta CLI engine binary’sini `~/.agentmemory/bin` içine indirir; otomatik kurulum `curl`, POSIX `sh`, `tar` gerektirir. Yerel REST ve viewer `127.0.0.1` adresine bağlanır; viewer güncellemeleri REST SSE üzerinden gelir. `/agentmemory/status` `enginePinnedVersion` bildirir; `AGENTMEMORY_III_VERSION` pin’i değiştirebilir
 
 ### Windows
 
-agentmemory Windows 10/11’de çalışır. WSL2 Linux yolunu izleyerek engine’i otomatik kurabilir. Yerel Windows’ta iii-engine v0.24.6 elle kurulmalıdır: arşivi [iii v0.24.6 sürüm sayfasından](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6) indirin, checksum’u doğrulayın ve `iii.exe` dosyasını `PATH` üzerine koyun. CLI Windows ZIP’ini otomatik açmaz
+agentmemory Windows 10/11’de çalışır. WSL2 Linux yolunu izleyerek engine’i otomatik kurabilir. Yerel Windows’ta iii-engine v0.25.0 elle kurulmalıdır: arşivi [iii v0.25.0 sürüm sayfasından](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0) indirin, checksum’u doğrulayın ve `iii.exe` dosyasını `PATH` üzerine koyun. CLI Windows ZIP’ini otomatik açmaz
 
 Yerel Windows’ta otomatik MCP yapılandırması yalnızca `agentmemory connect copilot-cli` için vardır; diğerleri için [Other agents](#other-agents) bölümünü kullanın. WSL’de `connect` yalnızca hedef agent aynı WSL ortamındaysa çalıştırılmalıdır
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Deploy</h2>
 
-Docker CLI başlatma modu olarak değil, depodan self-host için desteklenir. [`../deploy/Dockerfile`](../deploy/Dockerfile) ve [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) iii 0.24.6 runtime’ını kullanır; state, traces ve secret kalıcı `/data` volume’ünde tutulur. Varsayılan named volume `iii-data`; bind mount için `AGENTMEMORY_DATA_DIR` değerini host yoluna ayarlayın. 0.22.1’den gelen file store `/data/state_store.db` konumundan migration olmadan doğrudan okunur. REST CORS yerel origin’lere izin verir; güvenilir origin’leri `REST_ALLOWED_ORIGINS` ile ekleyin. Ayrıntılar: [`../deploy/README.md`](../deploy/README.md).
+Docker CLI başlatma modu olarak değil, depodan self-host için desteklenir. [`../deploy/Dockerfile`](../deploy/Dockerfile) ve [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) iii 0.25.0 runtime’ını kullanır; state, traces ve secret kalıcı `/data` volume’ünde tutulur. Varsayılan named volume `iii-data`; bind mount için `AGENTMEMORY_DATA_DIR` değerini host yoluna ayarlayın. 0.22.1’den gelen file store `/data/state_store.db` konumundan migration olmadan doğrudan okunur. REST CORS yerel origin’lere izin verir; güvenilir origin’leri `REST_ALLOWED_ORIGINS` ile ekleyin. Ayrıntılar: [`../deploy/README.md`](../deploy/README.md).
 
 
 <p>
@@ -1229,59 +1229,9 @@ Görüntüleyici sunucusu, varsayılan olarak `127.0.0.1`'e bağlanır ve istekl
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113`'teki görüntüleyici, ajanınızın **hatırladığını** gösterir. [iii console](https://iii.dev/docs/console), ajanınızın **yaptığını** gösterir: her bellek işlemi bir OpenTelemetry trace'i olarak, her KV girdisi düzenlenebilir, her fonksiyon çağrılabilir. Aynı belleğe iki pencere: biri ürün şekilli, biri engine şekilli.
+iii 0.25 ile birlikte gelen konsol kaldırıldı. `agentmemory console` geçiş yönergelerini gösterir. AgentMemory görüntüleyicisi 3113 portunda kullanılabilir; durumu `agentmemory status` ile kontrol edin.
 
-Bir `memory_smart_search`'ün ateşlenmesini izleyin ve BM25 taraması → embedding lookup'u → RRF füzyonu → reranker'ı bir waterfall olarak görün. KV browser'da takılı kalmış bir konsolidasyon timer'ını düzenleyin. Değiştirilmiş bir payload ile bir `PostToolUse` hook'unu yeniden oynatın (replay).
-
-agentmemory, bunu ücretsiz olarak sunar çünkü her fonksiyon çağrısı ve trigger iii üzerinden ateşlenir; özel (custom) hiçbir şey yok, enstrümante edilecek hiçbir şey yok.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii console Workers sayfası: canlı fonksiyon sayıları ve runtime metadata'sı ile agentmemory instance'ları dahil bağlı worker'lar" width="720" />
-  <br/>
-  <em>Workers sayfası: agentmemory'nin kendisi dahil her bağlı worker; PID, fonksiyon sayısı, runtime ve son-görülme ile birlikte.</em>
-</p>
-
-**Zaten kurulu.** Console, sabitlenmiş `iii` engine'i (0.22+) ile birlikte gelir; ayrıca kurulacak bir şey yok. İlk başlatma, console binary'sini engine'in yanına indirir.
-
-**agentmemory ile birlikte başlatın:**
-
-```bash
-agentmemory console
-```
-
-Bu, sabitlenmiş engine'in `iii console`'unu agentmemory'nin çözümlediği portlara (REST, bridge) karşı çalıştırır ve bunu görüntüleyicinin bir port üstünde, varsayılan olarak `http://localhost:3114`'te sunar. `--console-port N`, başka bir port seçer; `--port` ve `--instance`, `stop` için yaptıkları gibi agentmemory instance'ını seçer; başka herhangi bir flag geçirilir, örneğin deneysel mimari-grafı sayfası için `--enable-flow`.
-
-Aynı şeyi elle yapmak, `agentmemory` PATH'te olmadığında kullanışlıdır:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Console'dan yapabilecekleriniz:**
-
-| Sayfa | Şunun için kullanın |
-|------|-----------|
-| **Workers** | agentmemory worker'ının kendisi dahil, bağlı her worker'ı ve canlı metriklerini görün. |
-| **Functions** | agentmemory'nin fonksiyonlarından herhangi birini bir JSON payload ile doğrudan çağırın; bir istemci bağlamadan `memory.recall`, `memory.consolidate`, `graph.query`'yi test etmek için kullanışlıdır. |
-| **Triggers** | HTTP, cron, event ve state trigger'larını yeniden oynatın: konsolidasyon cron'unu manuel olarak ateşleyin, bir HTTP route'unu yeniden deneyin, bir state değişikliği yayınlayın. |
-| **States** | Oturumlar, bellek slot'ları, yaşam döngüsü timer'ları ve embedding indeksi üzerinde tam CRUD'a sahip KV browser; değerleri yerinde düzenleyin. |
-| **Queues** | Dayanıklı (durable) queue topic'leri + dead-letter yönetimi. Başarısız embedding / compression job'larını yeniden oynatın veya düşürün. |
-| **Traces** | OpenTelemetry waterfall / flame / service-breakdown görünümleri. Tek bir `memory.search`'ün tam olarak hangi fonksiyonları, DB çağrılarını ve embedding isteklerini ürettiğini görmek için `trace_id`'ye göre filtreleyin. |
-| **Logs** | trace/span ID'leriyle filtrelenen ve ilişkilendirilen yapılandırılmış OTEL log'ları. |
-| **Config** | Runtime yapılandırması: engine'inizin tam olarak hangi worker'larla, sağlayıcılarla ve portlarla çalıştığını görün. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall görünümü, span başına süreyi gösteriyor" width="720" />
-  <br/>
-  <em>Traces: her bellek işlemi için waterfall / flame / service breakdown.</em>
-</p>
-
-**Trace'ler zaten açık:**
-
-**Tracing ve loglar:** Runtime telemetrisini iii console ile inceleyin. Exporter ve sampling ayarları için [iii observability belgelerine](https://iii.dev/docs) bakın.
-
-
-> **Dikkat:** console'un kendisinde auth zorunlu değildir; onu `127.0.0.1`'e bağlı tutun (varsayılan) ve asla herkese açık hale getirmeyin.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1298,11 +1248,13 @@ Bu, bir komut daha ile agentmemory'yi tamamen yeni bir yetenekle genişletebilec
 
 Runtime registry `state` (KV) ve `http` worker’larını agentmemory ile birleştirir; [iii registry](https://workers.iii.dev) worker’ları Worker Compose projesine eklenebilir.
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | agentmemory'nin üstüne ne eklenir |
@@ -1317,7 +1269,7 @@ Tam registry: [workers.iii.dev](https://workers.iii.dev). Oradaki her worker, ag
 CLI’nin oluşturduğu Worker Compose projesinde registry paketleri `state@0.22.20` ve `http@0.22.7` sabitlenir.
 ### CLI runtime’ı ve bind adresleri
 
-`agentmemory` çalıştırıldığında seçili data directory içinde izole manifest ile iii Worker Compose başlar. iii 0.24.6, `state@0.22.20`, `http@0.22.7` kullanılır. REST ve viewer `127.0.0.1` adresine bağlanır; engine WebSocket dahili trafiktir. Docker self-host ayrı [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) kullanır; [`../deploy/README.md`](../deploy/README.md) bölümüne bakın.
+`agentmemory` çalıştırıldığında seçili data directory içinde izole manifest ile iii Worker Compose başlar. iii 0.25.0, `state@0.22.20`, `http@0.22.7` kullanılır. REST ve viewer `127.0.0.1` adresine bağlanır; engine WebSocket dahili trafiktir. Docker self-host ayrı [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) kullanır; [`../deploy/README.md`](../deploy/README.md) bölümüne bakın.
 
 ### Depolama backend'i: file (varsayılan) vs redis
 
@@ -1385,7 +1337,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom eklenti sistemleri | `iii worker add <name>` |
 
-**246 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 

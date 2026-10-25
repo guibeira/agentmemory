@@ -9,7 +9,7 @@ const STATE_PATH = "scripts/docs-sync.state.json";
 const CHECK = process.argv.includes("--check");
 const REPO_URL = "https://github.com/rohitg00/agentmemory";
 
-type State = { version: string; facts: Record<string, string[]> };
+type State = { version: string; engineVersion?: string; facts: Record<string, string[]> };
 
 interface Fact {
   key: string;
@@ -165,13 +165,13 @@ const FACTS: Fact[] = [
   {
     key: "sourceFiles",
     label: "source files",
-    legacyValues: ["242"],
+    legacyValues: ["242", "246"],
     value: () => String(sourceFiles().length),
     nouns: [
       "source files", "fichiers sources", "ficheros de código", "arquivos de código", "archivos fuente", "arquivos-fonte", "arquivos fonte",
       "fichiers source", "Quelldateien", "исходных файл", "個原始檔", "个源文件", "개 소스 파일", "개의 소스 파일", "ソースファイル", "kaynak dosya", "zdrojových soubor",
       "kildefiler", "αρχεία πηγαίου", "lähdetiedosto", "forrásfájl", "file sorgente", "bronbestand", "plików źródłowych", "ficheiros de código",
-      "fișiere sursă", "källkodsfiler", "source file", "na source file", "file source", "вихідних файл", "file sumber", "קבצי מקור", "ملف مصدري",
+      "fișiere sursă", "källkodsfiler", "source file", "na source file", "file source", "вихідних файл", "file sumber", "קבצי מקור", "קובצי מקור", "ملف مصدري",
       "سورس فائل", "সোর্স ফাইল", "개", "pliki źródłowe", "de fișiere sursă",
     ],
   },
@@ -200,6 +200,7 @@ const EXCLUDED = [
   /^test\//,
   /^benchmark\//,
   /^docs\/benchmarks\//,
+  /^docs\/upgrades\//,
   /^eval\//,
   /^website\/lib\/generated-meta\.json$/,
   /(^|\/)package-lock\.json$/,
@@ -295,7 +296,26 @@ function main(): void {
   const report: string[] = [];
   const failed: string[] = [];
 
-  const version = (JSON.parse(read("package.json")) as { version: string }).version;
+  const manifest = JSON.parse(read("package.json")) as { version: string; dependencies: Record<string, string> };
+  const version = manifest.version;
+  const engineVersion = manifest.dependencies["iii-sdk"];
+  if (!/^\d+\.\d+\.\d+$/.test(engineVersion) || manifest.dependencies["@iii-dev/helpers"] !== engineVersion) {
+    throw new Error("iii-sdk and @iii-dev/helpers must pin the same exact release.");
+  }
+  const previousEngineVersion = state.engineVersion ?? read("src/version.ts").match(/III_PINNED_VERSION = "([^"]+)"/)?.[1];
+  if (!previousEngineVersion) throw new Error("Could not read the previous engine pin.");
+  if (engineVersion !== previousEngineVersion) {
+    for (const extra of trackedFiles().filter((path) => path === ".env.example" || path === "eval/README.md" || /^examples\/python\/.*\.(py|md)$/.test(path) || path === "deploy/runtime/entrypoint.sh")) {
+      if (!files.has(extra)) files.set(extra, read(extra));
+      if (!original.has(extra)) original.set(extra, read(extra));
+    }
+    for (const [path, text] of files) {
+      if (path === "website/lib/generated-changelog.json") continue;
+      files.set(path, text.replaceAll(previousEngineVersion, engineVersion));
+    }
+    report.push(`engine: ${previousEngineVersion} -> ${engineVersion}`);
+  }
+  nextState.engineVersion = engineVersion;
   if (version !== state.version) {
     for (const extra of ["src/types.ts", "src/functions/export-import.ts", "CHANGELOG.md"]) {
       if (!files.has(extra)) files.set(extra, read(extra));

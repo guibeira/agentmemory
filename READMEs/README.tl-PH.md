@@ -100,7 +100,7 @@ Mga Kinakailangan:
 
 - Node.js 20 o mas bago, kasama ang npm at npx (`node -v`, `npm -v`, at `npx -v`).
 - Kailangan din ng awtomatikong pag-install ng iii-engine sa macOS/Linux ang `curl`, isang POSIX `sh`, at `tar`. Posibleng wala ang mga ito sa mga minimal na image gaya ng `node:20-slim`.
-Para sa native Windows, kailangang manu-manong i-install ang pinned na iii v0.24.6 `iii.exe`; ginagamit ng WSL2 ang awtomatikong installer para sa macOS/Linux
+Para sa native Windows, kailangang manu-manong i-install ang pinned na iii v0.25.0 `iii.exe`; ginagamit ng WSL2 ang awtomatikong installer para sa macOS/Linux
 
 Standard na command para sa sariwang pag-install:
 
@@ -132,7 +132,7 @@ I-wire ang mas maraming agent anumang oras gamit ang `agentmemory connect <agent
 <details>
 <summary><strong>Windows</strong></summary>
 
-WSL2 ang pinakamabilis na paraan; sa native Windows, kailangang manu-manong i-install ang v0.24.6 binary. Tingnan ang mga hakbang sa [Windows notes](#windows)
+WSL2 ang pinakamabilis na paraan; sa native Windows, kailangang manu-manong i-install ang v0.25.0 binary. Tingnan ang mga hakbang sa [Windows notes](#windows)
 
 </details>
 
@@ -157,7 +157,7 @@ Nag-cache ang npx ayon sa bersyon. Pilitin ang paggamit ng pinakabago gamit ang 
 <details>
 <summary><strong>May sariling iii engine ka nang tumatakbo</strong></summary>
 
-Compatibility: iii 0.24.6 kasama ang registry workers na `state` 0.22.20 at `http` 0.22.7
+Compatibility: iii 0.25.0 kasama ang registry workers na `state` 0.22.20 at `http` 0.22.7
 
 </details>
 
@@ -556,7 +556,7 @@ Walang isa man sa mga ito ang gumagawa ng auto-capture mula sa coding-agent hook
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Mabilisang Simula" height="32" /></picture></h2>
 
-Compatibility: iii 0.24.6 kasama ang registry workers na `state` 0.22.20 at `http` 0.22.7
+Compatibility: iii 0.25.0 kasama ang registry workers na `state` 0.22.20 at `http` 0.22.7
 
 ### Subukan sa 30 Segundo
 
@@ -635,7 +635,7 @@ Gamitin ang maintenance command kapag sinasadya mong i-update ang iyong local ru
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Babala: binabago ng command na ito ang workspace/runtime. Maaari nitong i-update ang JavaScript dependencies at i-install ang pinned na iii 0.24.6 binary.
+Babala: binabago ng command na ito ang workspace/runtime. Maaari nitong i-update ang JavaScript dependencies at i-install ang pinned na iii 0.25.0 binary.
 
 Nasa `src/cli.ts` ang mga detalye ng implementation (tingnan ang `runUpgrade` sa paligid ng `src/cli.ts:544-595` na region).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-Ang `npm start` ay gumagamit ng parehong iii Worker Compose runtime ng CLI: iii 0.24.6, `state@0.22.20`, at `http@0.22.7`. Dina-download ng CLI ang pinned engine sa `~/.agentmemory/bin`; kailangan ng `curl`, POSIX `sh`, at `tar` ang awtomatikong pag-install sa macOS/Linux. Nagba-bind sa `127.0.0.1` ang local REST at viewer. SSE sa REST port ang viewer events. Iniuulat ng `/agentmemory/status` ang `enginePinnedVersion`; maaaring i-override ang pin sa `AGENTMEMORY_III_VERSION`
+Ang `npm start` ay gumagamit ng parehong iii Worker Compose runtime ng CLI: iii 0.25.0, `state@0.22.20`, at `http@0.22.7`. Dina-download ng CLI ang pinned engine sa `~/.agentmemory/bin`; kailangan ng `curl`, POSIX `sh`, at `tar` ang awtomatikong pag-install sa macOS/Linux. Nagba-bind sa `127.0.0.1` ang local REST at viewer. SSE sa REST port ang viewer events. Iniuulat ng `/agentmemory/status` ang `enginePinnedVersion`; maaaring i-override ang pin sa `AGENTMEMORY_III_VERSION`
 
 ### Windows
 
-Tumatakbo ang agentmemory sa Windows 10/11. Awtomatikong nag-i-install ng engine ang WSL2 gamit ang Linux path. Sa native Windows, manu-manong i-install ang pinned na iii-engine v0.24.6: i-download ang archive mula sa [iii v0.24.6 release page](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), tiyakin ang checksum, at ilagay ang `iii.exe` sa `PATH`. Hindi awtomatikong nag-e-extract ng ZIP ang CLI
+Tumatakbo ang agentmemory sa Windows 10/11. Awtomatikong nag-i-install ng engine ang WSL2 gamit ang Linux path. Sa native Windows, manu-manong i-install ang pinned na iii-engine v0.25.0: i-download ang archive mula sa [iii v0.25.0 release page](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), tiyakin ang checksum, at ilagay ang `iii.exe` sa `PATH`. Hindi awtomatikong nag-e-extract ng ZIP ang CLI
 
 Native Windows MCP automation ay para lamang sa `agentmemory connect copilot-cli`; gamitin ang manual MCP block sa [Other agents](#other-agents) para sa iba. Sa WSL, patakbuhin ang `connect` lamang kung naroon din ang target agent
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Pag-deploy</h2>
 
-Docker ay sinusuportahan para sa self-hosting mula sa repository, hindi bilang CLI startup mode. Gamitin ang [`../deploy/Dockerfile`](../deploy/Dockerfile) at [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) na may iii 0.24.6 runtime; iniimbak ang state, traces at secret sa persistent `/data` volume. Default ang named volume na `iii-data`; itakda ang `AGENTMEMORY_DATA_DIR` sa host path para sa bind mount. Direktang binabasa sa `/data/state_store.db` ang file store mula 0.22.1 nang walang migration. Pinapayagan ng REST CORS ang local origins; idagdag ang trusted origins sa `REST_ALLOWED_ORIGINS`. Tingnan ang [`../deploy/README.md`](../deploy/README.md).
+Docker ay sinusuportahan para sa self-hosting mula sa repository, hindi bilang CLI startup mode. Gamitin ang [`../deploy/Dockerfile`](../deploy/Dockerfile) at [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) na may iii 0.25.0 runtime; iniimbak ang state, traces at secret sa persistent `/data` volume. Default ang named volume na `iii-data`; itakda ang `AGENTMEMORY_DATA_DIR` sa host path para sa bind mount. Direktang binabasa sa `/data/state_store.db` ang file store mula 0.22.1 nang walang migration. Pinapayagan ng REST CORS ang local origins; idagdag ang trusted origins sa `REST_ALLOWED_ORIGINS`. Tingnan ang [`../deploy/README.md`](../deploy/README.md).
 
 
 <p>
@@ -1230,59 +1230,9 @@ Nagbibind ang viewer server sa `127.0.0.1` bilang default at idinadagdag nito an
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Ipinapakita ng viewer sa `:3113` ang **naalala** ng iyong agent. Ipinapakita ng [iii console](https://iii.dev/docs/console) ang **ginawa** ng iyong agent: bawat memory op bilang isang OpenTelemetry trace, bawat KV entry na maaaring i-edit, bawat function na maaaring i-invoke. Dalawang bintana sa parehong memory: isang product-shaped, isang engine-shaped.
+Inalis na ang kasamang console sa iii 0.25. Ipinapakita ng `agentmemory console` ang gabay sa paglipat. Nananatili ang AgentMemory viewer sa port 3113; gamitin ang `agentmemory status` para tingnan ang kalagayan nito.
 
-Panoorin ang pagputok ng isang `memory_smart_search` at tingnan ang BM25 scan → embedding lookup → RRF fusion → reranker bilang isang waterfall. I-edit ang isang stuck na consolidation timer sa KV browser. I-replay ang isang `PostToolUse` hook na may tinweak na payload.
-
-Ibinibigay ito ng agentmemory nang libre dahil ang bawat function call at trigger ay dumadaan sa iii; walang custom, walang kailangang i-instrument.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="pahinang Workers ng iii console: mga kakonektang worker kasama ang mga instance ng agentmemory na may live function count at runtime metadata" width="720" />
-  <br/>
-  <em>Pahinang Workers: bawat kakonektang worker, kasama ang agentmemory mismo, na may PID, function count, runtime, at last-seen.</em>
-</p>
-
-**Naka-install na.** Nag-ship ang console kasama ang pinned na `iii` engine (0.22+); walang hiwalay na i-install. Nag-download ang unang launch ng console binary sa tabi ng engine.
-
-**Ilunsad kasabay ng agentmemory:**
-
-```bash
-agentmemory console
-```
-
-Pinapatakbo nito ang `iii console` ng pinned engine laban sa mga port na nireresolba ng agentmemory (REST, bridge) at ipinapakita ito sa isang port sa itaas ng viewer, `http://localhost:3114` bilang default. Pumipili ang `--console-port N` ng ibang port; pinipili ng `--port` at `--instance` ang instance ng agentmemory sa parehong paraan tulad nila para sa `stop`; ipinapasa ang anumang ibang flag, halimbawa ang `--enable-flow` para sa experimental na architecture-graph page.
-
-Ang parehong bagay nang manu-mano, kapaki-pakinabang kapag wala ang `agentmemory` sa PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Ang magagawa mo mula sa console:**
-
-| Pahina | Gamitin Ito Para |
-|------|-----------|
-| **Workers** | Makita ang bawat kakonektang worker at ang live metrics nito, kasama ang agentmemory worker mismo. |
-| **Functions** | I-invoke nang direkta ang alinman sa mga function ng agentmemory gamit ang isang JSON payload; kapaki-pakinabang para sa pag-test ng `memory.recall`, `memory.consolidate`, `graph.query` nang walang i-wire na client. |
-| **Triggers** | I-replay ang HTTP, cron, event, at state trigger: patakbuhin nang manu-mano ang consolidation cron, ulitin ang isang HTTP route, maglabas ng state change. |
-| **States** | KV browser na may full CRUD sa mga session, memory slot, lifecycle timer, at ang embeddings index; i-edit ang mga value sa lugar. |
-| **Queues** | Durable queue topic + dead-letter management. I-replay o i-drop ang mga nabigong embedding / compression job. |
-| **Traces** | OpenTelemetry waterfall / flame / service-breakdown view. I-filter ayon sa `trace_id` para makita kung aling mga function, DB call, at embedding request mismo ang nabuo ng isang `memory.search`. |
-| **Logs** | Structured OTEL log na na-filter at na-correlate sa trace/span ID. |
-| **Config** | Runtime configuration: makita mismo kung aling mga worker, provider, at port ang tinatakbo ng iyong engine. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace waterfall view na nagpapakita ng per-span duration" width="720" />
-  <br/>
-  <em>Traces: waterfall / flame / service breakdown para sa bawat memory operation.</em>
-</p>
-
-**Naka-on na ang Traces:**
-
-**Tracing at logs:** Gamitin ang iii console upang siyasatin ang runtime telemetry. Para sa exporter at sampling configuration, tingnan ang [iii observability documentation](https://iii.dev/docs).
-
-
-> **Paalala:** walang auth na ipinapatupad sa console mismo; panatilihin itong bound sa `127.0.0.1` (ang default) at huwag kailanman i-expose ito nang pampubliko.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1299,11 +1249,13 @@ Ibig sabihin, isa pang command ang kailangan para palawakin ang agentmemory ng i
 
 Pinagsasama ng runtime ang registry workers na `state` (KV) at `http` sa agentmemory. Maaaring idagdag sa Worker Compose project ang ibang worker mula sa [iii registry](https://workers.iii.dev).
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Ano ang Makukuha Mo Kasama ang agentmemory |
@@ -1318,7 +1270,7 @@ Kumpletong registry: [workers.iii.dev](https://workers.iii.dev). Bumubuo ang baw
 Pini-pin ng CLI-generated Worker Compose project ang `state@0.22.20` at `http@0.22.7`.
 ### CLI runtime at bind address
 
-Kapag pinatakbo ang `agentmemory`, nagsisimula ang iii Worker Compose na may hiwalay na manifest sa napiling data directory. Ginagamit nito ang iii 0.24.6, `state@0.22.20`, at `http@0.22.7`. Nagba-bind sa `127.0.0.1` ang local REST at viewer; internal traffic ang engine WebSocket. Hiwalay ang Docker deployment file: [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); tingnan ang [`../deploy/README.md`](../deploy/README.md).
+Kapag pinatakbo ang `agentmemory`, nagsisimula ang iii Worker Compose na may hiwalay na manifest sa napiling data directory. Ginagamit nito ang iii 0.25.0, `state@0.22.20`, at `http@0.22.7`. Nagba-bind sa `127.0.0.1` ang local REST at viewer; internal traffic ang engine WebSocket. Hiwalay ang Docker deployment file: [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); tingnan ang [`../deploy/README.md`](../deploy/README.md).
 
 ### Storage Backend: file (default) laban sa redis
 
@@ -1374,7 +1326,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom na plugin system | `iii worker add <name>` |
 
-**246 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 

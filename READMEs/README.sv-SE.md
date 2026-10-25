@@ -100,7 +100,7 @@ Krav:
 
 - Node.js 20 eller nyare med npm och npx (`node -v`, `npm -v` och `npx -v`).
 - Automatisk installation av iii-engine på macOS/Linux kräver också `curl`, ett POSIX-`sh` och `tar`. Minimala avbildningar som `node:20-slim` kan sakna dem.
-- Native Windows kräver att den fastlåsta iii-engine v0.24.6 `iii.exe` installeras manuellt; WSL2 använder den automatiska macOS/Linux-installeraren.
+- Native Windows kräver att den fastlåsta iii-engine v0.25.0 `iii.exe` installeras manuellt; WSL2 använder den automatiska macOS/Linux-installeraren.
 
 Det kanoniska kommandot för en ny installation:
 
@@ -132,7 +132,7 @@ Koppla in fler agenter när du vill med `agentmemory connect <agent>` — 20 ada
 <details>
 <summary><strong>Windows</strong></summary>
 
-Den snabbaste vägen är WSL2. För native Windows måste den fastlåsta v0.24.6-ZIP-filen laddas ner och `iii.exe` extraheras manuellt. Instruktioner finns under [Windows](#windows).
+Den snabbaste vägen är WSL2. För native Windows måste den fastlåsta v0.25.0-ZIP-filen laddas ner och `iii.exe` extraheras manuellt. Instruktioner finns under [Windows](#windows).
 
 </details>
 
@@ -157,7 +157,7 @@ npx cachar per version. Tvinga fram den senaste med `npx -y @agentmemory/agentme
 <details>
 <summary><strong>Kör redan din egen iii-engine</strong></summary>
 
-agentmemory fastlåser iii 0.24.6 och ansluter inte till en annan version (workern kan inte tala en annan engines protokoll). Stoppa den andra enginen och kör sedan `npx -y @agentmemory/agentmemory@latest`. Den installerar och kör den fastlåsta versionen 0.24.6 i `~/.agentmemory/bin`, utan att röra din egen `iii`.
+agentmemory fastlåser iii 0.25.0 och ansluter inte till en annan version (workern kan inte tala en annan engines protokoll). Stoppa den andra enginen och kör sedan `npx -y @agentmemory/agentmemory@latest`. Den installerar och kör den fastlåsta versionen 0.25.0 i `~/.agentmemory/bin`, utan att röra din egen `iii`.
 
 </details>
 
@@ -556,7 +556,7 @@ Ingen av dessa fångar automatiskt in data från kodningsagent-hooks, levererar 
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Snabbstart" height="32" /></picture></h2>
 
-Kompatibilitet: den här utgåvan använder iii 0.24.6 med registry-workers `state` 0.22.20 och `http` 0.22.7.
+Kompatibilitet: den här utgåvan använder iii 0.25.0 med registry-workers `state` 0.22.20 och `http` 0.22.7.
 
 ### Prova det på 30 sekunder
 
@@ -635,7 +635,7 @@ Använd underhållskommandot när du avsiktligt vill uppdatera din lokala körti
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Varning: det här kommandot ändrar den aktuella arbetsytan/körtiden. Det kan uppdatera JavaScript-beroenden och installera den fastlåsta iii 0.24.6-engine-binären.
+Varning: det här kommandot ändrar den aktuella arbetsytan/körtiden. Det kan uppdatera JavaScript-beroenden och installera den fastlåsta iii 0.25.0-engine-binären.
 
 Implementationsdetaljer finns i `src/cli.ts` (se `runUpgrade` runt området `src/cli.ts:544-595`).
 
@@ -861,12 +861,12 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` startar samma iii Worker Compose-körtid som CLI:n: iii 0.24.6 med registry-workers `state@0.22.20` och `http@0.22.7`. På macOS/Linux laddar CLI:n ner den fastlåsta engine-binären till `~/.agentmemory/bin`; automatisk installation kräver `curl`, ett POSIX-`sh` och `tar`. De lokala REST- och viewer-lyssnarna binder till `127.0.0.1`. Viewer-uppdateringar skickas med SSE via `GET /agentmemory/viewer/events` på REST-porten. `/agentmemory/status` rapporterar den fastlåsta engine-versionen som `enginePinnedVersion`; standardversionen som stöds är iii 0.24.6. `AGENTMEMORY_III_VERSION` kan användas för att medvetet åsidosätta fastlåsningen.
+`npm start` startar samma iii Worker Compose-körtid som CLI:n: iii 0.25.0 med registry-workers `state@0.22.20` och `http@0.22.7`. På macOS/Linux laddar CLI:n ner den fastlåsta engine-binären till `~/.agentmemory/bin`; automatisk installation kräver `curl`, ett POSIX-`sh` och `tar`. De lokala REST- och viewer-lyssnarna binder till `127.0.0.1`. Viewer-uppdateringar skickas med SSE via `GET /agentmemory/viewer/events` på REST-porten. `/agentmemory/status` rapporterar den fastlåsta engine-versionen som `enginePinnedVersion`; standardversionen som stöds är iii 0.25.0. `AGENTMEMORY_III_VERSION` kan användas för att medvetet åsidosätta fastlåsningen.
 
 
 ### Windows
 
-agentmemory körs på Windows 10/11. WSL2 följer Linux-vägen och kan installera den fastlåsta enginen automatiskt. Native Windows kräver att den fastlåsta iii-engine v0.24.6-binären installeras manuellt: ladda ner rätt arkiv från [iii v0.24.6-utgåvan](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), verifiera kontrollsumman och placera `iii.exe` på `PATH` (till exempel `%USERPROFILE%\.local\bin\iii.exe`). CLI:n packar inte upp Windows-ZIP-filen automatiskt.
+agentmemory körs på Windows 10/11. WSL2 följer Linux-vägen och kan installera den fastlåsta enginen automatiskt. Native Windows kräver att den fastlåsta iii-engine v0.25.0-binären installeras manuellt: ladda ner rätt arkiv från [iii v0.25.0-utgåvan](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), verifiera kontrollsumman och placera `iii.exe` på `PATH` (till exempel `%USERPROFILE%\.local\bin\iii.exe`). CLI:n packar inte upp Windows-ZIP-filen automatiskt.
 
 Automatiserad MCP-inkoppling på native Windows stöder bara `agentmemory connect copilot-cli`. För andra native Windows-agenter använder du det manuella MCP-blocket från [Andra agenter](#other-agents). Kör `connect` i WSL endast om målagenten är installerad i samma WSL-miljö.
 
@@ -884,7 +884,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Driftsättning</h2>
 
-Docker stöds för self-hosting från det här repot, inte som ett startläge för CLI:n. Driftsättningsmallarna använder [`deploy/Dockerfile`](../deploy/Dockerfile) och [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), fastlåser samma iii 0.24.6-körtid och workers och lagrar state, traces och den genererade hemligheten på en beständig `/data`-volym. Docker Compose använder som standard den befintliga namngivna volymen `iii-data`; sätt `AGENTMEMORY_DATA_DIR` till en värdsökväg för att använda en bind-mount. Den befintliga filbaserade lagringen från 0.22.1 läses direkt från `/data/state_store.db` utan migrering eller konvertering. REST CORS tillåter lokala REST- och viewer-origins som standard; sätt `REST_ALLOWED_ORIGINS` till en kommaseparerad lista med exakta origins om en betrodd webbläsarorigin behöver åtkomst. Se [`deploy/README.md`](../deploy/README.md) för konfiguration och säkerhet.
+Docker stöds för self-hosting från det här repot, inte som ett startläge för CLI:n. Driftsättningsmallarna använder [`deploy/Dockerfile`](../deploy/Dockerfile) och [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), fastlåser samma iii 0.25.0-körtid och workers och lagrar state, traces och den genererade hemligheten på en beständig `/data`-volym. Docker Compose använder som standard den befintliga namngivna volymen `iii-data`; sätt `AGENTMEMORY_DATA_DIR` till en värdsökväg för att använda en bind-mount. Den befintliga filbaserade lagringen från 0.22.1 läses direkt från `/data/state_store.db` utan migrering eller konvertering. REST CORS tillåter lokala REST- och viewer-origins som standard; sätt `REST_ALLOWED_ORIGINS` till en kommaseparerad lista med exakta origins om en betrodd webbläsarorigin behöver åtkomst. Se [`deploy/README.md`](../deploy/README.md) för konfiguration och säkerhet.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1227,56 +1227,9 @@ Viewer-servern binder till `127.0.0.1` som standard och bifogar serverhemlighete
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii-konsolen" height="32" /></picture></h2>
 
-Viewern på `:3113` visar vad din agent **minns**. [iii-konsolen](https://iii.dev/docs/console) visar vad din agent **gjorde**: varje minnesoperation som ett OpenTelemetry-spår, varje KV-post redigerbar, varje funktion anropsbar. Två fönster mot samma minne: ett produktformat, ett motorformat.
+Den inbyggda konsolen har tagits bort i iii 0.25. `agentmemory console` visar migrationsanvisningar. AgentMemory-visaren finns kvar på port 3113; kontrollera status med `agentmemory status`.
 
-Se en `memory_smart_search` utlösas och följ BM25-skanningen → embedding-uppslaget → RRF-fusionen → rerankern som ett vattenfall. Redigera en fastnad konsolideringstimer i KV-webbläsaren. Spela upp en `PostToolUse`-hook igen med en justerad nyttolast. Fäst WebSocket-strömmen och se observationer landa i realtid.
-
-agentmemory levererar detta gratis eftersom varje funktionsanrop och trigger går genom iii; inget anpassat, inget att instrumentera.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii-konsolens Workers-sida: anslutna workers, inklusive agentmemory-instanser, med live funktionsantal och körtidsmetadata" width="720" />
-  <br/>
-  <em>Workers-sidan: varje ansluten worker, inklusive agentmemory självt, med PID, funktionsantal, körtid och senast sedd.</em>
-</p>
-
-**Redan installerad.** Konsolen levereras med den fastlåsta `iii`-enginen (0.22+); inget separat att installera. Den första starten laddar ner konsolbinären bredvid enginen.
-
-**Starta tillsammans med agentmemory:**
-
-```bash
-agentmemory console
-```
-
-Detta kör den fastlåsta enginens `iii console` mot de portar agentmemory har löst (REST, strömmar, bridge) och serverar den en port ovanför viewern, `http://localhost:3114` som standard. `--console-port N` väljer en annan port; `--port` och `--instance` väljer agentmemory-instansen på samma sätt som för `stop`; varje annan flagga skickas vidare, till exempel `--enable-flow` för den experimentella arkitektur-grafsidan.
-
-Samma sak för hand, användbart när `agentmemory` inte finns i PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Vad du kan göra från konsolen:**
-
-| Sida | Använd den för att |
-|------|-----------|
-| **Workers** | Se varje ansluten worker och dess livemetrik, inklusive agentmemory-workern själv. |
-| **Functions** | Anropa vilken av agentmemorys funktioner som helst direkt med en JSON-nyttolast; praktiskt för att testa `memory.recall`, `memory.consolidate`, `graph.query` utan att koppla in en klient. |
-| **Triggers** | Spela upp HTTP-, cron-, event- och state-triggers igen: utlös konsolideringscronen manuellt, försök igen med en HTTP-rutt, sänd en tillståndsändring. |
-| **States** | KV-webbläsare med fullständig CRUD över sessioner, minnesplatser, livscykeltimrar och embedding-indexet; redigera värden direkt. |
-| **Traces** | OpenTelemetry-vyer för vattenfall/flame/tjänsteuppdelning. Filtrera på `trace_id` för att se exakt vilka funktioner, DB-anrop och embedding-förfrågningar en enskild `memory.search` gav upphov till. |
-| **Logs** | Strukturerade OTEL-loggar filtrerade och korrelerade till trace-/span-ID:n. |
-| **Config** | Körtidskonfiguration: se exakt vilka workers, leverantörer och portar din engine körs med. |
-| **Flow** | (Valfritt, `--enable-flow`) Interaktiv arkitekturgraf över varje worker. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii-konsolens vattenfallsvy för spår som visar varaktighet per span" width="720" />
-  <br/>
-  <em>Traces: vattenfall/flame/tjänsteuppdelning för varje minnesoperation.</em>
-</p>
-
-**Spårning och loggar:** iii-konsolen kan granska körtidens telemetri. Följ [iii:s observability-dokumentation](https://iii.dev/docs) för konfiguration av exporter och sampling.
-
-> **Observera:** ingen autentisering upprätthålls på konsolen själv; håll den bunden till `127.0.0.1` (standard) och exponera den aldrig publikt.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1291,11 +1244,13 @@ Det betyder att ett enda extra kommando utökar agentmemory med en helt ny funkt
 Körtiden kombinerar registry-workers `state` (KV) och `http` med agentmemory. Andra workers från [iii-registret](https://workers.iii.dev) kan läggas till i ett Worker Compose-projekt.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Vad du får utöver agentmemory |
@@ -1310,7 +1265,7 @@ Fullständigt register: [workers.iii.dev](https://workers.iii.dev). Varje worker
 
 ### CLI-körtid och bindningsadresser
 
-När `agentmemory` körs (eller paketet startas utan underkommando) startar iii Worker Compose med ett isolerat manifest i den valda datakatalogen. Den använder iii 0.24.6, `state@0.22.20` och `http@0.22.7`. CLI:ns lokala REST- och viewer-lyssnare binder till `127.0.0.1`; engine-WebSocket används för intern körtidstrafik. Docker-driftsättningar från repot använder en separat [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); se [`deploy/README.md`](../deploy/README.md).
+När `agentmemory` körs (eller paketet startas utan underkommando) startar iii Worker Compose med ett isolerat manifest i den valda datakatalogen. Den använder iii 0.25.0, `state@0.22.20` och `http@0.22.7`. CLI:ns lokala REST- och viewer-lyssnare binder till `127.0.0.1`; engine-WebSocket används för intern körtidstrafik. Docker-driftsättningar från repot använder en separat [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); se [`deploy/README.md`](../deploy/README.md).
 
 ### Lagringsbackend: fil (standard) kontra redis
 
@@ -1389,7 +1344,7 @@ fi
 | Prometheus / Grafana | iii OTEL + hälsoövervakare |
 | Anpassade pluginsystem | `iii worker add <name>` |
 
-**246 källkodsfiler · ~56,000 LOC · 3,600+ tester · 322 funktioner · 65 KV-scopes**, allt på tre primitiv. Inget `agentmemory plugin install`. Pluginsystemet är iii självt.
+**245 källkodsfiler · ~56,000 LOC · 3,600+ tester · 322 funktioner · 65 KV-scopes**, allt på tre primitiv. Inget `agentmemory plugin install`. Pluginsystemet är iii självt.
 
 ---
 

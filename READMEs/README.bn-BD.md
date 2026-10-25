@@ -100,7 +100,7 @@
 
 - Node.js 20 বা তার নতুন সংস্করণ, npm এবং npx সহ (`node -v`, `npm -v`, এবং `npx -v`)।
 - macOS/Linux-এ iii-engine-এর স্বয়ংক্রিয় ইনস্টলেশনের জন্য `curl`, একটি POSIX `sh`, এবং `tar`-ও প্রয়োজন। `node:20-slim`-এর মতো মিনিমাল ইমেজে এগুলো থাকতে পারে না।
-- নেটিভ Windows-এর জন্য পিন করা iii 0.24.6 ইঞ্জিনের `iii.exe` ম্যানুয়ালি ইনস্টল করতে হয়; WSL2 Linux পথ অনুসরণ করে এবং ইঞ্জিন স্বয়ংক্রিয়ভাবে ইনস্টল করতে পারে।
+- নেটিভ Windows-এর জন্য পিন করা iii 0.25.0 ইঞ্জিনের `iii.exe` ম্যানুয়ালি ইনস্টল করতে হয়; WSL2 Linux পথ অনুসরণ করে এবং ইঞ্জিন স্বয়ংক্রিয়ভাবে ইনস্টল করতে পারে।
 
 ক্যানোনিকাল ফ্রেশ-ইনস্টল কমান্ড:
 
@@ -132,7 +132,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-সবচেয়ে সহজ পথ WSL2। নেটিভ Windows-এর জন্য পিন করা 0.24.6 ইঞ্জিনের ZIP ডাউনলোড করে `iii.exe` ম্যানুয়ালি এক্সট্র্যাক্ট করতে হয়। ধাপগুলোর জন্য [Windows notes](#windows) দেখুন।
+সবচেয়ে সহজ পথ WSL2। নেটিভ Windows-এর জন্য পিন করা 0.25.0 ইঞ্জিনের ZIP ডাউনলোড করে `iii.exe` ম্যানুয়ালি এক্সট্র্যাক্ট করতে হয়। ধাপগুলোর জন্য [Windows notes](#windows) দেখুন।
 
 </details>
 
@@ -157,7 +157,7 @@ npx প্রতি ভার্সন অনুযায়ী ক্যাশ 
 <details>
 <summary><strong>নিজের iii engine ইতিমধ্যে চলছে</strong></summary>
 
-agentmemory iii 0.24.6 ইঞ্জিনে পিন করা এবং অন্য সংস্করণের সাথে সংযুক্ত হবে না (worker অন্য ইঞ্জিনের প্রোটোকল ব্যবহার করতে পারে না)। অন্য ইঞ্জিনটি থামিয়ে `npx -y @agentmemory/agentmemory@latest` চালান। এটি পিন করা 0.24.6 `~/.agentmemory/bin`-এ ইনস্টল ও চালায়, আপনার নিজের `iii` অপরিবর্তিত রেখে।
+agentmemory iii 0.25.0 ইঞ্জিনে পিন করা এবং অন্য সংস্করণের সাথে সংযুক্ত হবে না (worker অন্য ইঞ্জিনের প্রোটোকল ব্যবহার করতে পারে না)। অন্য ইঞ্জিনটি থামিয়ে `npx -y @agentmemory/agentmemory@latest` চালান। এটি পিন করা 0.25.0 `~/.agentmemory/bin`-এ ইনস্টল ও চালায়, আপনার নিজের `iii` অপরিবর্তিত রেখে।
 
 </details>
 
@@ -556,7 +556,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="কুইক স্টার্ট" height="32" /></picture></h2>
 
-কম্প্যাটিবিলিটি: এই রিলিজ iii 0.24.6-কে টার্গেট করে; registry worker `state` 0.22.20 এবং `http` 0.22.7 ব্যবহার করে।
+কম্প্যাটিবিলিটি: এই রিলিজ iii 0.25.0-কে টার্গেট করে; registry worker `state` 0.22.20 এবং `http` 0.22.7 ব্যবহার করে।
 
 ### 30 সেকেন্ডে ট্রাই করুন
 
@@ -635,7 +635,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-proje
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-সতর্কতা: এই কমান্ড বর্তমান workspace/runtime বদলে দেয়। এটি JavaScript dependency আপডেট করতে পারে এবং পিন করা iii 0.24.6 engine বাইনারি ইনস্টল করতে পারে।
+সতর্কতা: এই কমান্ড বর্তমান workspace/runtime বদলে দেয়। এটি JavaScript dependency আপডেট করতে পারে এবং পিন করা iii 0.25.0 engine বাইনারি ইনস্টল করতে পারে।
 
 ইমপ্লিমেন্টেশনের ডিটেইল থাকে `src/cli.ts`-এ (দেখুন `src/cli.ts:544-595` অঞ্চলের কাছে `runUpgrade`)।
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` CLI-র মতো একই iii Worker Compose runtime চালু করে: iii 0.24.6, registry worker `state@0.22.20`, এবং `http@0.22.7`। macOS/Linux-এ CLI পিন করা engine বাইনারি `~/.agentmemory/bin`-এ ডাউনলোড করে; স্বয়ংক্রিয় ইনস্টলের জন্য `curl`, একটি POSIX `sh`, এবং `tar` লাগে। লোকাল REST ও viewer listener `127.0.0.1`-এ bind করে। viewer আপডেট REST পোর্টের `GET /agentmemory/viewer/events`-এ SSE ব্যবহার করে। `/agentmemory/status` পিন করা engine সংস্করণ `enginePinnedVersion` হিসেবে জানায়; সমর্থিত ডিফল্ট হলো iii 0.24.6। পিন ইচ্ছাকৃতভাবে বদলাতে `AGENTMEMORY_III_VERSION` ব্যবহার করা যায়।
+`npm start` CLI-র মতো একই iii Worker Compose runtime চালু করে: iii 0.25.0, registry worker `state@0.22.20`, এবং `http@0.22.7`। macOS/Linux-এ CLI পিন করা engine বাইনারি `~/.agentmemory/bin`-এ ডাউনলোড করে; স্বয়ংক্রিয় ইনস্টলের জন্য `curl`, একটি POSIX `sh`, এবং `tar` লাগে। লোকাল REST ও viewer listener `127.0.0.1`-এ bind করে। viewer আপডেট REST পোর্টের `GET /agentmemory/viewer/events`-এ SSE ব্যবহার করে। `/agentmemory/status` পিন করা engine সংস্করণ `enginePinnedVersion` হিসেবে জানায়; সমর্থিত ডিফল্ট হলো iii 0.25.0। পিন ইচ্ছাকৃতভাবে বদলাতে `AGENTMEMORY_III_VERSION` ব্যবহার করা যায়।
 
 ### Windows
 
-agentmemory Windows 10/11-এ চলে। WSL2 Linux-এর পথ অনুসরণ করে এবং পিন করা engine স্বয়ংক্রিয়ভাবে ইনস্টল করতে পারে। নেটিভ Windows-এর জন্য পিন করা iii-engine 0.24.6 বাইনারি ম্যানুয়ালি ইনস্টল করতে হবে; [iii 0.24.6 release page](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6) থেকে মিলে যাওয়া archive ডাউনলোড করে checksum যাচাই করুন, তারপর `iii.exe` `PATH`-এ রাখুন (যেমন `%USERPROFILE%\.local\bin\iii.exe`)। CLI Windows ZIP স্বয়ংক্রিয়ভাবে extract করে না।
+agentmemory Windows 10/11-এ চলে। WSL2 Linux-এর পথ অনুসরণ করে এবং পিন করা engine স্বয়ংক্রিয়ভাবে ইনস্টল করতে পারে। নেটিভ Windows-এর জন্য পিন করা iii-engine 0.25.0 বাইনারি ম্যানুয়ালি ইনস্টল করতে হবে; [iii 0.25.0 release page](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0) থেকে মিলে যাওয়া archive ডাউনলোড করে checksum যাচাই করুন, তারপর `iii.exe` `PATH`-এ রাখুন (যেমন `%USERPROFILE%\.local\bin\iii.exe`)। CLI Windows ZIP স্বয়ংক্রিয়ভাবে extract করে না।
 
 নেটিভ Windows-এ স্বয়ংক্রিয় MCP wiring কেবল `agentmemory connect copilot-cli` সাপোর্ট করে। অন্য নেটিভ Windows এজেন্টের জন্য [Other agents](#other-agents) থেকে ম্যানুয়াল MCP block ব্যবহার করুন। লক্ষ্য এজেন্টটি একই WSL পরিবেশে ইনস্টল থাকলেই কেবল WSL-এর ভিতরে `connect` চালান।
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Deploy</h2>
 
-Docker এই repository থেকে self-hosting-এর জন্য সমর্থিত, CLI startup mode হিসেবে নয়। ওয়ান-ক্লিক template-গুলো [`deploy/Dockerfile`](../deploy/Dockerfile) এবং [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) ব্যবহার করে, একই iii 0.24.6 runtime worker pin করে, এবং state, trace ও তৈরি secret স্থায়ী `/data` volume-এ রাখে। Docker Compose ডিফল্টভাবে বিদ্যমান `iii-data` named volume ব্যবহার করে; bind mount চাইলে `AGENTMEMORY_DATA_DIR`-কে host path-এ সেট করুন। 0.22.1 ফরম্যাটের বিদ্যমান data `/data/state_store.db` থেকে সরাসরি পড়া হয়, কোনো migration বা conversion ছাড়াই। REST CORS ডিফল্টভাবে local REST ও viewer origin অনুমোদন করে; trusted browser origin-এর জন্য নির্দিষ্ট origin-এর comma-separated তালিকা দিতে `REST_ALLOWED_ORIGINS` সেট করুন। setup ও security বিস্তারিত জানতে [`deploy/README.md`](../deploy/README.md) দেখুন।
+Docker এই repository থেকে self-hosting-এর জন্য সমর্থিত, CLI startup mode হিসেবে নয়। ওয়ান-ক্লিক template-গুলো [`deploy/Dockerfile`](../deploy/Dockerfile) এবং [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) ব্যবহার করে, একই iii 0.25.0 runtime worker pin করে, এবং state, trace ও তৈরি secret স্থায়ী `/data` volume-এ রাখে। Docker Compose ডিফল্টভাবে বিদ্যমান `iii-data` named volume ব্যবহার করে; bind mount চাইলে `AGENTMEMORY_DATA_DIR`-কে host path-এ সেট করুন। 0.22.1 ফরম্যাটের বিদ্যমান data `/data/state_store.db` থেকে সরাসরি পড়া হয়, কোনো migration বা conversion ছাড়াই। REST CORS ডিফল্টভাবে local REST ও viewer origin অনুমোদন করে; trusted browser origin-এর জন্য নির্দিষ্ট origin-এর comma-separated তালিকা দিতে `REST_ALLOWED_ORIGINS` সেট করুন। setup ও security বিস্তারিত জানতে [`deploy/README.md`](../deploy/README.md) দেখুন।
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1226,55 +1226,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113`-এর viewer দেখায় আপনার agent কী **মনে রেখেছে**। [iii console](https://iii.dev/docs/console) দেখায় agent কী **করেছে**: প্রতিটি memory operation OpenTelemetry trace হিসেবে, প্রতিটি KV entry সম্পাদনযোগ্য, প্রতিটি function আহ্বানযোগ্য, অন্যটি engine-কেন্দ্রিক।
+iii 0.25-এ অন্তর্ভুক্ত কনসোলটি বন্ধ করা হয়েছে। `agentmemory console` এখন স্থানান্তরের নির্দেশনা দেখায়। AgentMemory viewer 3113 পোর্টে উপলব্ধ থাকে; অবস্থা দেখতে `agentmemory status` ব্যবহার করুন।
 
-একটি `memory_smart_search` চালু হতে দেখুন এবং BM25 scan → embedding lookup → RRF fusion → reranker-কে waterfall হিসেবে অনুসরণ করুন। KV browser-এ আটকে থাকা consolidation timer সম্পাদনা করুন। পরিবর্তিত payload দিয়ে `PostToolUse` hook replay করুন। iii engine channel ও activity পরীক্ষা করুন।
-
-agentmemory এটা ফ্রিতে দেয় কারণ প্রতিটি ফাংশন কল ও ট্রিগার iii-এর মধ্য দিয়ে ফায়ার হয়; কিছুই কাস্টম নয়, ইন্সট্রুমেন্ট করার কিছু নেই।
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii console-র Workers পেজ: লাইভ ফাংশন কাউন্ট ও রানটাইম মেটাডেটা সহ agentmemory ইনস্ট্যান্স-সহ কানেক্টেড ওয়ার্কার" width="720" />
-  <br/>
-  <em>Workers পেজ: প্রতিটি কানেক্টেড ওয়ার্কার, agentmemory নিজেও সহ, PID, ফাংশন কাউন্ট, রানটাইম, এবং last-seen সহ।</em>
-</p>
-
-**আগে থেকেই ইনস্টলড।** কনসোলটি পিন করা `iii` 0.24.6 engine-সহ আসে; আলাদা কিছু ইনস্টল করতে হয় না। প্রথম launch-এ engine-এর পাশে console বাইনারি ডাউনলোড হয়।
-
-**agentmemory-র সাথে লঞ্চ করুন:**
-
-```bash
-agentmemory console
-```
-
-এটি পিন করা engine-এর `iii console`-কে agentmemory নির্ধারিত পোর্টে (REST ও worker WebSocket) চালায় এবং viewer-এর এক পোর্ট ওপরে, ডিফল্ট `http://localhost:3114`-এ serve করে। `--console-port N` অন্য একটা পোর্ট বেছে নেয়; `--port` এবং `--instance` `stop`-এর জন্য যেভাবে করে ঠিক সেভাবেই agentmemory ইনস্ট্যান্স বেছে নেয়; অন্য যেকোনো ফ্ল্যাগ পাস-থ্রু হয়, যেমন এক্সপেরিমেন্টাল আর্কিটেকচার-গ্রাফ পেজের জন্য `--enable-flow`।
-
-একই কাজ হাতে করে, `agentmemory` PATH-এ না থাকলে কাজে লাগে:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**কনসোল থেকে আপনি যা করতে পারেন:**
-
-| পেজ | যা করতে ব্যবহার করুন |
-|------|-----------|
-| **Workers** | প্রতিটি কানেক্টেড ওয়ার্কার ও তার লাইভ মেট্রিক্স দেখুন, এমনকি agentmemory ওয়ার্কারটিও। |
-| **Functions** | একটি JSON পেলোড দিয়ে agentmemory-র যেকোনো ফাংশন সরাসরি ইনভোক করুন; কোনো ক্লায়েন্ট ওয়্যার না করে `memory.recall`, `memory.consolidate`, `graph.query` টেস্ট করার জন্য সুবিধাজনক। |
-| **Triggers** | HTTP, cron, event, এবং state ট্রিগার রিপ্লে করুন: ম্যানুয়ালি কনসোলিডেশন cron ফায়ার করুন, একটি HTTP রুট রিট্রাই করুন, একটি state পরিবর্তন emit করুন। |
-| **States** | সেশন, মেমরি স্লট, লাইফসাইকেল টাইমার, এবং এমবেডিং ইনডেক্সের উপর পূর্ণ CRUD সহ KV ব্রাউজার; ভ্যালু ইন-প্লেস এডিট করুন। |
-| **Traces** | OpenTelemetry waterfall / flame / service-breakdown ভিউ। একটি একক `memory.search` ঠিক কোন ফাংশন, DB কল, এবং এমবেডিং রিকোয়েস্ট তৈরি করেছে তা দেখতে `trace_id` দিয়ে ফিল্টার করুন। |
-| **Logs** | trace/span ID-র সাথে ফিল্টার ও কো-রিলেটেড স্ট্রাকচারড OTEL লগ। |
-| **Config** | রানটাইম কনফিগারেশন: আপনার ইঞ্জিন ঠিক কোন ওয়ার্কার, প্রোভাইডার, এবং পোর্ট নিয়ে চলছে তা দেখুন। |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="প্রতি-স্প্যান ডিউরেশন দেখানো iii console trace waterfall ভিউ" width="720" />
-  <br/>
-  <em>Traces: প্রতিটি মেমরি অপারেশনের জন্য waterfall / flame / service breakdown।</em>
-</p>
-
-**Trace ও log:** iii console runtime telemetry পরীক্ষা করতে পারে। exporter ও sampling কনফিগারেশনের জন্য [iii observability documentation](https://iii.dev/docs) অনুসরণ করুন।
-
-> **খেয়াল রাখুন:** কনসোলের উপর নিজেই কোনো auth এনফোর্সড নেই; এটিকে `127.0.0.1`-এই (ডিফল্ট) বাঁধা রাখুন এবং কখনো পাবলিকলি এক্সপোজ করবেন না।
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1289,11 +1243,13 @@ agentmemory হলো [iii](https://iii.dev) runtime-এর একটি worker�
 runtime registry-র `state` (KV) ও `http` worker-কে agentmemory-র সঙ্গে compose করে। [iii registry](https://workers.iii.dev)-র অন্য worker-ও একটি Worker Compose project-এ যোগ করা যায়।
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | agentmemory-র সঙ্গে অতিরিক্ত সুবিধা |
@@ -1308,7 +1264,7 @@ runtime CLI-নির্মিত Worker Compose project-এ registry package `s
 
 ### CLI runtime ও bind address
 
-`agentmemory` চালালে (অথবা package-টি subcommand ছাড়া চালালে) নির্বাচিত data directory-র অধীনে বিচ্ছিন্ন manifest-সহ iii Worker Compose শুরু হয়। এটি iii 0.24.6, `state@0.22.20`, ও `http@0.22.7` ব্যবহার করে। CLI-র local REST ও viewer listener `127.0.0.1`-এ bind করে; engine WebSocket অভ্যন্তরীণ runtime traffic। repository-ভিত্তিক Docker deployment আলাদা [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) ব্যবহার করে; বিস্তারিত [`deploy/README.md`](../deploy/README.md)-এ।
+`agentmemory` চালালে (অথবা package-টি subcommand ছাড়া চালালে) নির্বাচিত data directory-র অধীনে বিচ্ছিন্ন manifest-সহ iii Worker Compose শুরু হয়। এটি iii 0.25.0, `state@0.22.20`, ও `http@0.22.7` ব্যবহার করে। CLI-র local REST ও viewer listener `127.0.0.1`-এ bind করে; engine WebSocket অভ্যন্তরীণ runtime traffic। repository-ভিত্তিক Docker deployment আলাদা [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) ব্যবহার করে; বিস্তারিত [`deploy/README.md`](../deploy/README.md)-এ।
 
 ### Storage backend: file (ডিফল্ট) বনাম Redis
 
@@ -1386,7 +1342,7 @@ fi
 | Prometheus / Grafana | iii OTEL + হেলথ মনিটর |
 | কাস্টম প্লাগইন সিস্টেম | `iii worker add <name>` |
 
-**246 সোর্স ফাইল · ~56,000 LOC · 3,800+ টেস্ট · 322 ফাংশন · 65 KV স্কোপ**, সবকিছু তিনটি প্রিমিটিভের উপর। কোনো `agentmemory plugin install` নেই। প্লাগইন সিস্টেমটাই iii নিজে।
+**245 সোর্স ফাইল · ~56,000 LOC · 3,800+ টেস্ট · 322 ফাংশন · 65 KV স্কোপ**, সবকিছু তিনটি প্রিমিটিভের উপর। কোনো `agentmemory plugin install` নেই। প্লাগইন সিস্টেমটাই iii নিজে।
 
 ---
 

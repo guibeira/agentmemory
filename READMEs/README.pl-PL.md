@@ -100,7 +100,7 @@ Wymagania:
 
 - Node.js 20 lub nowszy wraz z npm i npx (`node -v`, `npm -v` i `npx -v`).
 - Automatyczna instalacja iii-engine na macOS/Linux wymaga również `curl`, POSIX-owego `sh` oraz `tar`. Minimalne obrazy, takie jak `node:20-slim`, mogą ich nie zawierać.
-- Natywny Windows wymaga ręcznej instalacji przypiętego `iii.exe` w wersji iii 0.24.6; WSL2 korzysta z automatycznego instalatora dla macOS/Linux.
+- Natywny Windows wymaga ręcznej instalacji przypiętego `iii.exe` w wersji iii 0.25.0; WSL2 korzysta z automatycznego instalatora dla macOS/Linux.
 
 Kanoniczna komenda do świeżej instalacji:
 
@@ -132,7 +132,7 @@ Możesz podłączyć więcej agentów w każdej chwili za pomocą `agentmemory c
 <details>
 <summary><strong>Windows</strong></summary>
 
-Najprostszą ścieżką jest WSL2. Natywny Windows wymaga pobrania przypiętego pliku ZIP v0.24.6 i ręcznego wypakowania `iii.exe`. Zobacz [sekcję Windows](#windows), aby poznać instrukcje.
+Najprostszą ścieżką jest WSL2. Natywny Windows wymaga pobrania przypiętego pliku ZIP v0.25.0 i ręcznego wypakowania `iii.exe`. Zobacz [sekcję Windows](#windows), aby poznać instrukcje.
 
 </details>
 
@@ -157,7 +157,7 @@ npx buforuje dane w podziale na wersje. Wymuś najnowszą wersję za pomocą `np
 <details>
 <summary><strong>Masz już uruchomiony własny silnik iii</strong></summary>
 
-agentmemory przypina iii-engine do wersji v0.24.6 i nie podłączy się do innej wersji (worker nie obsługuje protokołu innego silnika). Zatrzymaj drugi silnik, a następnie uruchom `npx -y @agentmemory/agentmemory@latest`. Narzędzie zainstaluje i uruchomi przypiętą wersję v0.24.6 w `~/.agentmemory/bin`, pozostawiając twój własny plik `iii` bez zmian.
+agentmemory przypina iii-engine do wersji v0.25.0 i nie podłączy się do innej wersji (worker nie obsługuje protokołu innego silnika). Zatrzymaj drugi silnik, a następnie uruchom `npx -y @agentmemory/agentmemory@latest`. Narzędzie zainstaluje i uruchomi przypiętą wersję v0.25.0 w `~/.agentmemory/bin`, pozostawiając twój własny plik `iii` bez zmian.
 
 </details>
 
@@ -556,7 +556,7 @@ Najnowsze informacje o wydaniach: [CHANGELOG.md](../CHANGELOG.md).
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Szybki start" height="32" /></picture></h2>
 
-Kompatybilność: to wydanie korzysta z iii 0.24.6 oraz workerów rejestru `state` 0.22.20 i `http` 0.22.7.
+Kompatybilność: to wydanie korzysta z iii 0.25.0 oraz workerów rejestru `state` 0.22.20 i `http` 0.22.7.
 
 ### Wypróbuj w 30 sekund
 
@@ -635,7 +635,7 @@ Użyj komendy utrzymania, gdy chcesz celowo zaktualizować swoje lokalne środow
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Ostrzeżenie: ta komenda modyfikuje bieżący workspace/runtime. Może zaktualizować zależności JavaScript i zainstalować przypięty plik binarny silnika iii 0.24.6.
+Ostrzeżenie: ta komenda modyfikuje bieżący workspace/runtime. Może zaktualizować zależności JavaScript i zainstalować przypięty plik binarny silnika iii 0.25.0.
 
 Szczegóły implementacji znajdują się w `src/cli.ts` (zobacz `runUpgrade` w okolicach `src/cli.ts:544-595`).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` uruchamia ten sam runtime iii Worker Compose co CLI: iii 0.24.6 z workerami rejestru `state@0.22.20` i `http@0.22.7`. Na macOS/Linux CLI pobiera przypięty plik binarny silnika do `~/.agentmemory/bin`; automatyczna instalacja wymaga `curl`, POSIX-owego `sh` i `tar`. Lokalne nasłuchujące usługi REST i podglądu wiążą się z `127.0.0.1`. Aktualizacje podglądu są przesyłane przez SSE pod `GET /agentmemory/viewer/events` na porcie REST. `/agentmemory/status` podaje przypiętą wersję silnika jako `enginePinnedVersion`; obsługiwaną domyślną wersją jest iii 0.24.6. Zmienna `AGENTMEMORY_III_VERSION` pozwala celowo nadpisać przypiętą wersję.
+`npm start` uruchamia ten sam runtime iii Worker Compose co CLI: iii 0.25.0 z workerami rejestru `state@0.22.20` i `http@0.22.7`. Na macOS/Linux CLI pobiera przypięty plik binarny silnika do `~/.agentmemory/bin`; automatyczna instalacja wymaga `curl`, POSIX-owego `sh` i `tar`. Lokalne nasłuchujące usługi REST i podglądu wiążą się z `127.0.0.1`. Aktualizacje podglądu są przesyłane przez SSE pod `GET /agentmemory/viewer/events` na porcie REST. `/agentmemory/status` podaje przypiętą wersję silnika jako `enginePinnedVersion`; obsługiwaną domyślną wersją jest iii 0.25.0. Zmienna `AGENTMEMORY_III_VERSION` pozwala celowo nadpisać przypiętą wersję.
 
 ### Windows
 
-agentmemory działa w Windows 10/11. WSL2 korzysta ze ścieżki linuksowej i może automatycznie zainstalować przypięty silnik. Natywny Windows wymaga ręcznie zainstalowanego przypiętego pliku binarnego iii-engine v0.24.6; pobierz pasujące archiwum ze [strony wydania iii 0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), zweryfikuj sumę kontrolną i umieść `iii.exe` w `PATH` (na przykład `%USERPROFILE%\.local\bin\iii.exe`). CLI nie wypakowuje automatycznie archiwum ZIP dla Windows.
+agentmemory działa w Windows 10/11. WSL2 korzysta ze ścieżki linuksowej i może automatycznie zainstalować przypięty silnik. Natywny Windows wymaga ręcznie zainstalowanego przypiętego pliku binarnego iii-engine v0.25.0; pobierz pasujące archiwum ze [strony wydania iii 0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), zweryfikuj sumę kontrolną i umieść `iii.exe` w `PATH` (na przykład `%USERPROFILE%\.local\bin\iii.exe`). CLI nie wypakowuje automatycznie archiwum ZIP dla Windows.
 
 Zautomatyzowane podłączanie MCP w natywnym Windows obsługuje tylko `agentmemory connect copilot-cli`. Dla pozostałych natywnych agentów Windows użyj ręcznego bloku MCP z sekcji [Inni agenci](#other-agents). Uruchamiaj `connect` w WSL tylko wtedy, gdy docelowy agent jest zainstalowany w tym samym środowisku WSL.
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Wdrożenie</h2>
 
-Docker jest obsługiwany do samodzielnego hostowania z repozytorium, a nie jako tryb uruchamiania CLI. Szablony jednoklikowe korzystają z [`deploy/Dockerfile`](../deploy/Dockerfile) i [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), przypinają ten sam runtime iii 0.24.6 i jego workery oraz przechowują stan, trace i wygenerowany sekret na trwałym woluminie `/data`. Docker Compose domyślnie korzysta z istniejącego woluminu nazwanego `iii-data`; ustaw `AGENTMEMORY_DATA_DIR` na ścieżkę hosta, aby zamiast tego użyć bind mountu. Dane plikowego magazynu z wersji 0.22.1 są bezpośrednio odczytywane z `/data/state_store.db`, bez migracji ani konwersji. Domyślnie CORS REST zezwala na lokalne originy REST i podglądu; ustaw `REST_ALLOWED_ORIGINS` jako listę rozdzielonych przecinkami dokładnych originów, jeśli dostęp ma uzyskać zaufana przeglądarka. Instrukcje konfiguracji i bezpieczeństwa znajdziesz w [`deploy/README.md`](../deploy/README.md).
+Docker jest obsługiwany do samodzielnego hostowania z repozytorium, a nie jako tryb uruchamiania CLI. Szablony jednoklikowe korzystają z [`deploy/Dockerfile`](../deploy/Dockerfile) i [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), przypinają ten sam runtime iii 0.25.0 i jego workery oraz przechowują stan, trace i wygenerowany sekret na trwałym woluminie `/data`. Docker Compose domyślnie korzysta z istniejącego woluminu nazwanego `iii-data`; ustaw `AGENTMEMORY_DATA_DIR` na ścieżkę hosta, aby zamiast tego użyć bind mountu. Dane plikowego magazynu z wersji 0.22.1 są bezpośrednio odczytywane z `/data/state_store.db`, bez migracji ani konwersji. Domyślnie CORS REST zezwala na lokalne originy REST i podglądu; ustaw `REST_ALLOWED_ORIGINS` jako listę rozdzielonych przecinkami dokładnych originów, jeśli dostęp ma uzyskać zaufana przeglądarka. Instrukcje konfiguracji i bezpieczeństwa znajdziesz w [`deploy/README.md`](../deploy/README.md).
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Wdróż na fly.io" /></a>
@@ -1227,56 +1227,9 @@ Serwer podglądu domyślnie wiąże się z `127.0.0.1` i dołącza sekret serwer
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="Konsola iii" height="32" /></picture></h2>
 
-Podgląd na `:3113` pokazuje, co twój agent **zapamiętał**. [Konsola iii](https://iii.dev/docs/console) pokazuje, co twój agent **zrobił**: każdą operację pamięci jako trace OpenTelemetry, każdy wpis KV edytowalny, każdą funkcję wywoływalną. Dwa okna na tę samą pamięć: jedno w kształcie produktu, drugie w kształcie silnika.
+iii 0.25 usuwa wbudowaną konsolę. `agentmemory console` wyświetla instrukcje migracji. Podgląd AgentMemory pozostaje dostępny na porcie 3113; stan sprawdzisz poleceniem `agentmemory status`.
 
-Obserwuj, jak `memory_smart_search` się wyzwala, i zobacz skan BM25 → wyszukanie embeddingu → fuzję RRF → reranker jako wodospad (waterfall). Edytuj zablokowany timer konsolidacji w przeglądarce KV. Odtwórz hook `PostToolUse` ze zmodyfikowanym payloadem. Przypnij strumień WebSocket i obserwuj, jak obserwacje spływają na żywo.
-
-agentmemory dostarcza to bezpłatnie, bo każde wywołanie funkcji i trigger przechodzi przez iii; nic niestandardowego, nic do instrumentowania.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="Strona Workers konsoli iii: podłączeni workerzy, w tym instancje agentmemory, z licznikami funkcji na żywo i metadanymi środowiska wykonawczego" width="720" />
-  <br/>
-  <em>Strona Workers: każdy podłączony worker, w tym sam agentmemory, z PID, liczbą funkcji, środowiskiem wykonawczym i czasem ostatniej aktywności.</em>
-</p>
-
-**Już zainstalowana.** Konsola jest dostarczana z przypiętym silnikiem `iii` 0.24.6; nie trzeba niczego instalować osobno. Przy pierwszym uruchomieniu plik binarny konsoli jest pobierany obok silnika.
-
-**Uruchom razem z agentmemory:**
-
-```bash
-agentmemory console
-```
-
-To uruchamia `iii console` przypiętego silnika względem portów rozwiązanych przez agentmemory (REST i WebSocket workera) i udostępnia konsolę jeden port powyżej podglądu, domyślnie pod `http://localhost:3114`. `--console-port N` wybiera inny port; `--port` i `--instance` wybierają instancję agentmemory tak samo, jak dla `stop`; każda inna flaga jest przekazywana dalej, na przykład `--enable-flow` dla eksperymentalnej strony grafu architektury.
-
-To samo ręcznie, przydatne, gdy `agentmemory` nie jest w PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Co można zrobić z konsoli:**
-
-| Strona | Służy do |
-|------|-----------|
-| **Workers** | Zobaczenia każdego podłączonego workera i jego metryk na żywo, włącznie z samym workerem agentmemory. |
-| **Functions** | Wywołania bezpośrednio każdej funkcji agentmemory z payloadem JSON; przydatne do testowania `memory.recall`, `memory.consolidate`, `graph.query` bez podłączania klienta. |
-| **Triggers** | Odtworzenia triggerów HTTP, cron, zdarzeń i stanu: ręcznego wyzwolenia crona konsolidacji, ponownej próby trasy HTTP, wyemitowania zmiany stanu. |
-| **States** | Przeglądarki KV z pełnym CRUD na sesjach, slotach pamięci, timerach cyklu życia i indeksie embeddingów; edycji wartości w miejscu. |
-| **Traces** | Widoków waterfall / flame / rozbicia na usługi OpenTelemetry. Filtrowania po `trace_id`, aby zobaczyć, które funkcje, wywołania bazy danych i żądania embeddingu wyprodukowało jedno `memory.search`. |
-| **Logs** | Ustrukturyzowanych logów OTEL filtrowanych i skorelowanych z ID trace/span. |
-| **Config** | Konfiguracji runtime: zobaczenia dokładnie, z jakimi workerami, dostawcami i portami działa twój silnik. |
-| **Flow** | (Opcjonalnie, `--enable-flow`) Interaktywnego grafu architektury każdego workera, triggera i strumienia. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="Widok waterfall traces w konsoli iii pokazujący czas trwania per span" width="720" />
-  <br/>
-  <em>Traces: waterfall / flame / rozbicie na usługi dla każdej operacji pamięci.</em>
-</p>
-
-**Śledzenie i logi:** Konsola iii umożliwia inspekcję telemetrii runtime. Informacje o konfiguracji eksportera i próbkowaniu znajdziesz w [dokumentacji obserwowalności iii](https://iii.dev/docs).
-
-> **Uwaga:** na samej konsoli nie jest wymuszona autoryzacja; trzymaj ją związaną z `127.0.0.1` (ustawienie domyślne) i nigdy nie wystawiaj jej publicznie.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1291,11 +1244,13 @@ To oznacza, że jedna dodatkowa komenda rozszerza agentmemory o całkiem nową m
 Runtime łączy workery rejestru `state` (KV) i `http` z agentmemory. Inne workery z [rejestru iii](https://workers.iii.dev) można dodawać do projektu Worker Compose.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Co zyskujesz oprócz agentmemory |
@@ -1310,7 +1265,7 @@ Pełny rejestr: [workers.iii.dev](https://workers.iii.dev). Każdy worker tam do
 
 ### Runtime CLI i adresy bindowania
 
-Uruchomienie `agentmemory` (lub pakietu bez podkomendy) uruchamia iii Worker Compose z izolowanym manifestem w wybranym katalogu danych. Wykorzystuje iii 0.24.6, `state@0.22.20` i `http@0.22.7`. Lokalne listenery REST i podglądu CLI wiążą się z `127.0.0.1`; WebSocket silnika służy do wewnętrznego ruchu runtime. Wdrożenia Docker oparte na repozytorium korzystają z osobnego [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); zobacz [`deploy/README.md`](../deploy/README.md).
+Uruchomienie `agentmemory` (lub pakietu bez podkomendy) uruchamia iii Worker Compose z izolowanym manifestem w wybranym katalogu danych. Wykorzystuje iii 0.25.0, `state@0.22.20` i `http@0.22.7`. Lokalne listenery REST i podglądu CLI wiążą się z `127.0.0.1`; WebSocket silnika służy do wewnętrznego ruchu runtime. Wdrożenia Docker oparte na repozytorium korzystają z osobnego [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); zobacz [`deploy/README.md`](../deploy/README.md).
 
 ### Backend przechowywania: plik (domyślny) kontra redis
 
@@ -1388,7 +1343,7 @@ fi
 | Prometheus / Grafana | iii OTEL + monitor stanu |
 | Niestandardowe systemy pluginów | `iii worker add <name>` |
 
-**246 pliki źródłowe · ~55,000 LOC · 3,800+ testów · 322 funkcje · 65 zakresów KV**, wszystko na trzech prymitywach. Nie ma `agentmemory plugin install`. Systemem pluginów jest sam iii.
+**245 pliki źródłowe · ~55,000 LOC · 3,800+ testów · 322 funkcje · 65 zakresów KV**, wszystko na trzech prymitywach. Nie ma `agentmemory plugin install`. Systemem pluginów jest sam iii.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Konfiguracja" height="32" /></picture></h2>

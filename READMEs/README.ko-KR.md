@@ -100,7 +100,7 @@
 
 - Node.js 20 이상, npm과 npx 포함(`node -v`, `npm -v`, `npx -v`로 확인).
 - macOS/Linux에서 iii-engine을 자동으로 설치하려면 `curl`, POSIX `sh`, `tar`도 필요합니다. `node:20-slim` 같은 최소 이미지에는 이들이 포함되어 있지 않을 수 있습니다.
-- 네이티브 Windows에서는 고정된 iii-engine v0.24.6의 `iii.exe`를 수동으로 설치해야 합니다. WSL2에서는 Linux와 같은 자동 설치 경로를 사용합니다.
+- 네이티브 Windows에서는 고정된 iii-engine v0.25.0의 `iii.exe`를 수동으로 설치해야 합니다. WSL2에서는 Linux와 같은 자동 설치 경로를 사용합니다.
 
 표준 신규 설치 명령:
 
@@ -132,7 +132,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-가장 간단한 방법은 WSL2입니다. 네이티브 Windows에서는 고정된 v0.24.6 ZIP을 다운로드한 뒤 `iii.exe`를 수동으로 압축 해제하십시오. 단계는 [Windows 안내](#windows)를 참고하십시오.
+가장 간단한 방법은 WSL2입니다. 네이티브 Windows에서는 고정된 v0.25.0 ZIP을 다운로드한 뒤 `iii.exe`를 수동으로 압축 해제하십시오. 단계는 [Windows 안내](#windows)를 참고하십시오.
 
 </details>
 
@@ -157,7 +157,7 @@ npx는 버전별로 캐싱합니다. `npx -y @agentmemory/agentmemory@latest`로
 <details>
 <summary><strong>이미 자체 iii 엔진을 실행 중인 경우</strong></summary>
 
-agentmemory는 iii 0.24.6에 고정되어 있으며 다른 버전에는 연결되지 않습니다(워커는 다른 엔진의 프로토콜을 사용할 수 없습니다). 다른 엔진을 중지한 다음 `npx -y @agentmemory/agentmemory@latest`를 실행하십시오. CLI는 자체 고정 엔진을 `~/.agentmemory/bin`에 설치하고 실행하며, 사용자의 `iii`는 변경하지 않습니다.
+agentmemory는 iii 0.25.0에 고정되어 있으며 다른 버전에는 연결되지 않습니다(워커는 다른 엔진의 프로토콜을 사용할 수 없습니다). 다른 엔진을 중지한 다음 `npx -y @agentmemory/agentmemory@latest`를 실행하십시오. CLI는 자체 고정 엔진을 `~/.agentmemory/bin`에 설치하고 실행하며, 사용자의 `iii`는 변경하지 않습니다.
 
 </details>
 
@@ -556,7 +556,7 @@ AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemor
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="빠른 시작" height="32" /></picture></h2>
 
-호환성: 이 릴리스는 iii 0.24.6과 레지스트리 워커 state 0.22.20 및 http 0.22.7을 대상으로 합니다.
+호환성: 이 릴리스는 iii 0.25.0과 레지스트리 워커 state 0.22.20 및 http 0.22.7을 대상으로 합니다.
 
 ### 30초 만에 사용해 보기
 
@@ -635,7 +635,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-proje
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-경고: 이 명령은 현재 workspace/runtime을 변경합니다. JavaScript 의존성을 업데이트하고 고정된 iii 0.24.6 엔진 바이너리를 설치할 수 있습니다.
+경고: 이 명령은 현재 workspace/runtime을 변경합니다. JavaScript 의존성을 업데이트하고 고정된 iii 0.25.0 엔진 바이너리를 설치할 수 있습니다.
 
 구현 세부 사항은 `src/cli.ts`에 있습니다(`runUpgrade`는 `src/cli.ts:544-595` 부근을 참고하십시오).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start`는 CLI와 동일한 iii Worker Compose 런타임을 시작합니다: iii 0.24.6 및 레지스트리 워커 state 0.22.20, http 0.22.7을 사용합니다. macOS/Linux에서 CLI는 고정 엔진 바이너리를 `~/.agentmemory/bin`에 다운로드하며 자동 설치에는 `curl`, POSIX `sh`, `tar`가 필요합니다. 로컬 REST 및 뷰어 listener는 `127.0.0.1`에 바인딩됩니다. 뷰어 업데이트는 REST 포트의 `GET /agentmemory/viewer/events` SSE를 사용합니다. `/agentmemory/status`는 고정 엔진 버전을 `enginePinnedVersion`으로 보고하며 지원되는 기본값은 iii 0.24.6입니다. 의도적으로 고정 버전을 바꾸려면 `AGENTMEMORY_III_VERSION`을 사용할 수 있습니다.
+`npm start`는 CLI와 동일한 iii Worker Compose 런타임을 시작합니다: iii 0.25.0 및 레지스트리 워커 state 0.22.20, http 0.22.7을 사용합니다. macOS/Linux에서 CLI는 고정 엔진 바이너리를 `~/.agentmemory/bin`에 다운로드하며 자동 설치에는 `curl`, POSIX `sh`, `tar`가 필요합니다. 로컬 REST 및 뷰어 listener는 `127.0.0.1`에 바인딩됩니다. 뷰어 업데이트는 REST 포트의 `GET /agentmemory/viewer/events` SSE를 사용합니다. `/agentmemory/status`는 고정 엔진 버전을 `enginePinnedVersion`으로 보고하며 지원되는 기본값은 iii 0.25.0입니다. 의도적으로 고정 버전을 바꾸려면 `AGENTMEMORY_III_VERSION`을 사용할 수 있습니다.
 
 ### Windows
 
-agentmemory는 Windows 10/11에서 실행됩니다. WSL2는 Linux 경로를 따르며 고정 엔진을 자동 설치할 수 있습니다. 네이티브 Windows에서는 고정된 iii-engine v0.24.6 바이너리를 수동 설치하십시오: [iii v0.24.6 릴리스 페이지](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6)에서 맞는 아카이브를 다운로드하고 checksum을 확인한 뒤 `iii.exe`를 `PATH`에 두십시오(예: `%USERPROFILE%\.local\bin\iii.exe`). CLI는 Windows ZIP을 자동으로 압축 해제하지 않습니다.
+agentmemory는 Windows 10/11에서 실행됩니다. WSL2는 Linux 경로를 따르며 고정 엔진을 자동 설치할 수 있습니다. 네이티브 Windows에서는 고정된 iii-engine v0.25.0 바이너리를 수동 설치하십시오: [iii v0.25.0 릴리스 페이지](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0)에서 맞는 아카이브를 다운로드하고 checksum을 확인한 뒤 `iii.exe`를 `PATH`에 두십시오(예: `%USERPROFILE%\.local\bin\iii.exe`). CLI는 Windows ZIP을 자동으로 압축 해제하지 않습니다.
 
 네이티브 Windows 자동 MCP 연결은 `agentmemory connect copilot-cli`만 지원합니다. 다른 네이티브 Windows 에이전트는 [다른 에이전트](#other-agents)의 수동 MCP 블록을 사용하십시오. 대상 에이전트도 같은 WSL 환경에 설치된 경우에만 WSL에서 `connect`를 실행하십시오.
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">배포</h2>
 
-Docker는 이 저장소에서 직접 self-host할 때 지원되며 CLI 시작 모드는 아닙니다. 원클릭 템플릿은 [`deploy/Dockerfile`](../deploy/Dockerfile)과 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용하고 iii 0.24.6 런타임을 고정하며, 상태·trace·생성된 secret을 영구 `/data` 볼륨에 저장합니다. Docker Compose는 기본적으로 `iii-data` 명명 볼륨을 사용합니다. bind mount에는 `AGENTMEMORY_DATA_DIR`을 호스트 경로로 설정하십시오. 0.22.1에서 사용하던 기존 파일 기반 저장소는 마이그레이션이나 변환 없이 `/data/state_store.db`에서 직접 읽습니다. REST CORS는 기본적으로 로컬 REST 및 뷰어 origin을 허용합니다. 신뢰하는 브라우저 origin을 허용하려면 쉼표로 구분된 정확한 origin을 `REST_ALLOWED_ORIGINS`에 설정하십시오. 설정 및 보안은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
+Docker는 이 저장소에서 직접 self-host할 때 지원되며 CLI 시작 모드는 아닙니다. 원클릭 템플릿은 [`deploy/Dockerfile`](../deploy/Dockerfile)과 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용하고 iii 0.25.0 런타임을 고정하며, 상태·trace·생성된 secret을 영구 `/data` 볼륨에 저장합니다. Docker Compose는 기본적으로 `iii-data` 명명 볼륨을 사용합니다. bind mount에는 `AGENTMEMORY_DATA_DIR`을 호스트 경로로 설정하십시오. 0.22.1에서 사용하던 기존 파일 기반 저장소는 마이그레이션이나 변환 없이 `/data/state_store.db`에서 직접 읽습니다. REST CORS는 기본적으로 로컬 REST 및 뷰어 origin을 허용합니다. 신뢰하는 브라우저 origin을 허용하려면 쉼표로 구분된 정확한 origin을 `REST_ALLOWED_ORIGINS`에 설정하십시오. 설정 및 보안은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -1227,61 +1227,9 @@ open http://localhost:3113
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-`:3113`의 뷰어는 에이전트가 **기억한** 것을 보여줍니다. [iii console](https://iii.dev/docs/console)은 에이전트가 **한** 일을 보여줍니다: 모든 메모리 작업이 OpenTelemetry 트레이스로, 모든 KV 항목이 편집 가능하게, 모든 함수가 호출 가능하게, 모든 스트림이 탭 가능하게 나타납니다. 같은 메모리를 바라보는 두 개의 창입니다. 하나는 제품 형태이고, 하나는 엔진 형태입니다.
+iii 0.25에서 기본 제공 콘솔이 제거되었습니다. `agentmemory console`은 마이그레이션 안내를 표시합니다. AgentMemory 뷰어는 포트 3113에서 계속 사용할 수 있으며, 상태는 `agentmemory status`로 확인합니다.
 
-`memory_smart_search`가 발화하는 모습을 지켜보고, BM25 스캔 → 임베딩 조회 → RRF 융합 → reranker를 waterfall로 확인하십시오. KV 브라우저에서 멈춰 있는 통합(consolidation) 타이머를 수정하십시오. 수정된 payload로 `PostToolUse` hook을 재생하십시오. WebSocket 스트림을 고정해 놓고 관측이 실시간으로 쌓이는 것을 지켜보십시오.
-
-agentmemory는 이것을 무료로 제공합니다. 모든 함수 호출과 트리거가 iii를 통해 발화하기 때문이며, 커스텀으로 만든 것도 계측해야 할 것도 없습니다.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="iii console Workers 페이지: 실시간 함수 개수와 런타임 메타데이터를 포함해 agentmemory 인스턴스를 비롯한 연결된 워커들" width="720" />
-  <br/>
-  <em>Workers 페이지: agentmemory 자신을 포함해 연결된 모든 워커를, PID, 함수 개수, 런타임, 마지막 접속 시각과 함께 보여줍니다.</em>
-</p>
-
-**이미 설치되어 있습니다.** 콘솔은 고정된 `iii` 엔진(0.24.6)과 함께 제공되며, 별도로 설치할 것이 없습니다. 첫 실행 시 엔진 옆에 콘솔 바이너리를 다운로드합니다.
-
-**agentmemory와 함께 실행하기:**
-
-```bash
-agentmemory console
-```
-
-이 명령은 고정된 엔진의 `iii console`을 agentmemory가 해석한 포트(REST, bridge)에 대해 실행하고, 뷰어보다 한 포트 위, 기본적으로 `http://localhost:3114`에서 서비스합니다. `--console-port N`으로 다른 포트를 선택할 수 있습니다. `--port`와 `--instance`는 `stop`에서와 동일한 방식으로 agentmemory 인스턴스를 선택합니다. 그 외의 플래그는 그대로 전달됩니다. 예를 들어 실험적인 아키텍처 그래프 페이지를 위한 `--enable-flow`가 있습니다.
-
-`agentmemory`가 PATH에 없을 때 유용한, 동일한 작업을 수동으로 수행하는 방법:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**콘솔에서 할 수 있는 일:**
-
-| 페이지 | 용도 |
-|------|-----------|
-| **Workers** | agentmemory 워커 자신을 포함해 연결된 모든 워커와 그 실시간 지표를 확인합니다. |
-| **Functions** | agentmemory의 함수를 JSON payload로 직접 호출합니다. 클라이언트를 연결하지 않고 `memory.recall`, `memory.consolidate`, `graph.query`를 테스트할 때 편리합니다. |
-| **Triggers** | HTTP, cron, 이벤트, state 트리거를 재생합니다: 통합(consolidation) cron을 수동으로 발화하거나, HTTP 라우트를 재시도하거나, state 변경을 발생시킵니다. |
-| **States** | 세션, 메모리 slot, 라이프사이클 타이머, 임베딩 인덱스에 대한 완전한 CRUD를 제공하는 KV 브라우저입니다. 값을 그 자리에서 편집할 수 있습니다. |
-
-| **Traces** | OpenTelemetry waterfall / flame / 서비스별 분석 뷰입니다. `trace_id`로 필터링하면 하나의 `memory.search`가 정확히 어떤 함수, DB 호출, 임베딩 요청을 발생시켰는지 볼 수 있습니다. |
-| **Logs** | trace/span ID와 연관되어 필터링된 구조화된 OTEL 로그입니다. |
-| **Config** | 런타임 설정: 엔진이 어떤 워커, 프로바이더, 포트로 실행 중인지 정확히 보여줍니다. |
-| **Flow** | (선택 사항, `--enable-flow`) 모든 워커, 트리거, 스트림에 대한 인터랙티브 아키텍처 그래프입니다. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii console 트레이스 waterfall 뷰, span별 소요 시간을 보여줌" width="720" />
-  <br/>
-  <em>Traces: 모든 메모리 작업에 대한 waterfall / flame / 서비스별 분석.</em>
-</p>
-
-**트레이스는 이미 켜져 있습니다:**
-
-**Tracing 및 로그:** iii 콘솔에서 런타임 텔레메트리를 확인할 수 있습니다. Exporter 및 sampling 구성은 [iii observability 문서](https://iii.dev/docs)를 참고하십시오.
-
-
-
-> **주의:** 콘솔 자체에는 인증이 적용되지 않습니다. `127.0.0.1`(기본값)에 바인딩된 상태를 유지하고, 절대로 공개적으로 노출하지 마십시오.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1296,11 +1244,13 @@ agentmemory는 [iii](https://iii.dev) 런타임의 워커입니다. Worker Compo
 런타임은 레지스트리 `state`(KV), `http` 워커를 agentmemory와 함께 구성합니다. [iii 레지스트리](https://workers.iii.dev)의 다른 워커도 Worker Compose 프로젝트에 추가할 수 있습니다.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | 추가되는 것 |
@@ -1315,7 +1265,7 @@ workers:
 
 ### CLI 런타임 및 bind 주소
 
-`agentmemory`(또는 하위 명령 없는 패키지)를 실행하면 선택한 데이터 디렉터리 아래 격리 manifest로 iii Worker Compose가 시작됩니다. iii 0.24.6, `state@0.22.20`, `http@0.22.7`을 사용합니다. 로컬 CLI REST 및 뷰어 listener는 `127.0.0.1`에 bind되고 엔진 WebSocket은 런타임 내부 트래픽입니다. 저장소 기반 Docker 배포는 별도의 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용합니다. 자세한 내용은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
+`agentmemory`(또는 하위 명령 없는 패키지)를 실행하면 선택한 데이터 디렉터리 아래 격리 manifest로 iii Worker Compose가 시작됩니다. iii 0.25.0, `state@0.22.20`, `http@0.22.7`을 사용합니다. 로컬 CLI REST 및 뷰어 listener는 `127.0.0.1`에 bind되고 엔진 WebSocket은 런타임 내부 트래픽입니다. 저장소 기반 Docker 배포는 별도의 [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml)을 사용합니다. 자세한 내용은 [`deploy/README.md`](../deploy/README.md)를 참고하십시오.
 
 ### 저장소 backend: file (기본값) 또는 Redis
 
@@ -1390,7 +1340,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health 모니터 |
 | 커스텀 플러그인 시스템 | `iii worker add <name>` |
 
-**소스 파일 246개 · LOC ~56,000줄 · 테스트 3,800+개 · 함수 322개 · KV 스코프 65개**, 모두 세 가지 프리미티브 위에서 동작합니다. `agentmemory plugin install` 같은 것은 없습니다. 플러그인 시스템은 곧 iii 자체입니다.
+**소스 파일 245개 · LOC ~56,000줄 · 테스트 3,800+개 · 함수 322개 · KV 스코프 65개**, 모두 세 가지 프리미티브 위에서 동작합니다. `agentmemory plugin install` 같은 것은 없습니다. 플러그인 시스템은 곧 iii 자체입니다.
 
 ---
 

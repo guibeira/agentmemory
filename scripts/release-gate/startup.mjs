@@ -412,9 +412,10 @@ async function main() {
   });
   await scenario("no-engine-timeout", async (i, d) => {
     await i.startEngine(i.config({ delayMs: 5_000, earlyPid: true }));
+    const workerPid = await poll("delayed Compose worker process", () => i.wrapperStarts()[0]?.pid, 10_000);
     Object.assign(d, await expectFailure(i, ["--no-engine"], { AGENTMEMORY_READY_TIMEOUT_MS: "300" }, { message: "0.3s" }));
     assert(alive(i.composePid), "Worker readiness timeout stopped an externally owned Compose project");
-    assert(alive(i.wrapperStarts()[0].pid), "Compose supervisor's delayed worker was incorrectly killed by the joining CLI");
+    assert(alive(workerPid), "Compose supervisor's delayed worker was incorrectly killed by the joining CLI");
     d.externalComposePreserved = true;
   });
   await scenario("inline-worker-fatal", async (i, d) => {
@@ -431,6 +432,7 @@ async function main() {
     d.workerExitCode = 1; d.transport = "real Worker Compose supervision with packaged worker secret-path initialization failure";
   });
   await scenario("compose-worker-timeout", async (i, d) => {
+    mkdirSync(join(i.data, "secret"), { recursive: true });
     Object.assign(d, await expectFailure(i, [], { AGENTMEMORY_READY_TIMEOUT_MS: "300" }, { budgetMs: 30_000, message: "0.3s" }));
     await poll("CLI-owned Compose timeout cleanup", () => { try { const state = JSON.parse(readFileSync(join(i.runtime, "engine-state.json"), "utf8")); return !alive(state.composePid) && !alive(state.enginePid); } catch { return true; } }, 10_000);
     assert(!existsSync(join(i.runtime, "engine-state.json")), "Timed-out owned Compose startup retained lifecycle metadata");

@@ -100,7 +100,7 @@ Cerințe:
 
 - Node.js 20 sau mai nou, cu npm și npx (`node -v`, `npm -v` și `npx -v`).
 - Instalarea automată a iii-engine pe macOS/Linux necesită, de asemenea, `curl`, un `sh` POSIX și `tar`. Imaginile minimale precum `node:20-slim` pot să nu le includă.
-- Windows nativ necesită instalarea manuală a `iii.exe` din iii-engine v0.24.6 (versiunea fixată); WSL2 folosește instalatorul automat macOS/Linux.
+- Windows nativ necesită instalarea manuală a `iii.exe` din iii-engine v0.25.0 (versiunea fixată); WSL2 folosește instalatorul automat macOS/Linux.
 
 Comanda canonică pentru o instalare nouă:
 
@@ -132,7 +132,7 @@ Conectează oricând mai mulți agenți cu `agentmemory connect <agent>` — 20 
 <details>
 <summary><strong>Windows</strong></summary>
 
-Calea rapidă este WSL2. Windows nativ necesită descărcarea manuală a arhivei ZIP v0.24.6 fixate și extragerea `iii.exe`. Vezi [pașii pentru Windows](#windows).
+Calea rapidă este WSL2. Windows nativ necesită descărcarea manuală a arhivei ZIP v0.25.0 fixate și extragerea `iii.exe`. Vezi [pașii pentru Windows](#windows).
 
 </details>
 
@@ -157,7 +157,7 @@ npx face cache pe versiune. Forțează cea mai recentă versiune cu `npx -y @age
 <details>
 <summary><strong>Rulezi deja propriul tău motor iii</strong></summary>
 
-agentmemory fixează versiunea iii-engine la `v0.24.6` și nu se va conecta la o versiune diferită (worker-ul nu poate vorbi protocolul altui motor). Oprește celălalt motor, apoi rulează `npx -y @agentmemory/agentmemory@latest`. Acesta instalează și rulează versiunea fixată v0.24.6 în `~/.agentmemory/bin`, lăsând neschimbat propriul tău `iii`.
+agentmemory fixează versiunea iii-engine la `v0.25.0` și nu se va conecta la o versiune diferită (worker-ul nu poate vorbi protocolul altui motor). Oprește celălalt motor, apoi rulează `npx -y @agentmemory/agentmemory@latest`. Acesta instalează și rulează versiunea fixată v0.25.0 în `~/.agentmemory/bin`, lăsând neschimbat propriul tău `iii`.
 
 </details>
 
@@ -556,7 +556,7 @@ Niciunul dintre acestea nu captează automat din hook-urile agenților de progra
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Început rapid" height="32" /></picture></h2>
 
-Compatibilitate: această versiune folosește iii 0.24.6 cu worker-ii registry state 0.22.20 și http 0.22.7.
+Compatibilitate: această versiune folosește iii 0.25.0 cu worker-ii registry state 0.22.20 și http 0.22.7.
 
 ### Încearcă-l în 30 de secunde
 
@@ -635,7 +635,7 @@ Folosește comanda de întreținere atunci când vrei, în mod intenționat, să
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Atenție: această comandă modifică workspace-ul/runtime-ul curent. Poate actualiza dependențele JavaScript și instala binarul engine-ului iii 0.24.6 fixat.
+Atenție: această comandă modifică workspace-ul/runtime-ul curent. Poate actualiza dependențele JavaScript și instala binarul engine-ului iii 0.25.0 fixat.
 
 Detaliile de implementare se află în `src/cli.ts` (vezi `runUpgrade`, în jurul zonei `src/cli.ts:544-595`).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` pornește același runtime iii Worker Compose ca CLI-ul: iii 0.24.6 cu worker-ii registry `state@0.22.20` și `http@0.22.7`. Pe macOS/Linux, CLI-ul descarcă binarul engine-ului fixat în `~/.agentmemory/bin`; instalarea automată necesită `curl`, un `sh` POSIX și `tar`. Listener-ele locale REST și ale vizualizatorului se leagă la `127.0.0.1`. Actualizările vizualizatorului folosesc SSE la `GET /agentmemory/viewer/events`, pe portul REST. `/agentmemory/status` raportează versiunea fixată a engine-ului ca `enginePinnedVersion`; versiunea implicită fixată și suportată este iii 0.24.6. `AGENTMEMORY_III_VERSION` permite suprascrierea deliberată a versiunii fixate.
+`npm start` pornește același runtime iii Worker Compose ca CLI-ul: iii 0.25.0 cu worker-ii registry `state@0.22.20` și `http@0.22.7`. Pe macOS/Linux, CLI-ul descarcă binarul engine-ului fixat în `~/.agentmemory/bin`; instalarea automată necesită `curl`, un `sh` POSIX și `tar`. Listener-ele locale REST și ale vizualizatorului se leagă la `127.0.0.1`. Actualizările vizualizatorului folosesc SSE la `GET /agentmemory/viewer/events`, pe portul REST. `/agentmemory/status` raportează versiunea fixată a engine-ului ca `enginePinnedVersion`; versiunea implicită fixată și suportată este iii 0.25.0. `AGENTMEMORY_III_VERSION` permite suprascrierea deliberată a versiunii fixate.
 
 ### Windows
 
-agentmemory rulează pe Windows 10/11. WSL2 urmează calea Linux și poate instala automat engine-ul fixat. Windows nativ necesită instalarea manuală a binarului iii-engine v0.24.6 fixat; descarcă arhiva potrivită de pe [pagina de release iii v0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), verifică checksum-ul și pune `iii.exe` în `PATH` (de exemplu `%USERPROFILE%\.local\bin\iii.exe`). CLI-ul nu extrage automat arhiva ZIP pentru Windows.
+agentmemory rulează pe Windows 10/11. WSL2 urmează calea Linux și poate instala automat engine-ul fixat. Windows nativ necesită instalarea manuală a binarului iii-engine v0.25.0 fixat; descarcă arhiva potrivită de pe [pagina de release iii v0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), verifică checksum-ul și pune `iii.exe` în `PATH` (de exemplu `%USERPROFILE%\.local\bin\iii.exe`). CLI-ul nu extrage automat arhiva ZIP pentru Windows.
 
 Conectarea MCP automatizată pe Windows nativ acceptă doar `agentmemory connect copilot-cli`. Pentru ceilalți agenți nativi Windows, folosește blocul MCP manual din [Alți agenți](#other-agents). Rulează `connect` în WSL doar când agentul țintă este instalat în același mediu WSL.
 
@@ -882,7 +882,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Implementare (Deploy)</h2>
 
-Docker este suportat pentru self-hosting din acest repository, nu ca mod de pornire al CLI-ului. Șabloanele cu un singur clic folosesc [`deploy/Dockerfile`](../deploy/Dockerfile) și [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), fixează același runtime iii 0.24.6 și aceiași workeri și stochează starea, trace-urile și secretul generat pe un volum persistent `/data`. Docker Compose folosește implicit volumul numit existent `iii-data`; setează `AGENTMEMORY_DATA_DIR` la o cale de pe host pentru a folosi un bind mount. Magazinul existent bazat pe fișiere din iii 0.22.1 este citit direct din `/data/state_store.db`, fără migrare sau conversie. CORS REST permite implicit origin-urile locale REST și ale vizualizatorului; setează `REST_ALLOWED_ORIGINS` la o listă de origin-uri exacte, separate prin virgule, când un browser de încredere are nevoie de acces. Consultă [`deploy/README.md`](../deploy/README.md) pentru configurare și detalii de securitate.
+Docker este suportat pentru self-hosting din acest repository, nu ca mod de pornire al CLI-ului. Șabloanele cu un singur clic folosesc [`deploy/Dockerfile`](../deploy/Dockerfile) și [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), fixează același runtime iii 0.25.0 și aceiași workeri și stochează starea, trace-urile și secretul generat pe un volum persistent `/data`. Docker Compose folosește implicit volumul numit existent `iii-data`; setează `AGENTMEMORY_DATA_DIR` la o cale de pe host pentru a folosi un bind mount. Magazinul existent bazat pe fișiere din iii 0.22.1 este citit direct din `/data/state_store.db`, fără migrare sau conversie. CORS REST permite implicit origin-urile locale REST și ale vizualizatorului; setează `REST_ALLOWED_ORIGINS` la o listă de origin-uri exacte, separate prin virgule, când un browser de încredere are nevoie de acces. Consultă [`deploy/README.md`](../deploy/README.md) pentru configurare și detalii de securitate.
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Implementare pe fly.io" /></a>
   <a href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2Frohitg00%2Fagentmemory"><img src="https://img.shields.io/badge/Deploy%20to-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Implementare pe Railway" /></a>
@@ -1219,55 +1219,9 @@ Serverul vizualizatorului se leagă implicit la `127.0.0.1` și atașează secre
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="Consola iii" height="32" /></picture></h2>
 
-Vizualizatorul de pe `:3113` arată ce **și-a amintit** agentul tău. [Consola iii](https://iii.dev/docs/console) arată ce **a făcut** agentul tău: fiecare operație de memorie, ca trasare OpenTelemetry, fiecare intrare KV editabilă, fiecare funcție invocabilă. Două ferestre către aceeași memorie: una modelată ca produs, una modelată ca motor.
+iii 0.25 elimină consola inclusă. `agentmemory console` afișează instrucțiuni de migrare. Interfața AgentMemory rămâne disponibilă pe portul 3113; verificați starea cu `agentmemory status`.
 
-Urmărește un `memory_smart_search` declanșându-se și vezi scanarea BM25 → căutarea embedding-ului → fuziunea RRF → reranker-ul, ca o cascadă (waterfall). Editează un timer de consolidare blocat, în browser-ul de KV. Reluează un hook `PostToolUse` cu un payload ajustat.
-
-agentmemory oferă toate acestea gratuit, pentru că fiecare apel de funcție și fiecare trigger trece prin iii; nimic personalizat, nimic de instrumentat.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="Pagina Workers din consola iii: worker-i conectați, inclusiv instanțe agentmemory, cu numărători live de funcții și metadate de runtime" width="720" />
-  <br/>
-  <em>Pagina Workers: fiecare worker conectat, inclusiv agentmemory însuși, cu PID, numărul de funcții, runtime și ultima activitate (last-seen).</em>
-</p>
-
-**Deja instalată.** Consola vine cu engine-ul `iii` 0.24.6 fixat; nu este nimic separat de instalat. Prima pornire descarcă binarul consolei lângă engine.
-
-**Pornește-o alături de agentmemory:**
-
-```bash
-agentmemory console
-```
-
-Aceasta rulează `iii console` din motorul fixat, pe porturile rezolvate de agentmemory (REST și WebSocket-ul worker-ilor), și o servește pe un port deasupra vizualizatorului, implicit `http://localhost:3114`. `--console-port N` alege un alt port; `--port` și `--instance` selectează instanța agentmemory, la fel cum fac pentru `stop`; orice alt flag este transmis mai departe, de exemplu `--enable-flow` pentru pagina experimentală de graf al arhitecturii.
-
-Același lucru, manual, util când `agentmemory` nu este în PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Ce poți face din consolă:**
-
-| Pagină | Folosește-o pentru |
-|------|-----------|
-| **Workers** | A vedea fiecare worker conectat și metricile sale live, inclusiv worker-ul agentmemory însuși. |
-| **Functions** | A invoca direct orice funcție a agentmemory, cu un payload JSON; util pentru a testa `memory.recall`, `memory.consolidate`, `graph.query`, fără a conecta un client. |
-| **Triggers** | A relua trigger-e HTTP, cron, de evenimente și de stare: a declanșa manual cron-ul de consolidare, a reîncerca o rută HTTP, a emite o schimbare de stare. |
-| **States** | Un browser KV cu CRUD complet pentru sesiuni, sloturi de memorie, timere de ciclu de viață și indexul de embeddings; editează valorile direct. |
-| **Traces** | Vizualizări OpenTelemetry de tip waterfall / flame / defalcare pe servicii. Filtrează după `trace_id`, pentru a vedea exact ce funcții, apeluri DB și cereri de embedding a produs o singură `memory.search`. |
-| **Logs** | Log-uri OTEL structurate, filtrate și corelate cu ID-urile de trace/span. |
-| **Config** | Configurația runtime: vezi exact cu ce worker-i, furnizori și porturi rulează motorul tău. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="Vizualizarea waterfall de trace din consola iii, care arată durata per span" width="720" />
-  <br/>
-  <em>Traces: waterfall / flame / defalcare pe servicii, pentru fiecare operație de memorie.</em>
-</p>
-
-**Trasare și log-uri:** consola iii poate inspecta telemetria runtime-ului. Pentru configurarea exportatorului și a eșantionării, consultă [documentația de observabilitate iii](https://iii.dev/docs).
-
-> **Atenție:** consola în sine nu impune autentificare; păstreaz-o legată la `127.0.0.1` (valoarea implicită) și nu o expune niciodată public.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1282,11 +1236,13 @@ Asta înseamnă că o singură comandă suplimentară extinde agentmemory cu o c
 Runtime-ul compune worker-ii registry `state` (KV) și `http` cu agentmemory. Alți worker-i din [registry-ul iii](https://workers.iii.dev) pot fi adăugați unui proiect Worker Compose.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Ce obții, în plus față de agentmemory |
@@ -1301,7 +1257,7 @@ Registrul complet: [workers.iii.dev](https://workers.iii.dev). Fiecare worker de
 
 ### Runtime-ul CLI și adresele de bind
 
-Rularea `agentmemory` (sau a pachetului fără subcomandă) pornește iii Worker Compose cu un manifest izolat în directorul de date selectat. Folosește iii 0.24.6, `state@0.22.20` și `http@0.22.7`. Listener-ele REST și ale vizualizatorului CLI-ului local se leagă la `127.0.0.1`; WebSocket-ul engine-ului este trafic intern runtime-ului. Implementările Docker pornite din repository folosesc [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) separat; consultă [`deploy/README.md`](../deploy/README.md).
+Rularea `agentmemory` (sau a pachetului fără subcomandă) pornește iii Worker Compose cu un manifest izolat în directorul de date selectat. Folosește iii 0.25.0, `state@0.22.20` și `http@0.22.7`. Listener-ele REST și ale vizualizatorului CLI-ului local se leagă la `127.0.0.1`; WebSocket-ul engine-ului este trafic intern runtime-ului. Implementările Docker pornite din repository folosesc [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) separat; consultă [`deploy/README.md`](../deploy/README.md).
 ### Backend de stocare: fișier (implicit) vs Redis
 
 Worker-ul `state` folosește implicit un magazin KV bazat pe fișiere, păstrat în memorie și scris periodic pe disc. Redis este disponibil când mai mulți writer-i partajează un runtime; adaugă o călătorie de rețea și nu face paralelă o singură conexiune a worker-ului.
@@ -1373,7 +1329,7 @@ fi
 | Prometheus / Grafana | iii OTEL + monitor de sănătate |
 | Sisteme de plugin-uri personalizate | `iii worker add <name>` |
 
-**246 de fișiere sursă · ~56,000 LOC · 3,600+ de teste · 322 de funcții · 65 de domenii KV**, toate pe trei primitive. Niciun `agentmemory plugin install`. Sistemul de plugin-uri este chiar iii.
+**245 de fișiere sursă · ~56,000 LOC · 3,600+ de teste · 322 de funcții · 65 de domenii KV**, toate pe trei primitive. Niciun `agentmemory plugin install`. Sistemul de plugin-uri este chiar iii.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Configurare" height="32" /></picture></h2>

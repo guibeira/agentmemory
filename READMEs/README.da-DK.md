@@ -100,7 +100,7 @@ Krav:
 
 - Node.js 20 eller nyere med npm og npx (`node -v`, `npm -v` og `npx -v`).
 - Automatisk installation af iii-engine på macOS/Linux kræver også `curl`, en POSIX `sh` og `tar`. Minimale images som `node:20-slim` indeholder dem muligvis ikke.
-- Native Windows kræver manuel installation af den fastlåste iii-engine v0.24.6 `iii.exe`; WSL2 bruger macOS/Linux-installationsprogrammet.
+- Native Windows kræver manuel installation af den fastlåste iii-engine v0.25.0 `iii.exe`; WSL2 bruger macOS/Linux-installationsprogrammet.
 
 Den kanoniske kommando til en ny installation:
 
@@ -132,7 +132,7 @@ Forbind flere agenter når som helst med `agentmemory connect <agent>` — 20 ad
 <details>
 <summary><strong>Windows</strong></summary>
 
-Den hurtige vej er WSL2. Native Windows kræver, at den fastlåste v0.24.6-ZIP downloades, og at `iii.exe` udpakkes manuelt. Se trinnene i [Windows-noterne](#windows).
+Den hurtige vej er WSL2. Native Windows kræver, at den fastlåste v0.25.0-ZIP downloades, og at `iii.exe` udpakkes manuelt. Se trinnene i [Windows-noterne](#windows).
 
 </details>
 
@@ -157,7 +157,7 @@ npx cacher pr. version. Tving den nyeste med `npx -y @agentmemory/agentmemory@la
 <details>
 <summary><strong>Kører allerede din egen iii-engine</strong></summary>
 
-agentmemory fastlåser iii-engine v0.24.6 og tilkobler sig ikke en anden version (workeren kan ikke tale en anden engines protokol). Stop den anden engine, og kør derefter `npx -y @agentmemory/agentmemory@latest`. Den installerer og kører den fastlåste v0.24.6 i `~/.agentmemory/bin` og lader din egen `iii` være uberørt.
+agentmemory fastlåser iii-engine v0.25.0 og tilkobler sig ikke en anden version (workeren kan ikke tale en anden engines protokol). Stop den anden engine, og kør derefter `npx -y @agentmemory/agentmemory@latest`. Den installerer og kører den fastlåste v0.25.0 i `~/.agentmemory/bin` og lader din egen `iii` være uberørt.
 
 </details>
 
@@ -556,7 +556,7 @@ Ingen af disse indsamler automatisk fra kodeagent-hooks, leverer en local-first 
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Hurtig start" height="32" /></picture></h2>
 
-Kompatibilitet: denne udgivelse bruger iii 0.24.6 med registry-workers `state@0.22.20` og `http@0.22.7`.
+Kompatibilitet: denne udgivelse bruger iii 0.25.0 med registry-workers `state@0.22.20` og `http@0.22.7`.
 
 ### Prøv det på 30 sekunder
 
@@ -635,7 +635,7 @@ Brug vedligeholdelseskommandoen, når du bevidst vil opdatere din lokale runtime
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Advarsel: denne kommando ændrer det nuværende workspace/runtime. Den kan opdatere JavaScript-afhængigheder og installere den fastlåste iii 0.24.6-engine-binary.
+Advarsel: denne kommando ændrer det nuværende workspace/runtime. Den kan opdatere JavaScript-afhængigheder og installere den fastlåste iii 0.25.0-engine-binary.
 
 Implementeringsdetaljer findes i `src/cli.ts` (se `runUpgrade` omkring regionen `src/cli.ts:544-595`).
 
@@ -861,11 +861,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` starter det samme iii Worker Compose-runtime som CLI’en: iii 0.24.6 med registry-workers `state@0.22.20` og `http@0.22.7`. På macOS/Linux downloader CLI’en den fastlåste engine-binary til `~/.agentmemory/bin`; automatisk installation kræver `curl`, POSIX `sh` og `tar`. Lokal REST og viewer lytter på `127.0.0.1`. Viewer-opdateringer bruger SSE via `GET /agentmemory/viewer/events` på REST-porten. `/agentmemory/status` angiver den fastlåste engine-version som `enginePinnedVersion`; standardversionen er iii 0.24.6. `AGENTMEMORY_III_VERSION` kan tilsidesætte fastlåsningen bevidst.
+`npm start` starter det samme iii Worker Compose-runtime som CLI’en: iii 0.25.0 med registry-workers `state@0.22.20` og `http@0.22.7`. På macOS/Linux downloader CLI’en den fastlåste engine-binary til `~/.agentmemory/bin`; automatisk installation kræver `curl`, POSIX `sh` og `tar`. Lokal REST og viewer lytter på `127.0.0.1`. Viewer-opdateringer bruger SSE via `GET /agentmemory/viewer/events` på REST-porten. `/agentmemory/status` angiver den fastlåste engine-version som `enginePinnedVersion`; standardversionen er iii 0.25.0. `AGENTMEMORY_III_VERSION` kan tilsidesætte fastlåsningen bevidst.
 
 ### Windows
 
-agentmemory kører på Windows 10/11. WSL2 følger Linux-vejen og kan installere den fastlåste engine automatisk. Native Windows kræver, at den fastlåste iii-engine v0.24.6-binary installeres manuelt; download det tilsvarende arkiv fra [iii v0.24.6-udgivelsessiden](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), verificér checksum, og placér `iii.exe` på `PATH` (for eksempel `%USERPROFILE%\.local\bin\iii.exe`). CLI’en pakker ikke Windows-ZIP’en ud automatisk.
+agentmemory kører på Windows 10/11. WSL2 følger Linux-vejen og kan installere den fastlåste engine automatisk. Native Windows kræver, at den fastlåste iii-engine v0.25.0-binary installeres manuelt; download det tilsvarende arkiv fra [iii v0.25.0-udgivelsessiden](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), verificér checksum, og placér `iii.exe` på `PATH` (for eksempel `%USERPROFILE%\.local\bin\iii.exe`). CLI’en pakker ikke Windows-ZIP’en ud automatisk.
 
 Automatisk MCP-opsætning på native Windows understøtter kun `agentmemory connect copilot-cli`. Brug den manuelle MCP-blok fra [Andre agenter](#other-agents) til andre native Windows-agenter. Kør kun `connect` i WSL, hvis målagenten er installeret i samme WSL-miljø.
 
@@ -883,7 +883,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Deployment</h2>
 
-Docker understøttes til self-hosting fra dette repository, ikke som CLI-starttilstand. One-click-skabeloner bruger `deploy/Dockerfile` og `deploy/runtime/worker-compose.yaml`, fastlåser samme iii 0.24.6-runtime-workers og gemmer state, traces og den genererede secret på et persistent `/data`-volume. Docker Compose bruger som standard det eksisterende navngivne `iii-data`-volume; angiv `AGENTMEMORY_DATA_DIR` som en hoststi for at bruge et bind mount. Det eksisterende filbaserede store fra 0.22.1 læses direkte fra `/data/state_store.db` uden migration eller konvertering. REST CORS tillader som standard de lokale REST- og viewer-origins; sæt `REST_ALLOWED_ORIGINS` til en kommasepareret liste med præcise origins, når en betroet browser-origin skal have adgang. Se [`deploy/README.md`](../deploy/README.md) for opsætning og sikkerhed.
+Docker understøttes til self-hosting fra dette repository, ikke som CLI-starttilstand. One-click-skabeloner bruger `deploy/Dockerfile` og `deploy/runtime/worker-compose.yaml`, fastlåser samme iii 0.25.0-runtime-workers og gemmer state, traces og den genererede secret på et persistent `/data`-volume. Docker Compose bruger som standard det eksisterende navngivne `iii-data`-volume; angiv `AGENTMEMORY_DATA_DIR` som en hoststi for at bruge et bind mount. Det eksisterende filbaserede store fra 0.22.1 læses direkte fra `/data/state_store.db` uden migration eller konvertering. REST CORS tillader som standard de lokale REST- og viewer-origins; sæt `REST_ALLOWED_ORIGINS` til en kommasepareret liste med præcise origins, når en betroet browser-origin skal have adgang. Se [`deploy/README.md`](../deploy/README.md) for opsætning og sikkerhed.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy til fly.io" /></a>
@@ -1227,55 +1227,9 @@ Viewer-serveren binder til `127.0.0.1` som standard og tilføjer server-secreten
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-Viewer på `:3113` viser, hvad din agent **huskede**. [iii console](https://iii.dev/docs/console) viser, hvad din agent **gjorde**: hver hukommelsesoperation som en OpenTelemetry-trace, hver KV-post redigerbar, hver funktion direkte kaldbar og runtime-aktivitet.
+Den medfølgende iii-konsol er fjernet i iii 0.25. `agentmemory console` viser nu migrationsvejledning. AgentMemory-visningen er fortsat på port 3113; brug `agentmemory status` til at kontrollere driften.
 
-Se `memory_smart_search` blive kaldt, og følg BM25-søgning → embedding-opslag → RRF-fusion → reranker som et waterfall. Redigér en fastlåst konsolideringstimer i KV-browseren. Afspil `PostToolUse`-hooket med en ændret payload.
-
-agentmemory leverer dette gratis, fordi hvert funktionskald og hver trigger går gennem iii; intet specialbygget, intet at instrumentere.
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="Workers-side i iii console: forbundne workers, herunder agentmemory-instanser med live funktionsantal og runtime-metadata" width="720" />
-  <br/>
-  <em>Workers-side: hver forbundet worker, herunder agentmemory selv, med PID, funktionsantal, runtime og sidst set.</em>
-</p>
-
-**Allerede installeret.** Konsollen leveres med den fastlåste `iii` 0.24.6-engine; intet separat at installere. Første start downloader konsollens binary ved siden af enginen.
-
-**Start sammen med agentmemory:**
-
-```bash
-agentmemory console
-```
-
-Dette kører den fastlåste engines `iii console` mod de porte, agentmemory har valgt (REST og worker-WebSocket) og serverer konsollen én port over viewer, som standard `http://localhost:3114`. `--console-port N` vælger en anden port; `--port` og `--instance` vælger agentmemory-instansen på samme måde som for `stop`; andre flag sendes videre, for eksempel `--enable-flow` til den eksperimentelle arkitekturgrafside.
-
-Samme kommando manuelt, nyttig når `agentmemory` ikke er på PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**Hvad du kan gøre fra konsollen:**
-
-| Side | Brug den til |
-|------|-----------|
-| **Workers** | Se alle forbundne workers og deres live-metrics, herunder agentmemory-workeren. |
-| **Functions** | Kalde enhver agentmemory-funktion direkte med en JSON-payload; praktisk til at teste `memory.recall`, `memory.consolidate`, `graph.query` uden klient. |
-| **Triggers** | Afspille HTTP-, cron-, event- og state-triggers: køre konsoliderings-cronen manuelt, gentage en HTTP-route eller udsende en state-ændring. |
-| **States** | KV-browser med fuld CRUD for sessioner, memory-slots, livscyklustimere og embeddings-indeks; redigér værdier direkte. |
-| **Traces** | OpenTelemetry-waterfall-, flame- og serviceopdelingsvisninger. Filtrér efter `trace_id` for at se præcis, hvilke funktioner, DB-kald og embedding-forespørgsler ét `memory.search` udløste. |
-| **Logs** | Strukturerede OTEL-logs filtreret og korreleret med trace-/span-ID’er. |
-| **Config** | Runtime-konfiguration: se præcis, hvilke workers, providere og porte din engine kører med. |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="iii console trace-waterfall-visning, der viser varighed pr. span" width="720" />
-  <br/>
-  <em>Traces: waterfall-/flame-/serviceopdeling for hver hukommelsesoperation.</em>
-</p>
-
-**Tracing og logs:** iii console kan inspicere runtime-telemetri. Se [iii observability-dokumentationen](https://iii.dev/docs) for konfiguration af eksportør og sampling.
-
-> **Bemærk:** Konsollen håndhæver ikke selv autentificering; hold den bundet til `127.0.0.1` (standard), og eksponér den aldrig offentligt.
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1290,11 +1244,13 @@ Det betyder, at én ekstra kommando kan udvide agentmemory med en ny funktion.
 Runtimen kombinerer registry-workers `state` (KV) og `http` med agentmemory. Andre workers fra [iii worker registry](https://workers.iii.dev) kan føjes til et Worker Compose-projekt.
 
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | Hvad du får i tillæg til agentmemory |
@@ -1309,7 +1265,7 @@ Fuldt register: [workers.iii.dev](https://workers.iii.dev). Alle workers dér sa
 
 ### CLI-runtime og bind-adresser
 
-Kørsel af `agentmemory` (eller pakken uden underkommando) starter iii Worker Compose med et isoleret manifest i den valgte datamappe. Den bruger iii 0.24.6, `state@0.22.20` og `http@0.22.7`. Den lokale CLI’s REST og viewer lytter på `127.0.0.1`; engine-WebSocket er intern runtime-trafik. Docker-self-hosting fra repositoryet bruger den separate [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); se [`deploy/README.md`](../deploy/README.md).
+Kørsel af `agentmemory` (eller pakken uden underkommando) starter iii Worker Compose med et isoleret manifest i den valgte datamappe. Den bruger iii 0.25.0, `state@0.22.20` og `http@0.22.7`. Den lokale CLI’s REST og viewer lytter på `127.0.0.1`; engine-WebSocket er intern runtime-trafik. Docker-self-hosting fra repositoryet bruger den separate [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); se [`deploy/README.md`](../deploy/README.md).
 
 ### Storage-backend: file (standard) vs. redis
 
@@ -1387,7 +1343,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health-monitor |
 | Tilpassede plugin-systemer | `iii worker add <name>` |
 
-**246 kildefiler · ~56,000 LOC · 3,600+ tests · 322 funktioner · 65 KV-scopes**, alt på tre primitiver. Intet `agentmemory plugin install`. Plugin-systemet er iii selv.
+**245 kildefiler · ~56,000 LOC · 3,600+ tests · 322 funktioner · 65 KV-scopes**, alt på tre primitiver. Intet `agentmemory plugin install`. Plugin-systemet er iii selv.
 
 ---
 

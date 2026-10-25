@@ -100,7 +100,7 @@
 
 - Node.js 20 หรือใหม่กว่า พร้อม npm และ npx (`node -v`, `npm -v`, และ `npx -v`)
 - การติดตั้ง iii-engine แบบอัตโนมัติบน macOS/Linux ต้องมี `curl`, POSIX `sh`, และ `tar` ด้วย อิมเมจแบบมินิมอล เช่น `node:20-slim` อาจไม่มีสิ่งเหล่านี้ติดมา
-- Windows แบบ native ต้องติดตั้ง `iii.exe` เวอร์ชัน iii 0.24.6 ที่ pin ไว้ด้วยตนเอง; WSL2 ใช้ตัวติดตั้งอัตโนมัติแบบ macOS/Linux
+- Windows แบบ native ต้องติดตั้ง `iii.exe` เวอร์ชัน iii 0.25.0 ที่ pin ไว้ด้วยตนเอง; WSL2 ใช้ตัวติดตั้งอัตโนมัติแบบ macOS/Linux
 
 คำสั่งติดตั้งใหม่แบบมาตรฐาน:
 
@@ -132,7 +132,7 @@ npx skills add rohitg00/agentmemory -y   # 17 native skills so your agent knows 
 <details>
 <summary><strong>Windows</strong></summary>
 
-agentmemory รองรับ Windows 10/11; WSL2 ใช้ขั้นตอน Linux และติดตั้ง engine อัตโนมัติได้ Windows แบบ native ต้องติดตั้งไบนารี iii-engine v0.24.6 ด้วยตนเอง ดาวน์โหลด archive จาก [หน้า release iii v0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), ตรวจ checksum และวาง `iii.exe` บน `PATH` (เช่น `%USERPROFILE%\.local\bin\iii.exe`) CLI ไม่แตก Windows ZIP ให้อัตโนมัติ
+agentmemory รองรับ Windows 10/11; WSL2 ใช้ขั้นตอน Linux และติดตั้ง engine อัตโนมัติได้ Windows แบบ native ต้องติดตั้งไบนารี iii-engine v0.25.0 ด้วยตนเอง ดาวน์โหลด archive จาก [หน้า release iii v0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), ตรวจ checksum และวาง `iii.exe` บน `PATH` (เช่น `%USERPROFILE%\.local\bin\iii.exe`) CLI ไม่แตก Windows ZIP ให้อัตโนมัติ
 
 </details>
 
@@ -157,7 +157,7 @@ npx จะแคชไว้ตามเวอร์ชัน บังคับ
 <details>
 <summary><strong>Already running your own iii engine</strong></summary>
 
-ความเข้ากันได้: iii 0.24.6 พร้อม registry worker `state` 0.22.20 และ `http` 0.22.7
+ความเข้ากันได้: iii 0.25.0 พร้อม registry worker `state` 0.22.20 และ `http` 0.22.7
 
 </details>
 
@@ -554,7 +554,7 @@ Top-5 hit rate 100% ที่ **เพดานทางคณิตศาสต
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="เริ่มต้นใช้งานอย่างรวดเร็ว" height="32" /></picture></h2>
 
-ความเข้ากันได้: iii 0.24.6 พร้อม registry worker `state` 0.22.20 และ `http` 0.22.7
+ความเข้ากันได้: iii 0.25.0 พร้อม registry worker `state` 0.22.20 และ `http` 0.22.7
 
 ### Try it in 30 seconds
 
@@ -633,7 +633,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-proje
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-คำเตือน: คำสั่งนี้เปลี่ยน workspace/runtime ปัจจุบัน และอาจอัปเดต JavaScript dependencies หรือติดตั้งไบนารี iii 0.24.6 ที่ pin ไว้
+คำเตือน: คำสั่งนี้เปลี่ยน workspace/runtime ปัจจุบัน และอาจอัปเดต JavaScript dependencies หรือติดตั้งไบนารี iii 0.25.0 ที่ pin ไว้
 
 รายละเอียดการ implement อยู่ใน `src/cli.ts` (ดู `runUpgrade` รอบ ๆ ส่วน `src/cli.ts:544-595`)
 
@@ -859,11 +859,11 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` เริ่ม iii Worker Compose เช่นเดียวกับ CLI: iii 0.24.6, `state@0.22.20` และ `http@0.22.7` CLI ดาวน์โหลด engine ไป `~/.agentmemory/bin` บน macOS/Linux โดยต้องมี `curl`, POSIX `sh` และ `tar` REST และ viewer bind กับ `127.0.0.1`; viewer ใช้ SSE ที่ `GET /agentmemory/viewer/events` `/agentmemory/status` รายงานเวอร์ชันใน `enginePinnedVersion`; สามารถ override pin ด้วย `AGENTMEMORY_III_VERSION`
+`npm start` เริ่ม iii Worker Compose เช่นเดียวกับ CLI: iii 0.25.0, `state@0.22.20` และ `http@0.22.7` CLI ดาวน์โหลด engine ไป `~/.agentmemory/bin` บน macOS/Linux โดยต้องมี `curl`, POSIX `sh` และ `tar` REST และ viewer bind กับ `127.0.0.1`; viewer ใช้ SSE ที่ `GET /agentmemory/viewer/events` `/agentmemory/status` รายงานเวอร์ชันใน `enginePinnedVersion`; สามารถ override pin ด้วย `AGENTMEMORY_III_VERSION`
 
 ### Windows
 
-agentmemory รองรับ Windows 10/11; WSL2 ใช้ขั้นตอน Linux และติดตั้ง engine อัตโนมัติได้ Windows แบบ native ต้องติดตั้งไบนารี iii-engine v0.24.6 ด้วยตนเอง ดาวน์โหลด archive จาก [หน้า release iii v0.24.6](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.24.6), ตรวจ checksum และวาง `iii.exe` บน `PATH` (เช่น `%USERPROFILE%\.local\bin\iii.exe`) CLI ไม่แตก Windows ZIP ให้อัตโนมัติ
+agentmemory รองรับ Windows 10/11; WSL2 ใช้ขั้นตอน Linux และติดตั้ง engine อัตโนมัติได้ Windows แบบ native ต้องติดตั้งไบนารี iii-engine v0.25.0 ด้วยตนเอง ดาวน์โหลด archive จาก [หน้า release iii v0.25.0](https://github.com/iii-hq/iii/releases/tag/iii%2Fv0.25.0), ตรวจ checksum และวาง `iii.exe` บน `PATH` (เช่น `%USERPROFILE%\.local\bin\iii.exe`) CLI ไม่แตก Windows ZIP ให้อัตโนมัติ
 
 การตั้งค่า MCP อัตโนมัติบน Windows รองรับเฉพาะ `agentmemory connect copilot-cli`; สำหรับ agent อื่นให้ใช้ MCP block ใน [Other agents](#other-agents) เรียก `connect` ใน WSL เมื่อ agent เป้าหมายติดตั้งใน WSL เดียวกันเท่านั้น
 
@@ -881,7 +881,7 @@ npx -y @agentmemory/mcp
 
 <h2 id="deploy">Deploy</h2>
 
-Docker รองรับสำหรับ self-host จาก repository เท่านั้น ไม่ใช่โหมดเริ่ม CLI ใช้ [`../deploy/Dockerfile`](../deploy/Dockerfile) และ [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) พร้อม iii 0.24.6; เก็บ state, traces และ secret ใน persistent `/data` volume Compose ใช้ named volume `iii-data`; ตั้ง `AGENTMEMORY_DATA_DIR` เป็น host path เพื่อ bind mount ข้อมูล file store เดิมจาก 0.22.1 อ่านตรงจาก `/data/state_store.db` โดยไม่ต้อง migrate REST CORS อนุญาต origin ในเครื่องเป็นค่าเริ่มต้น; เพิ่ม origin ที่เชื่อถือได้ด้วย `REST_ALLOWED_ORIGINS` ดู [`../deploy/README.md`](../deploy/README.md)
+Docker รองรับสำหรับ self-host จาก repository เท่านั้น ไม่ใช่โหมดเริ่ม CLI ใช้ [`../deploy/Dockerfile`](../deploy/Dockerfile) และ [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml) พร้อม iii 0.25.0; เก็บ state, traces และ secret ใน persistent `/data` volume Compose ใช้ named volume `iii-data`; ตั้ง `AGENTMEMORY_DATA_DIR` เป็น host path เพื่อ bind mount ข้อมูล file store เดิมจาก 0.22.1 อ่านตรงจาก `/data/state_store.db` โดยไม่ต้อง migrate REST CORS อนุญาต origin ในเครื่องเป็นค่าเริ่มต้น; เพิ่ม origin ที่เชื่อถือได้ด้วย `REST_ALLOWED_ORIGINS` ดู [`../deploy/README.md`](../deploy/README.md)
 
 
 <p>
@@ -1228,58 +1228,9 @@ viewer server จะ bind กับ `127.0.0.1` โดย default และแ�
 
 <h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
 
-viewer ที่ `:3113` แสดงสิ่งที่ agent ของคุณ **จำได้** [iii console](https://iii.dev/docs/console) แสดงสิ่งที่ agent ของคุณ **ทำ**: memory op ทุกตัวเป็น OpenTelemetry trace, KV entry ทุกตัวแก้ไขได้, function ทุกตัวเรียกใช้ได้
+iii 0.25 ยกเลิกคอนโซลที่มาพร้อมเอนจินแล้ว `agentmemory console` จะแสดงคำแนะนำการย้ายระบบ ส่วน AgentMemory viewer ยังใช้งานได้ที่พอร์ต 3113 ตรวจสอบสถานะด้วย `agentmemory status`
 
-
-agentmemory มอบสิ่งนี้ให้ฟรี เพราะทุก function call และ trigger ยิงผ่าน iii อยู่แล้ว; ไม่มีอะไรต้องสร้างเอง ไม่มีอะไรต้อง instrument เพิ่ม
-
-<p align="center">
-  <img src="../assets/iii-console/workers.png" alt="หน้า Workers ของ iii console: worker ที่เชื่อมต่ออยู่ รวมถึง instance ของ agentmemory พร้อมจำนวน function แบบสดและ runtime metadata" width="720" />
-  <br/>
-  <em>หน้า Workers: worker ที่เชื่อมต่อทุกตัว รวมถึง agentmemory เอง พร้อม PID, จำนวน function, runtime, และ last-seen</em>
-</p>
-
-**ติดตั้งมาให้แล้ว** console ship มาพร้อม iii engine ที่ pin ไว้ (0.22+); ไม่ต้องติดตั้งอะไรแยก การเปิดครั้งแรกจะดาวน์โหลด console binary ไว้ข้าง ๆ engine
-
-**เปิดใช้งานคู่กับ agentmemory:**
-
-```bash
-agentmemory console
-```
-
-คำสั่งนี้จะรัน `iii console` ของ engine ที่ pin ไว้ โดยชี้ไปยังพอร์ตที่ agentmemory resolve ไว้ (REST, bridge) และ serve มันที่พอร์ตสูงกว่า viewer หนึ่งพอร์ต คือ `http://localhost:3114` โดย default `--console-port N` เลือกพอร์ตอื่นได้ `--port` และ `--instance` เลือก instance ของ agentmemory แบบเดียวกับที่ใช้กับ `stop`; flag อื่น ๆ ที่เหลือจะถูกส่งผ่านไปตรง ๆ เช่น `--enable-flow` สำหรับหน้า architecture-graph แบบทดลอง
-
-วิธีเดียวกันแบบทำมือ มีประโยชน์เมื่อ `agentmemory` ไม่อยู่ใน PATH:
-
-```bash
-~/.agentmemory/bin/iii console --port 3114 --engine-port 3111 --bridge-port 49134
-```
-
-**สิ่งที่คุณทำได้จาก console:**
-
-| Page | Use it to |
-|------|-----------|
-| **Workers** | ดู worker ที่เชื่อมต่ออยู่ทั้งหมดและ metric แบบสดของมัน รวมถึง agentmemory worker เองด้วย |
-| **Functions** | เรียก function ของ agentmemory ตัวใดก็ได้ตรง ๆ ด้วย JSON payload; สะดวกสำหรับทดสอบ `memory.recall`, `memory.consolidate`, `graph.query` โดยไม่ต้องเชื่อมต่อ client |
-| **Triggers** | Replay trigger แบบ HTTP, cron, event, และ state: ยิง consolidation cron ด้วยมือ, retry HTTP route, ส่ง state change |
-| **States** | KV browser ที่ CRUD ได้เต็มรูปแบบบน session, memory slot, lifecycle timer, และ embeddings index; แก้ค่าได้ตรง ๆ |
-| **Queues** | durable queue topic + การจัดการ dead-letter Replay หรือ drop embedding / compression job ที่ล้มเหลว |
-| **Traces** | มุมมอง OpenTelemetry waterfall / flame / service-breakdown filter ด้วย `trace_id` เพื่อดูว่า `memory.search` ครั้งเดียวสร้าง function, DB call, และ embedding request ใดบ้าง |
-| **Logs** | OTEL log แบบ structured ที่ filter และเชื่อมโยงกับ trace/span ID |
-| **Config** | การตั้งค่า runtime: ดูว่า worker, provider, และพอร์ตใดที่ engine ของคุณกำลังรันอยู่ |
-
-<p align="center">
-  <img src="../assets/iii-console/traces-waterfall.png" alt="มุมมอง trace waterfall ของ iii console แสดง duration ต่อ span" width="720" />
-  <br/>
-  <em>Traces: waterfall / flame / service breakdown สำหรับทุก memory operation</em>
-</p>
-
-**Trace ถูกเปิดไว้อยู่แล้ว:**
-
-**Tracing และ logs:** ใช้ iii console เพื่อตรวจ telemetry ของ runtime สำหรับการตั้งค่า exporter และ sampling ให้ดู [เอกสาร observability ของ iii](https://iii.dev/docs)
-
-
-> **ข้อควรระวัง:** console เองไม่มีการบังคับใช้ auth เลย ให้ bind มันไว้กับ `127.0.0.1` (ค่า default) และอย่าเปิดให้เข้าถึงจากสาธารณะเด็ดขาด
+[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
 
 ---
 
@@ -1296,11 +1247,13 @@ agentmemory เป็น worker บน runtime [iii](https://iii.dev) Worker Com
 
 runtime ใช้ registry worker `state` (KV) และ `http` ร่วมกับ agentmemory; worker อื่นจาก [iii registry](https://workers.iii.dev) เพิ่มใน Worker Compose project ได้
 ```yaml
-workers:
-  # ...the bundled entries...
-  - name: database          # SQL-backed state adapter when you outgrow the KV defaults
-  - name: iii-sandbox       # run code that came out of memory_recall inside a throwaway VM
-  - name: mcp               # extra MCP servers next to agentmemory's, same engine
+containers:
+  state:
+    worker: package://api.workers.iii.dev/state
+    version: "0.22.20"
+  http:
+    worker: package://api.workers.iii.dev/http
+    version: "0.22.7"
 ```
 
 | Worker | สิ่งที่คุณได้เพิ่มจาก agentmemory |
@@ -1315,7 +1268,7 @@ Registry แบบเต็ม: [workers.iii.dev](https://workers.iii.dev) worke
 Worker Compose project ที่ CLI สร้าง pin registry package `state@0.22.20` และ `http@0.22.7`
 ### CLI runtime และ bind address
 
-เมื่อรัน `agentmemory` จะเริ่ม iii Worker Compose ด้วย manifest แยกใน data directory ที่เลือก ใช้ iii 0.24.6, `state@0.22.20` และ `http@0.22.7` REST และ viewer ในเครื่อง bind กับ `127.0.0.1`; engine WebSocket เป็น traffic ภายใน Docker self-host จาก repository ใช้ [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); ดู [`../deploy/README.md`](../deploy/README.md)
+เมื่อรัน `agentmemory` จะเริ่ม iii Worker Compose ด้วย manifest แยกใน data directory ที่เลือก ใช้ iii 0.25.0, `state@0.22.20` และ `http@0.22.7` REST และ viewer ในเครื่อง bind กับ `127.0.0.1`; engine WebSocket เป็น traffic ภายใน Docker self-host จาก repository ใช้ [`../deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); ดู [`../deploy/README.md`](../deploy/README.md)
 
 ### Storage backend: file (default) vs Redis
 
@@ -1371,7 +1324,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom plugin systems | `iii worker add <name>` |
 
-**246 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 

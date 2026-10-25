@@ -91,7 +91,7 @@ function killTree(pid: number): void {
 }
 afterAll(() => { for (const child of children) if (child.pid) killTree(child.pid); for (const root of roots) rmSync(root, { recursive: true, force: true }); });
 
-describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMORY_SKIP_LIVE_TESTS === "1")("iii-compose v0.24.6 worker supervision", () => {
+describe.skipIf(!engine || process.platform !== "linux" || process.env.AGENTMEMORY_SKIP_LIVE_TESTS === "1")(`iii-compose v${III_PINNED_VERSION} worker supervision`, () => {
   it("marks a worker failed after bounded restarts and reports the exhausted budget", async () => {
     const project = prepare("{ condition: on-failure, delay: 500ms, max_delay: 500ms, max_attempts: 1, window: 60s }");
     const child = start(project);

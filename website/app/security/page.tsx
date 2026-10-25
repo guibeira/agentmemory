@@ -127,7 +127,7 @@ export default function SecurityPage() {
         <h2>Supply chain</h2>
         <ul>
           <li>
-            The iii engine is pinned to one version (<code>0.24.6</code>) and runs workers under Worker Compose; registry workers <code>state@0.22.20</code> and <code>http@0.22.7</code> provide state and REST. The installer checks the downloaded archive
+            The iii engine is pinned to one version (<code>0.25.0</code>) and runs workers under Worker Compose; registry workers <code>state@0.22.20</code> and <code>http@0.22.7</code> provide state and REST. The installer checks the downloaded archive
             against a SHA-256 recorded in the package before it extracts it.
           </li>
           <li>
@@ -146,7 +146,7 @@ export default function SecurityPage() {
         <ul>
           <li>Stored memory is not encrypted at rest. File permissions on your account are what protect it.</li>
           <li>
-            The iii console does not enforce auth. Keep it on 127.0.0.1, which is the default, and never expose it.
+            iii 0.25 retires the bundled engine console. AgentMemory serves its viewer on port 3113; it does not start a console on port 3114.
           </li>
           <li>
             Binding to anything other than 127.0.0.1 makes the API reachable from your network. Auth stays on, but only do
