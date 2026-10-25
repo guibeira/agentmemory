@@ -1339,7 +1339,7 @@ fi
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | פיקוח (supervision) workers של מנוע iii |
 | Prometheus / Grafana | iii OTEL + מוניטור health |
-| מערכות plugin מותאמות אישית | `iii worker add <name>` |
+| מערכות plugin מותאמות אישית | Worker Compose (`worker-compose.yaml`) |
 
 **245 קובצי מקור · ~56,000 LOC · 3,800+ בדיקות · 322 פונקציות · 65 תחומי KV**, הכול על שלושה primitives. אין `agentmemory plugin install`. מערכת התוספים היא iii עצמו.
 

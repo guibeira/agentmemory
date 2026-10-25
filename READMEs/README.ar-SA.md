@@ -1342,7 +1342,7 @@ fi
 | SSE / Socket.io | نقطة REST `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | إشراف المحرك على العمّال في iii |
 | Prometheus / Grafana | OTEL في iii + مراقب الحالة الصحية |
-| أنظمة إضافات مخصصة | `iii worker add <name>` |
+| أنظمة إضافات مخصصة | Worker Compose (`worker-compose.yaml`) |
 
 **245 ملف مصدري · ~56,000 سطر برمجي · 3,800+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
 ---

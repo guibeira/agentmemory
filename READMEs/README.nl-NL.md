@@ -1341,7 +1341,7 @@ fi
 | SSE / Socket.io | iii Streams (WebSocket) |
 | pm2 / systemd | iii engine worker-supervisie |
 | Prometheus / Grafana | iii OTEL + health monitor |
-| Custom plugin-systemen | `iii worker add <name>` |
+| Custom plugin-systemen | Worker Compose (`worker-compose.yaml`) |
 
 **245 bronbestanden · ~55,000 LOC · 3,600+ tests · 322 functies · 65 KV-scopes**, allemaal op drie primitieven. Geen `agentmemory plugin install`. Het pluginsysteem is iii zelf.
 

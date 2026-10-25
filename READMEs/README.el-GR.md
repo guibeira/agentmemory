@@ -1341,7 +1341,7 @@ fi
 | SSE / Socket.io | SSE μέσω του endpoint REST |
 | pm2 / systemd | επιτήρηση workers του iii engine |
 | Prometheus / Grafana | iii OTEL + monitor υγείας |
-| Προσαρμοσμένα συστήματα plugin | `iii worker add <name>` |
+| Προσαρμοσμένα συστήματα plugin | Worker Compose (`worker-compose.yaml`) |
 
 **245 αρχεία πηγαίου κώδικα · ~56,000 LOC · 3,600+ δοκιμές · 322 functions · 65 KV scopes**, όλα πάνω σε τρία primitives. Δεν υπάρχει `agentmemory plugin install`. Το σύστημα plugin είναι το ίδιο το iii.
 

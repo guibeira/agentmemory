@@ -1341,7 +1341,7 @@ fi
 | SSE / Socket.io | SSE über den REST-Endpunkt |
 | pm2 / systemd | iii-Engine-Worker-Supervision |
 | Prometheus / Grafana | iii OTEL + Health-Monitor |
-| Eigene Plugin-Systeme | `iii worker add <name>` |
+| Eigene Plugin-Systeme | Worker Compose (`worker-compose.yaml`) |
 
 **245 Quelldateien · ~56,000 LOC · 3,600+ Tests · 322 Funktionen · 65 KV-Scopes**, alles auf drei Primitiven. Kein `agentmemory plugin install`. Das Plugin-System ist iii selbst.
 

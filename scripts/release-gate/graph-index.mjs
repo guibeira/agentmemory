@@ -219,6 +219,10 @@ async function startEngine(p, name) {
   p.engine = launch(p, engine, ["compose", "--namespace", `agentmemory-${p.port}`, "--up", "--file", join(p.dir, "worker-compose.yaml")], `${name}-compose`);
   await poll("Compose engine", async () => (await fetch(`http://127.0.0.1:${p.port}/`, { signal: AbortSignal.timeout(500) })).status > 0);
   p.client = registerWorker(`ws://127.0.0.1:${p.port + 46023}`, { workerName: `graph-index-fixture-${p.name}`, namespace: `agentmemory-${p.port}`, invocationTimeoutMs: 30_000, enableMetricsReporting: false, otel: { enabled: false } });
+  await poll("Compose state worker", async () => {
+    await p.client.trigger({ function_id: "state::get", payload: { scope: scopes.control, key: "current" } });
+    return true;
+  });
 }
 async function startWorker(p, name) {
   p.worker = launch(p, process.execPath, [cli, "--no-engine", "--port", String(p.port), "--data-dir", p.data, ...(p.instance ? ["--instance", String(p.instance)] : [])], name);

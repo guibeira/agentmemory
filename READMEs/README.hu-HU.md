@@ -1340,7 +1340,7 @@ A `/agentmemory/export` emellett elfogadja a `?maxSessions=`-t és a `?offset=`-
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker-felügyelet |
 | Prometheus / Grafana | iii OTEL + egészségfigyelő |
-| Egyéni plugin-rendszerek | `iii worker add <name>` |
+| Egyéni plugin-rendszerek | Worker Compose (`worker-compose.yaml`) |
 
 **245 forrásfájl · ~56,000 LOC · 3,800+ teszt · 322 funkció · 65 KV-hatókör**, mindez három primitíven. Nincs `agentmemory plugin install`. A plugin-rendszer maga az iii.
 

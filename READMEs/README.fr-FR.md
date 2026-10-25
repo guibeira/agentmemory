@@ -1339,7 +1339,7 @@ fi
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | Supervision des workers du moteur iii |
 | Prometheus / Grafana | iii OTEL + moniteur de santé |
-| Systèmes de plugins custom | `iii worker add <name>` |
+| Systèmes de plugins custom | Worker Compose (`worker-compose.yaml`) |
 
 **245 fichiers sources · ~56,000 LOC · 3,800+ tests · 322 fonctions · 65 scopes KV**, tout sur trois primitives. Pas de `agentmemory plugin install`. Le système de plugins, c'est iii lui-même.
 ---

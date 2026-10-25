@@ -1338,7 +1338,7 @@ fi
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii 엔진의 워커 감독 |
 | Prometheus / Grafana | iii OTEL + health 모니터 |
-| 커스텀 플러그인 시스템 | `iii worker add <name>` |
+| 커스텀 플러그인 시스템 | Worker Compose (`worker-compose.yaml`) |
 
 **소스 파일 245개 · LOC ~56,000줄 · 테스트 3,800+개 · 함수 322개 · KV 스코프 65개**, 모두 세 가지 프리미티브 위에서 동작합니다. `agentmemory plugin install` 같은 것은 없습니다. 플러그인 시스템은 곧 iii 자체입니다.
 

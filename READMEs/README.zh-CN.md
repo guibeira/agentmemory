@@ -1335,7 +1335,7 @@ fi
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker 监管 |
 | Prometheus / Grafana | iii OTEL + 健康监控 |
-| Custom plugin systems | `iii worker add <name>` |
+| Custom plugin systems | Worker Compose (`worker-compose.yaml`) |
 
 **245 个源文件 · ~56,000 行代码 · 3,800+ 个测试 · 322 个函数 · 65 个 KV 作用域**,全部基于三种原语。没有 `agentmemory plugin install`。插件系统就是 iii 本身。
 

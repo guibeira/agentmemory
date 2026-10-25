@@ -1340,7 +1340,7 @@ fi
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine ওয়ার্কার সুপারভিশন |
 | Prometheus / Grafana | iii OTEL + হেলথ মনিটর |
-| কাস্টম প্লাগইন সিস্টেম | `iii worker add <name>` |
+| কাস্টম প্লাগইন সিস্টেম | Worker Compose (`worker-compose.yaml`) |
 
 **245 সোর্স ফাইল · ~56,000 LOC · 3,800+ টেস্ট · 322 ফাংশন · 65 KV স্কোপ**, সবকিছু তিনটি প্রিমিটিভের উপর। কোনো `agentmemory plugin install` নেই। প্লাগইন সিস্টেমটাই iii নিজে।
 

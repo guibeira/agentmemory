@@ -1342,7 +1342,7 @@ fi
 | SSE / Socket.io | iii Streams (WebSocket) |
 | pm2 / systemd | Супервизия воркеров движка iii |
 | Prometheus / Grafana | iii OTEL + монитор состояния |
-| Самописные плагинные системы | `iii worker add <name>` |
+| Самописные плагинные системы | Worker Compose (`worker-compose.yaml`) |
 
 **245 исходных файлов · ~56,000 LOC · 3,600+ тестов · 322 функции · 65 KV-scope**, всё на трёх примитивах. Никакого `agentmemory plugin install`. Плагинная система — это сам iii.
 

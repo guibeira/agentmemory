@@ -1330,7 +1330,7 @@ fi
 | SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | iii engine worker supervision |
 | Prometheus / Grafana | iii OTEL + health monitor |
-| کسٹم plugin سسٹمز | `iii worker add <name>` |
+| کسٹم plugin سسٹمز | Worker Compose (`worker-compose.yaml`) |
 
 **245 سورس فائلز · ~56,000 LOC · 3,600+ ٹیسٹس · 322 فنکشنز · 65 KV اسکوپس**، سب تین primitives پر۔ کوئی `agentmemory plugin install` نہیں۔ plugin سسٹم خود iii ہی ہے۔
 ---

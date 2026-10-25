@@ -1334,7 +1334,7 @@ O `/agentmemory/export` também aceita `?maxSessions=` e `?offset=` para dividir
 | SSE / Socket.io | endpoint REST `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | supervisão de workers do iii engine |
 | Prometheus / Grafana | iii OTEL + monitor de saúde |
-| Sistemas de plugins personalizados | `iii worker add <name>` |
+| Sistemas de plugins personalizados | Worker Compose (`worker-compose.yaml`) |
 
 **245 ficheiros de código-fonte · ~56,000 LOC · 3,600+ testes · 322 funções · 65 âmbitos de KV**, tudo sobre três primitivos. Sem `agentmemory plugin install`. O sistema de plugins é o próprio iii.
 

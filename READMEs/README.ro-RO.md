@@ -1327,7 +1327,7 @@ fi
 | SSE / Socket.io | endpoint-ul REST `GET /agentmemory/viewer/events` (SSE) |
 | pm2 / systemd | Supervizarea worker-ilor de către motorul iii |
 | Prometheus / Grafana | iii OTEL + monitor de sănătate |
-| Sisteme de plugin-uri personalizate | `iii worker add <name>` |
+| Sisteme de plugin-uri personalizate | Worker Compose (`worker-compose.yaml`) |
 
 **245 de fișiere sursă · ~56,000 LOC · 3,600+ de teste · 322 de funcții · 65 de domenii KV**, toate pe trei primitive. Niciun `agentmemory plugin install`. Sistemul de plugin-uri este chiar iii.
 ---
