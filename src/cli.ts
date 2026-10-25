@@ -1797,7 +1797,9 @@ async function apiFetch<T = unknown>(base: string, path: string, timeoutMs = 500
 async function runStatus() {
   const base = getBaseUrl();
   p.intro("agentmemory status");
-  const savedState = readEngineState();
+  const state = readEngineState();
+  const savedState = !(shouldUseAgentmemoryUrl() && process.env["AGENTMEMORY_URL"])
+    && (state?.kind !== "compose" || state.restPort === getRestPort()) ? state : null;
   if (savedState?.kind === "docker") {
     p.log.warn(legacyDockerStateMessage(savedState));
   }
@@ -1908,7 +1910,7 @@ async function runStatus() {
       );
     }
 
-    const managed = readEngineState();
+    const managed = savedState;
     if (managed?.kind === "compose") {
       try {
         const composeStatus = await composeCall<ComposeStatus>({ engineUrl: managed.engineUrl, namespace: managed.namespace, functionId: "compose::status", file: managed.file });

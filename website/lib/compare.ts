@@ -113,7 +113,7 @@ export const COMPETITORS: Competitor[] = [
       "Mem0 is a memory API you build into your own application. agentmemory is a memory server for coding agents that captures sessions on its own and runs entirely on your machine.",
     differ: [
       "Mem0 is called by your code: you decide what to send with memory.add(), and an LLM turns it into memories. That suits products where you own the agent loop. agentmemory sits beside agents you already use, like Claude Code or Cursor, and captures their sessions through hooks without code changes.",
-      "Mem0 needs an LLM to extract memories and a vector store to hold them, or its managed platform. agentmemory runs as one local process with no external database, and works without any API key on BM25 search.",
+      "Mem0 needs an LLM to extract memories and a vector store to hold them, or its managed platform. agentmemory runs as a local service with supervised workers and no external database, and works without any API key on BM25 search.",
       "Some Mem0 capabilities, such as graph memory, on-prem deployment and audit logs, sit on paid plans. agentmemory has no paid tier, so every feature ships in the open source build.",
     ],
     chooseThem: [
@@ -288,7 +288,7 @@ export const COMPETITORS: Competitor[] = [
     differ: [
       "With Letta you create agents on its platform, and each agent edits its memory blocks through tools. With agentmemory you keep your current coding agent, and memory is captured around it by hooks.",
       "Letta memory belongs to Letta agents. agentmemory memory is shared by every connected agent, so Claude Code, Cursor and Codex all read from one store.",
-      "Letta runs as Letta Cloud or a Letta server. agentmemory runs as one local process with nothing else to deploy.",
+      "Letta runs as Letta Cloud or a Letta server. agentmemory runs locally through Worker Compose, which manages its engine and workers.",
     ],
     chooseThem: [
       "You are building your own long-running agents and want a full runtime.",
@@ -298,7 +298,7 @@ export const COMPETITORS: Competitor[] = [
     chooseUs: [
       "You want memory for the coding agents you already use.",
       "You want capture to be automatic instead of agent-decided.",
-      "You want a single local process with no platform to run.",
+      "You want a local service with automatic worker supervision.",
     ],
   },
   {

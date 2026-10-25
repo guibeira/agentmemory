@@ -65,7 +65,7 @@ describe("Docker Worker Compose runtime", () => {
     expect(workerCompose).toContain('AGENTMEMORY_SECRET: "${AGENTMEMORY_SECRET:-}"');
     expect(workerCompose).toContain('OPENAI_API_KEY: "${OPENAI_API_KEY:-}"');
     expect(entrypoint).toContain("AGENTMEMORY_STATE_BACKEND=redis requires AGENTMEMORY_REDIS_URL");
-    expect(entrypoint).toContain("name: redis");
+    expect(entrypoint).toContain('name: "redis"');
   });
 
   it("seeds observability defaults while retaining explicit persisted values", () => {

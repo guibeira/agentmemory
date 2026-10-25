@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-Các lần khởi chạy native và Docker đều dùng chung thư mục host đã được resolve này; Docker bind-mount nó vào `/data`. `--instance 1` sẽ gắn thêm `instance-1` vào thư mục đã resolve và chọn bộ bốn port mặc định riêng `3211/3212/3213/49234`.
+Các lần khởi chạy native dùng thư mục host đã được resolve. `--instance 1` thêm `instance-1` và dùng ba cổng `3211/3213/49234`. Docker được triển khai riêng, lưu dữ liệu trong volume `/data`; xem [hướng dẫn triển khai](../deploy/README.md).
 
 Ghi chú phát hành mới nhất: [CHANGELOG.md](../CHANGELOG.md).
 

@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-การรันแบบ native และ Docker ใช้ host directory ที่ resolve แล้วตัวเดียวกันนี้ Docker จะ bind-mount ไว้ที่ `/data` `--instance 1` จะต่อท้าย `instance-1` เข้ากับ directory ที่ resolve แล้ว และเลือกชุดพอร์ตค่า default แยกชุดคือ `3211/3212/3213/49234`
+การรันแบบ native ใช้ไดเรกทอรีโฮสต์ที่ resolve แล้ว `--instance 1` เพิ่ม `instance-1` และใช้สามพอร์ต `3211/3213/49234` ส่วน Docker ติดตั้งแยกต่างหากและเก็บข้อมูลใน volume `/data` ดู[คู่มือการติดตั้ง](../deploy/README.md)
 
 ดูรายละเอียด release ล่าสุดได้ที่: [CHANGELOG.md](../CHANGELOG.md)
 

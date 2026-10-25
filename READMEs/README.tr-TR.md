@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-Native ve Docker başlatmaları, aynı çözümlenmiş host dizinini kullanır; Docker bunu `/data` üzerine bind-mount eder. `--instance 1`, çözümlenmiş dizine `instance-1` ekler ve ayrı varsayılan port dörtlüsünü `3211/3212/3213/49234` seçer.
+Native başlatmalar çözümlenmiş host dizinini kullanır. `--instance 1`, `instance-1` ekler ve üç portu `3211/3213/49234` seçer. Docker ayrı dağıtılır ve verileri `/data` biriminde saklar; [dağıtım kılavuzuna](../deploy/README.md) bakın.
 
 En son sürüm notları: [CHANGELOG.md](../CHANGELOG.md).
 

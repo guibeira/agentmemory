@@ -328,7 +328,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-نیٹیو اور Docker دونوں لانچز اسی resolved ہوسٹ ڈائرکٹری کو استعمال کرتے ہیں؛ Docker اسے `/data` پر bind-mount کرتا ہے۔ `--instance 1` resolved ڈائرکٹری میں `instance-1` شامل کرتا ہے اور علیحدہ ڈیفالٹ پورٹ quartet `3211/3212/3213/49234` منتخب کرتا ہے۔
+نیٹیو لانچز resolved ہوسٹ ڈائرکٹری استعمال کرتے ہیں۔ `--instance 1` اس میں `instance-1` شامل کرتا ہے اور تین پورٹس `3211/3213/49234` استعمال کرتا ہے۔ Docker الگ تعینات ہوتا ہے اور ڈیٹا `/data` والیوم میں محفوظ کرتا ہے؛ [تعیناتی گائیڈ](../deploy/README.md) دیکھیں۔
 
 تازہ ترین ریلیز نوٹس: [CHANGELOG.md](../CHANGELOG.md)۔
 

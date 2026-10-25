@@ -2,7 +2,7 @@
 
 agentmemory 0.9.30 runs on iii 0.24.6 with the `state` 0.22.20 and `http` 0.22.7 registry workers. All image builds use one [`Dockerfile`](Dockerfile), with engine and registry worker pins declared once. Update those build arguments together when promoting a release. Workers are fetched from the iii registry at startup; the `worker-compose.yaml` uses the same Worker Compose format as the CLI.
 
-The container runs `iii compose --up`: Compose owns the engine and supervises `state`, `http`, and the local `agentmemory` worker. There is no legacy embedded engine config, standalone stream, pubsub, or queue worker. The registry worker artifacts are pinned in the compose manifest. Engine and worker state, agentmemory state, generated secret, Compose cache, and logs live on the persistent `/data` volume. For Docker Compose, the default volume name is `iii-data` (preserving the 0.22.1 install); set `AGENTMEMORY_DATA_DIR` to a host path to use a bind mount instead. The state worker continues to use `/data/state_store.db`, so the existing 0.22.1 file-based store is read in place without conversion or deletion.
+The container runs `iii compose --up`: Compose owns the engine and supervises `state`, `http`, and the local `agentmemory` worker. There is no legacy embedded engine config, standalone stream, pubsub, or queue worker. The registry worker artifacts are pinned in the compose manifest. Engine and worker state, agentmemory state, generated secret, Compose cache, and logs live on the persistent `/data` volume. For Docker Compose, the volume key is `iii-data`, normally stored as `<compose-project>_iii-data`; set `AGENTMEMORY_DATA_DIR` to a host path to use a bind mount instead. The state worker continues to use `/data/state_store.db`, so the existing 0.22.1 file-based store is read in place without conversion or deletion.
 
 ## Ports
 
@@ -43,4 +43,15 @@ The current CLI does not start or manage Docker deployments. When a current CLI 
 
 Keep the old deployment's persistent data volume (normally `iii-data`) or copy the old `/data` contents to a backed-up bind mount. The state worker reads the existing `/data/state_store.db` tree in place; no database export/import is needed. The previous runtime initialized the full volume as UID/GID `65532:65532`; this image performs a one-time recursive ownership migration to `node:node` (UID/GID 1000) and writes `/data/.ownership-migrated-node-v1`. Do not run the old image against the volume after that migration. Back up the whole volume before starting the new image.
 
-The previous platform entrypoints persisted the generated bearer secret at `/data/.hmac`. The new runtime exports this legacy value before starting iii, and the one-time ownership migration makes the file readable by the `node` runtime user (mode `0600`, owner `1000:1000`). The Node secret-store migration can then consume it. An explicitly configured `AGENTMEMORY_SECRET` takes precedence. After preserving the volume and setting any explicit secret, start the new project from the repository root with `docker compose up --build -d`; the default volume is `iii-data` (the historic project-prefixed volume may need to be explicitly reused or renamed to `iii-data`). Check `/agentmemory/livez`, confirm the old and new memories, then use `docker compose down` to stop it. Avoid `down -v` unless deleting that data is intended.
+The previous platform entrypoints persisted the generated bearer secret at `/data/.hmac`. If no explicit secret or current secret file exists, the entrypoint copies that legacy value to `/data/secret` with mode `0600`; the server then initializes the canonical client credential from it. An explicitly configured `AGENTMEMORY_SECRET` takes precedence and is not written to disk.
+
+Reuse the old Compose project name with `docker compose -p <old-project> up --build -d`. If the old volume has a different name, first inspect it with `docker volume ls` and `docker volume inspect <existing-volume>`, then create `compose.existing-volume.yaml`:
+
+```yaml
+volumes:
+  iii-data:
+    external: true
+    name: <existing-volume>
+```
+
+With `AGENTMEMORY_DATA_DIR` unset so the service uses the named volume, run `docker compose -f docker-compose.yml -f compose.existing-volume.yaml config` and confirm the resolved volume name before starting with the same `-f` arguments and `up --build -d`. The external declaration fails if that volume is missing rather than creating an empty replacement. Check `/agentmemory/livez`, confirm the old and new memories, and use the same project and file arguments with `down` to stop it. Avoid `down -v` unless deleting that data is intended.

@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-原生启动和 Docker 启动使用的是同一个解析得到的主机目录;Docker 会把它绑定挂载到 `/data`。`--instance 1` 会在解析出的目录后追加 `instance-1`,并选用单独的默认端口四元组 `3211/3212/3213/49234`。
+原生启动使用解析后的主机目录。`--instance 1` 会追加 `instance-1`，并使用三个端口 `3211/3213/49234`。Docker 单独部署，数据保存在 `/data` 卷中；请参阅[部署指南](../deploy/README.md)。
 
 最新发布说明见:[CHANGELOG.md](../CHANGELOG.md)。
 

@@ -1,8 +1,7 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
-import { delimiter } from "node:os";
+import { delimiter, dirname, join, resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 import { III_PINNED_VERSION } from "../src/version.js";
 import { COMPOSE_WORKER_VERSIONS } from "../src/cli/compose-project.js";
@@ -18,6 +17,9 @@ const engine = [
     return result.status === 0 && result.stdout.trim() === III_PINNED_VERSION;
   } catch { return false; }
 });
+if (process.env.AGENTMEMORY_REQUIRE_LIVE_TESTS === "1" && (!engine || process.platform !== "linux" || process.env.AGENTMEMORY_SKIP_LIVE_TESTS === "1")) {
+  throw new Error("Live supervision tests require Linux, the pinned engine, and live tests enabled");
+}
 const workerBinDir = process.env.AGENTMEMORY_TEST_LOCAL_WORKER_DIR;
 const roots: string[] = [];
 const children: ChildProcess[] = [];

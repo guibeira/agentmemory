@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-原生與 Docker 啟動方式使用同一個解析出的主機目錄;Docker 會把它綁定掛載到 `/data`。`--instance 1` 會在解析出的目錄後面附加 `instance-1`,並選用另一組預設連接埠四件組 `3211/3212/3213/49234`。
+原生啟動使用解析後的主機目錄。`--instance 1` 會附加 `instance-1`，並使用三個連接埠 `3211/3213/49234`。Docker 獨立部署，資料保存在 `/data` 卷中；請參閱[部署指南](../deploy/README.md)。
 
 最新版本的發布說明:[CHANGELOG.md](../CHANGELOG.md)。
 

@@ -326,7 +326,7 @@ npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
 AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
 ```
 
-Нативні запуски та запуски в Docker використовують той самий визначений каталог хоста; Docker монтує його як `/data`. `--instance 1` додає `instance-1` до визначеного каталогу і обирає окремий квартет портів за замовчуванням `3211/3212/3213/49234`.
+Нативні запуски використовують визначений каталог хоста. `--instance 1` додає `instance-1` і використовує три порти `3211/3213/49234`. Docker розгортається окремо та зберігає дані в томі `/data`; див. [посібник із розгортання](../deploy/README.md).
 
 Примітки до останнього релізу: [CHANGELOG.md](../CHANGELOG.md).
 
