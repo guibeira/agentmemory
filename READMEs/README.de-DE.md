@@ -4,10 +4,9 @@
 
 <p align="center">
   <strong>
-    Ihr Coding-Agent merkt sich alles. Schluss mit dem ständigen Wiederholen.
-    Built on <a href="https://github.com/iii-hq/iii">iii engine</a>
+    Persistentes Gedächtnis über Coding-Sessions und Agenten hinweg.
   </strong><br/>
-  Persistentes Gedächtnis für Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI, Codex CLI, Hermes, OpenClaw, pi, OpenCode und jeden MCP-Client.
+  Persistentes Gedächtnis für Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI, Codex CLI, Hermes, OpenClaw, pi, Oh My Pi, DeepSeek Harness, OpenCode und jeden MCP-Client.
 </p>
 
 <p align="center">
@@ -63,6 +62,7 @@
   <a href="https://github.com/rohitg00/agentmemory/actions"><img src="https://img.shields.io/github/actions/workflow/status/rohitg00/agentmemory/ci.yml?label=tests&style=for-the-badge&logo=github" alt="CI" /></a>
   <a href="https://github.com/rohitg00/agentmemory/blob/main/LICENSE"><img src="https://img.shields.io/github/license/rohitg00/agentmemory?color=blue&style=for-the-badge" alt="License" /></a>
   <a href="https://github.com/rohitg00/agentmemory/stargazers"><img src="https://img.shields.io/github/stars/rohitg00/agentmemory?style=for-the-badge&color=yellow&logo=github" alt="Stars" /></a>
+  <a href="https://skills.sh/rohitg00/agentmemory"><img src="https://skills.sh/b/rohitg00/agentmemory?style=for-the-badge" alt="skills.sh installs" /></a>
 </p>
 
 <p align="center">
@@ -87,20 +87,21 @@
   <a href="#how-it-works">Funktionsweise</a> &bull;
   <a href="#mcp-server">MCP</a> &bull;
   <a href="#real-time-viewer">Viewer</a> &bull;
-  <a href="#powered-by-iii">Powered by iii</a> &bull;
   <a href="#configuration">Konfiguration</a> &bull;
   <a href="#api">API</a>
 </p>
 
 ---
 
+AgentMemory erfasst Coding-Sessions und macht Entscheidungen, Lösungen und Erfahrungen später durchsuchbar. Nutzen Sie einen gemeinsamen Speicher über mehrere Agenten hinweg, prüfen Sie gespeicherte Inhalte und bestimmen Sie, wie viel Kontext das Modell erhält.
+
 ## Install
 
 Voraussetzungen:
 
 - Node.js 20 oder neuer mit npm und npx (`node -v`, `npm -v` und `npx -v`).
-- Die automatische iii-engine-Installation unter macOS/Linux benötigt außerdem `curl`, eine POSIX-`sh` und `tar`. Minimale Images wie `node:20-slim` enthalten diese unter Umständen nicht.
-- Natives Windows erfordert die manuelle Installation der gepinnten iii-engine v0.25.0 `iii.exe`; WSL2 nutzt den automatischen macOS/Linux-Installer.
+- Unter macOS/Linux werden für die automatische Einrichtung außerdem `curl`, eine POSIX-`sh` und `tar` benötigt.
+- Unter Windows verwenden Sie WSL2 oder folgen der [nativen Windows-Einrichtung](#windows).
 
 Kanonischer Befehl für die Frischinstallation:
 
@@ -108,11 +109,11 @@ Kanonischer Befehl für die Frischinstallation:
 npx -y @agentmemory/agentmemory@latest
 ```
 
-Der erste Lauf ist ein interaktives Setup: Wählen Sie die zu verdrahtenden Agenten (Claude Code, Cursor, Codex, Gemini CLI, OpenCode, ...), wählen Sie einen LLM-Provider oder bleiben Sie ohne Schlüssel, und es legt die Konfiguration an, startet den Memory-Server und seine gepinnte iii-Engine und bietet an, global zu installieren, sodass der nackte Befehl `agentmemory` anschließend überall funktioniert. `-y` akzeptiert npx' Paket-Prompt, und `@latest` vermeidet eine veraltete gecachte Version. Ein Provider macht LLM-Funktionen verfügbar, aber die LLM-geschriebene Beobachtungs-Kompression startet erst, wenn zusätzlich `AGENTMEMORY_AUTO_COMPRESS=true` gesetzt ist.
+Wählen Sie Ihre Agenten und einen Provider oder den schlüssellosen Modus. Das Setup schreibt die Konfiguration, startet den Memory-Server und bietet eine globale Installation für den Befehl `agentmemory` an. `-y` bestätigt die npm-Paketabfrage; `@latest` wählt die aktuelle Version. LLM-Kompression ist optional und benötigt einen Provider sowie `AGENTMEMORY_AUTO_COMPRESS=true`.
 
 Der schlüssellose Modus deaktiviert Vector-Embeddings. `memory_recall` (der Pfad `mem::search`) verwendet BM25, während `memory_smart_search` zusätzlich strukturelle Graph-Treffer einbeziehen kann, wenn bereits Graph-Daten existieren. Für kostenloses semantisches Recall auf dem eigenen Gerät setzen Sie `EMBEDDING_PROVIDER=local` in `~/.agentmemory/.env` und starten neu. Die erste Embedding-Anfrage lädt `Xenova/all-MiniLM-L6-v2` herunter; danach läuft die Inferenz lokal.
 
-Die lokale CLI-Runtime verwendet REST/MCP HTTP auf `3111`, den Viewer auf `3113` und den internen iii-Worker-WebSocket auf `49134`. Viewer-Updates laufen per SSE über `GET /agentmemory/viewer/events` am REST-Port. Der persistente State liegt standardmäßig unter `~/Library/Application Support/agentmemory` auf macOS, `$XDG_DATA_HOME/agentmemory` bzw. `~/.local/share/agentmemory` auf Linux und `%APPDATA%\agentmemory` auf Windows. Überschreiben Sie den Speicherort mit `--data-dir <path>` oder `AGENTMEMORY_DATA_DIR`; Instanz 0 verwendet außerdem eine vorhandene `./data/state_store.db` weiter. `--instance N` isoliert zusätzliche Runtimes, und `AGENTMEMORY_ENV_FILE` wählt eine abweichende `.env`-Datei aus.
+Die API ist unter `http://localhost:3111`, der Live-Viewer unter `http://localhost:3113` erreichbar. Beide binden standardmäßig an Loopback. Die Konfiguration liegt in `~/.agentmemory/.env`; Speicherorte und separate Instanzen stehen unter [Datenspeicherung](#data-storage).
 
 Beweisen Sie dann, dass Recall funktioniert, und geben Sie Ihrem Agenten seine Skills:
 
@@ -127,14 +128,7 @@ Möchten Sie das Ganze lieber von einem Coding-Agenten erledigen lassen? Geben S
 
 > Retrieve and follow the instructions at: https://raw.githubusercontent.com/rohitg00/agentmemory/main/INSTALL_FOR_AGENTS.md
 
-Verdrahten Sie jederzeit weitere Agenten mit `agentmemory connect <agent>` — 20 Adapter sind unter [Funktioniert mit jedem Agenten](#works-with-every-agent) aufgelistet. Vollständige Befehlsreferenz unter [Schnellstart](#quick-start).
-
-<details>
-<summary><strong>Windows</strong></summary>
-
-Der schnelle Weg ist WSL2. Unter nativem Windows müssen Sie das gepinnte v0.25.0-ZIP herunterladen und `iii.exe` manuell extrahieren. Siehe die [Windows-Hinweise](#windows) für die Schritte.
-
-</details>
+Verbinden Sie weitere Agenten mit `agentmemory connect <agent>`. Siehe [Integrationen](#works-with-every-agent) und [Alltagsbefehle](#everyday-commands).
 
 <details>
 <summary><strong>Globale Installation / EACCES</strong></summary>
@@ -151,13 +145,6 @@ Der obige npx-Befehl bleibt der kanonische Weg für die Frischinstallation und v
 <summary><strong>npx liefert eine alte Version</strong></summary>
 
 npx cached pro Version. Erzwingen Sie die neueste mit `npx -y @agentmemory/agentmemory@latest`, oder leeren Sie den Cache einmalig mit `rm -rf ~/.npm/_npx` (macOS/Linux; unter Windows löschen Sie `%LOCALAPPDATA%\npm-cache\_npx`).
-
-</details>
-
-<details>
-<summary><strong>Sie betreiben bereits eine eigene iii-Engine</strong></summary>
-
-agentmemory pinnt iii-engine v0.25.0 und verbindet sich nicht mit einer anderen Version (der Worker kann das Protokoll einer anderen Engine nicht sprechen). Stoppen Sie die andere Engine und führen Sie dann `npx -y @agentmemory/agentmemory@latest` aus. Es installiert und startet v0.25.0 in `~/.agentmemory/bin` und lässt Ihre eigene `iii` unangetastet.
 
 </details>
 
@@ -187,7 +174,7 @@ agentmemory funktioniert mit jedem Agenten, der Hooks, MCP oder REST API unterst
 <td align="center" width="20%">
 <a href="https://cursor.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/cursor_dark.svg"><img src="https://svgl.app/library/cursor_light.svg" alt="Cursor" width="48" height="48" /></picture></a><br/>
 <strong>Cursor</strong><br/>
-<sub>natives Plugin + 7 Hooks + MCP</sub>
+<sub>natives Plugin + Lifecycle-Hooks + MCP</sub>
 </td>
 <td align="center" width="20%">
 <a href="../plugin/opencode/"><img src="https://raw.githubusercontent.com/rohitg00/agentmemory/main/website/public/opencode.png" alt="OpenCode" width="48" height="48" /></a><br/>
@@ -214,7 +201,7 @@ agentmemory funktioniert mit jedem Agenten, der Hooks, MCP oder REST API unterst
 <td align="center" width="20%">
 <a href="../integrations/pi/"><img src="../assets/agents/pi.svg" alt="pi" width="48" height="48" /></a><br/>
 <strong>pi</strong><br/>
-<sub>natives Plugin + MCP</sub>
+<sub>native Suche + Erfassung + Skills</sub>
 </td>
 <td align="center" width="20%">
 <a href="https://github.com/tinyhumansai/openhuman"><img src="https://github.com/tinyhumansai.png?size=120" alt="OpenHuman" width="48" height="48" /></a><br/>
@@ -280,7 +267,7 @@ agentmemory funktioniert mit jedem Agenten, der Hooks, MCP oder REST API unterst
 <td align="center" width="20%">
 <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://svgl.app/library/deepseek.svg" alt="DeepSeek Harness" width="48" height="48" /></a><br/>
 <strong>DeepSeek Harness</strong><br/>
-<sub>MCP-Server</sub>
+<sub>native Erfassung + MCP</sub>
 </td>
 <td align="center" width="20%">
 <a href="https://github.com/RooCodeInc/Roo-Code"><img src="https://github.com/RooCodeInc.png?size=120" alt="Roo Code" width="48" height="48" /></a><br/>
@@ -303,6 +290,12 @@ agentmemory funktioniert mit jedem Agenten, der Hooks, MCP oder REST API unterst
 <sub>REST API</sub>
 </td>
 </tr>
+<tr>
+<td align="center" colspan="5">
+<a href="../integrations/omp/"><strong>Oh My Pi</strong></a><br/>
+<sub>native Suche + Erfassung + Skills + Optionales MCP</sub>
+</td>
+</tr>
 </table>
 
 <p align="center">
@@ -311,22 +304,24 @@ agentmemory funktioniert mit jedem Agenten, der Hooks, MCP oder REST API unterst
 
 ---
 
-Sie erklären in jeder Session dieselbe Architektur. Sie entdecken dieselben Bugs erneut. Sie bringen dem Agenten dieselben Präferenzen wieder bei. Eingebautes Gedächtnis (CLAUDE.md, .cursorrules) ist bei 200 Zeilen am Ende und veraltet. agentmemory behebt das. Es erfasst stillschweigend, was Ihr Agent tut, komprimiert das Ganze in durchsuchbares Gedächtnis und injiziert beim Start der nächsten Session den passenden Kontext. Ein Befehl. Funktioniert über Agenten hinweg.
+<a id="data-storage"></a>
 
-**Was sich ändert:** Session 1 richten Sie JWT-Authentifizierung ein. Session 2 fragen Sie nach Rate Limiting. Der Agent weiß bereits, dass Ihre Auth jose-Middleware in `src/middleware/auth.ts` verwendet, dass Ihre Tests Token-Validierung abdecken und dass Sie sich aus Gründen der Edge-Kompatibilität für jose statt jsonwebtoken entschieden haben, ohne erneutes Erklären und ohne Copy-Paste.
+### Datenspeicherung
+
+Erinnerungen werden standardmäßig außerhalb Ihres Repositorys gespeichert:
+
+| Plattform | Datenverzeichnis |
+|---|---|
+| macOS | `~/Library/Application Support/agentmemory` |
+| Linux | `$XDG_DATA_HOME/agentmemory` / `~/.local/share/agentmemory` |
+| Windows | `%APPDATA%\agentmemory` |
+
+Instanz 0 verwendet eine vorhandene `./data/state_store.db` weiter. Wählen Sie mit `--data-dir <path>` oder `AGENTMEMORY_DATA_DIR` einen anderen Speicherort und behalten Sie ihn bei Neustarts und Upgrades bei. `--instance 1` verwendet das Unterverzeichnis `instance-1`, API-Port `3211` und Viewer-Port `3213`. Hinweise zu Redis und Migrationen stehen im [Leitfaden zu Speicherung und Backups](../docs/reliability/state-storage.md).
 
 ```bash
-npx -y @agentmemory/agentmemory@latest
+agentmemory --data-dir ~/.agentmemory-projects/main
+agentmemory --instance 1
 ```
-
-Standardmäßig speichert agentmemory den iii-Engine-State außerhalb des Repositorys, aus dem Sie es starten: `~/Library/Application Support/agentmemory` auf macOS, `$XDG_DATA_HOME/agentmemory` bzw. `~/.local/share/agentmemory` auf Linux und `%APPDATA%\agentmemory` auf Windows. Eine vorhandene `./data/state_store.db` wird für Instanz 0 weiterverwendet. Um einen Speicherort festzulegen, übergeben Sie `--data-dir <path>` oder setzen Sie `AGENTMEMORY_DATA_DIR`:
-
-```bash
-npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
-AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
-```
-
-`--instance 1` hängt `instance-1` an das aufgelöste Datenverzeichnis an und verwendet die Ports `3211` (REST), `3213` (Viewer) und `49234` (Engine).
 
 Neueste Release-Hinweise: [CHANGELOG.md](../CHANGELOG.md).
 
@@ -476,7 +471,7 @@ Neueste Release-Hinweise: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Externe Abhängigkeiten</strong></td>
-<td>Keine (file-based KV state + iii-engine)</td>
+<td>Kein separater Datenbankdienst erforderlich</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + Vector-DB</td>
 <td>Mehrere</td>
@@ -550,13 +545,11 @@ Neueste Release-Hinweise: [CHANGELOG.md](../CHANGELOG.md).
 | Zep / Graphiti | 30K | Temporaler Knowledge Graph; stärkste veröffentlichte Temporal-Query-Ergebnisse (LongMemEval 63.8%), aber der Graph wird asynchron aufgebaut, sodass frische Fakten hinterherhinken können |
 | Cognee | 30K | Dokument-zu-Knowledge-Graph-Ingestion, nur Python, gebaut für strukturierte Entitäten-Extraktion statt Session-Erfassung |
 
-Keines davon erfasst automatisch aus Coding-Agent-Hooks, liefert einen local-first Viewer mit oder läuft ohne Schlüssel — die Kombination, um die agentmemory herum gebaut ist.
+AgentMemory verbindet die Erfassung durch Coding-Agenten mit durchsuchbarer Projekthistorie und einem lokalen Viewer. Der Betrieb ohne API-Schlüssel ist vom ersten Start an möglich.
 
 ---
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Schnellstart" height="32" /></picture></h2>
-
-Kompatibilität: Diese Version verwendet iii 0.25.0 mit den Registry-Workern state 0.22.20 und http 0.22.7.
 
 ### In 30 Sekunden ausprobieren
 
@@ -572,9 +565,11 @@ npx -y @agentmemory/agentmemory@latest demo
 
 Öffnen Sie `http://localhost:3113`, um das Memory in Echtzeit aufgebaut zu sehen.
 
+<a id="validate-a-fresh-install-and-restart-persistence"></a>
+
 ### Eine Frischinstallation und die Persistenz nach einem Neustart validieren
 
-Validieren Sie bei laufendem Server REST, Health, den Viewer und den iii-gestützten Runtime-Status:
+Prüfen Sie bei laufendem Server Health, Viewer und Status:
 
 ```bash
 curl -fsS http://localhost:3111/agentmemory/livez
@@ -583,7 +578,7 @@ curl -fsS -o /dev/null http://localhost:3113/
 npx -y @agentmemory/agentmemory@latest status
 ```
 
-Die Runtime verwendet REST/MCP HTTP auf 3111, den Viewer auf 3113 und den internen iii-Worker-WebSocket auf 49134. Live-Ereignisse des Viewers laufen per SSE über REST. `status` bestätigt den Zustand von agentmemory, die gepinnte Engine-Version (`enginePinnedVersion`) sowie den aktiven Provider-/Embedding-Modus. Speichern Sie eine Probe und prüfen Sie, dass sie durchsuchbar ist:
+`status` zeigt den Zustand des Servers sowie die aktiven Provider und Embeddings. Speichern Sie eine Test-Erinnerung und prüfen Sie die Suche:
 
 ```bash
 # Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
@@ -601,6 +596,8 @@ curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
 ```
 
 Führen Sie dann `npx -y @agentmemory/agentmemory@latest stop` aus, starten Sie den kanonischen Befehl in Terminal 1 erneut, warten Sie auf `/agentmemory/livez` und wiederholen Sie die Suche. Die Probe muss weiterhin zurückgegeben werden. Wenn Sie ein eigenes `--data-dir` gewählt haben, übergeben Sie beim Neustart dasselbe Verzeichnis.
+
+<a id="everyday-commands"></a>
 
 ### Alltagsbefehle
 
@@ -628,7 +625,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl
 npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-project/abc123.jsonl
 ```
 
-Importierte Sessions tauchen im Replay-Picker neben den nativen auf. Intern routet jeder Eintrag durch die iii-Funktionen `mem::replay::load`, `mem::replay::sessions` und `mem::replay::import-jsonl`, ohne Seitenkanal-Server. Jedes importierte Transkript wird für die Suche indiziert, mit dem Ursprungskanal `import` gestempelt, und daraus werden ein Session-Crystal und Lessons gewonnen.
+Importierte Sessions tauchen im Replay-Picker neben den nativen auf. Jedes importierte Transkript wird für die Suche indiziert, mit dem Ursprungskanal `import` gestempelt, und daraus werden ein Session-Crystal und Lessons gewonnen.
 
 > **Achtung, wenn Sie sich auf `import-jsonl` als primären Erfassungspfad verlassen:** Claude Codes `cleanupPeriodDays` (in `~/.claude/settings.json`, Standard **30**) löscht JSONL-Transkripte, die älter als dieses Fenster sind, automatisch aus `~/.claude/projects/`. Wenn Sie agentmemory frisch auf einer monatealten Claude-Code-Historie installieren, ist alles, was älter als 30 Tage ist, schon vor dem ersten Import weg. Führen Sie `import-jsonl` entweder per Cron aus, erhöhen Sie `cleanupPeriodDays` auf einen höheren Wert, oder verdrahten Sie die Auto-Capture-Hooks (den Standard-Plugin-Installationspfad), sodass jeder Turn in agentmemory landet, während die Session live ist, und das JSONL-Cleanup keine Rolle mehr spielt.
 
@@ -640,12 +637,12 @@ Verwenden Sie den Wartungsbefehl, wenn Sie Ihr lokales Runtime bewusst aktualisi
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Achtung: Dieser Befehl verändert den aktuellen Workspace bzw. die Runtime. Er kann JavaScript-Abhängigkeiten aktualisieren und das gepinnte iii-Engine-Binary v0.25.0 installieren.
+Dieser Befehl aktualisiert die lokale Laufzeit und gegebenenfalls JavaScript-Abhängigkeiten im aktuellen Workspace. Sichern Sie Ihre Daten und lesen Sie vor dem Update den [Upgrade-Leitfaden](../docs/upgrades/iii-0.25.md).
 
 ### Claude Code (ein Block, einfügen)
 
 ```text
-Install agentmemory: run `npx -y @agentmemory/agentmemory@latest` in a separate terminal to start the memory server and its pinned iii engine. Then run `/plugin marketplace add rohitg00/agentmemory` and `/plugin install agentmemory` — the plugin registers all 12 hooks, 17 skills, AND auto-wires the `@agentmemory/mcp` stdio server via its `.mcp.json`, so you get 54 MCP tools (memory_smart_search, memory_save, memory_sessions, memory_governance_delete, etc.) without any extra config step. Verify with `curl http://localhost:3111/agentmemory/health`. The real-time viewer is at http://localhost:3113. Keyless mode disables vectors: `memory_recall` uses BM25, and `memory_smart_search` can also use existing structural graph data. Set `EMBEDDING_PROVIDER=local` in `~/.agentmemory/.env` and restart to opt into on-device semantic recall.
+Install agentmemory: run `npx -y @agentmemory/agentmemory@latest` in a separate terminal to start the memory server. Then run `/plugin marketplace add rohitg00/agentmemory` and `/plugin install agentmemory` — the plugin registers all 12 hooks, 17 skills, AND auto-wires the `@agentmemory/mcp` stdio server via its `.mcp.json`, so you get 54 MCP tools (memory_smart_search, memory_save, memory_sessions, memory_governance_delete, etc.) without any extra config step. Verify with `curl http://localhost:3111/agentmemory/health`. The real-time viewer is at http://localhost:3113. Keyless mode disables vectors: `memory_recall` uses BM25, and `memory_smart_search` can also use existing structural graph data. Set `EMBEDDING_PROVIDER=local` in `~/.agentmemory/.env` and restart to opt into on-device semantic recall.
 ```
 
 #### Claude Code ohne Plugin-Installation (MCP-Standalone-Pfad)
@@ -706,6 +703,28 @@ copilot plugin install rohitg00/agentmemory:plugin
 
 `agentmemory connect copilot-cli` führt `mcpServers.agentmemory` in `~/.copilot/mcp-config.json` zusammen (oder `$COPILOT_HOME/mcp-config.json`, wenn `COPILOT_HOME` gesetzt ist) und bewahrt bestehende Server. Auf nativem Windows ist dies der einzige automatisierte `connect`-Adapter; konfigurieren Sie jeden anderen nativen Windows-Agenten manuell. `connect` unter WSL ist nur dann sinnvoll, wenn der Ziel-Agent auch in derselben WSL-Umgebung installiert ist. Copilot übernimmt den MCP-Server beim nächsten Start oder nach `/mcp`. Installieren Sie zusätzlich das Plugin, wenn Sie die volle Hook-/Skill-Erfahrung wollen.
 
+### Cursor
+
+```bash
+agentmemory connect cursor
+```
+
+Fügen Sie danach das native Plugin unter **Settings → Plugins → Add marketplace** aus einem AgentMemory-Checkout hinzu und laden Sie das Fenster neu. Das Plugin bietet Lifecycle-Erfassung, projektbezogene Zuordnung, Skills und MCP. Aktivieren Sie entweder Plugin-Hooks oder manuelle Hooks in `~/.cursor/hooks.json`, um doppelte Erfassung zu vermeiden. [Cursor-Leitfaden](../integrations/cursor/).
+
+### Pi, Oh My Pi, DeepSeek Harness
+
+```bash
+agentmemory connect pi --with-mcp
+agentmemory connect omp --with-mcp
+agentmemory connect dsh --with-hooks
+```
+
+Wählen Sie den Befehl für Ihren Host. Pi und OMP installieren native Suche, Erfassung, Offline-Wiederholung und 17 Skills; `--with-mcp` ergänzt den vollständigen Werkzeugsatz. Führen Sie in Pi `/reload` aus oder starten Sie OMP neu und prüfen Sie `/agentmemory-status`. DSH installiert MCP und das mitgelieferte Erfassungsplugin; starten Sie DSH danach neu.
+
+Pi unterstützt außerdem das installierbare Paket `@agentmemory/pi`. Lokale Installation und npm-Verfügbarkeit stehen im [Pi-Leitfaden](../integrations/pi/). Verwenden Sie pro Host nur eine Installationsmethode.
+
+[Pi](../integrations/pi/) · [Oh My Pi](../integrations/omp/) · [DSH](../docs/dsh.md)
+
 <details>
 <summary><b>OpenClaw (diesen Prompt einfügen)</b></summary>
 
@@ -752,6 +771,8 @@ Vollständiger Leitfaden: [`integrations/hermes/`](../integrations/hermes/)
 
 </details>
 
+<a id="other-agents"></a>
+
 ### Andere Agenten
 
 Starten Sie den Memory-Server: `npx -y @agentmemory/agentmemory@latest`
@@ -768,8 +789,8 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 
 Das ist **komplementär** zu `agentmemory connect <agent>`:
 
-- `agentmemory connect <agent>` schreibt die MCP-Server-Konfig, damit die Tools verfügbar sind.
-- `npx skills add rohitg00/agentmemory` installiert die Skills, damit der Agent weiß, wann er sie aufrufen soll.
+- `agentmemory connect <agent>` schreibt normalerweise die MCP-Konfiguration. Hermes, OpenClaw, Pi und Oh My Pi installieren standardmäßig ihre native Integration und die mitgelieferten Skills; MCP wird mit `--with-mcp` ergänzt.
+- `npx skills add rohitg00/agentmemory` installiert Skills für Agenten ohne mitgelieferte native Skills. Überspringen Sie diesen Schritt bei Hermes, OpenClaw, Pi und Oh My Pi; ihre Connectoren installieren die Skills bereits.
 
 Für die wenigen Agenten, die die skills-CLI noch nicht abdeckt (Zed v1.3.x und darunter), legen Sie die 17 SKILL.md-Dateien selbst unter dem nativen Skill-Verzeichnis des Agenten ab; dasselbe Format funktioniert überall.
 
@@ -793,7 +814,7 @@ Der agentmemory-Eintrag ist der **gleiche MCP-Server-Block** für jeden Host, de
 | Agent | Konfigurationsdatei | Hinweise |
 |---|---|---|
 | **Cursor (nur MCP)** | `~/.cursor/mcp.json` | In `mcpServers` einfügen, oder `agentmemory connect cursor`. Ein-Klick-Deeplink auch auf der Website. |
-| **Cursor (volles Plugin)** | `.cursor-plugin/` | Cursor-Marketplace-Eintrag (Einreichung in Prüfung) oder Cursor Settings → Plugins → lokaler Checkout. Registriert 7 Auto-Capture-Hooks (sessionStart, beforeSubmitPrompt, preToolUse, postToolUse, postToolUseFailure, stop, sessionEnd) + 17 Skills + den MCP-Server, wobei `AGENTMEMORY_URL` / `AGENTMEMORY_SECRET` im Cursor-Plugin-Dashboard verwaltet werden. Funktioniert in der Cursor-IDE und der `cursor-agent`-CLI; Print-Mode-Prompts der CLI werden am Session-Ende aus dem Session-Transkript nachgefüllt. |
+| **Cursor (volles Plugin)** | `.cursor-plugin/` | Fügen Sie danach das native Plugin unter **Settings → Plugins → Add marketplace** aus einem AgentMemory-Checkout hinzu und laden Sie das Fenster neu. Das Plugin bietet Lifecycle-Erfassung, projektbezogene Zuordnung, Skills und MCP. Aktivieren Sie entweder Plugin-Hooks oder manuelle Hooks in `~/.cursor/hooks.json`, um doppelte Erfassung zu vermeiden. [Cursor-Leitfaden](../integrations/cursor/). |
 | **Claude Desktop** | `claude_desktop_config.json` (Application Support) | In `mcpServers` einfügen. Claude Desktop nach dem Editieren neu starten. |
 | **Cline / Roo Code / Kilo Code** | Cline-MCP-Einstellungen (Settings UI → MCP Servers → Edit) | Gleicher `mcpServers`-Block. |
 | **Devin CLI (MCP + Hooks)** | `~/.config/devin/config.json` | `agentmemory connect devin` fügt den MCP-Eintrag ein; `--with-hooks` ergänzt sechs native Auto-Capture-Hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SessionEnd) mit Devins kleingeschriebenen Tool-Matchern. Prüfen mit `devin mcp list` und `/hooks` in devin. |
@@ -807,7 +828,7 @@ Der agentmemory-Eintrag ist der **gleiche MCP-Server-Block** für jeden Host, de
 | **Codex CLI (volles Plugin)** | Codex-Plugin-Marketplace | `codex plugin marketplace add rohitg00/agentmemory`, dann `codex plugin add agentmemory@agentmemory`. Registriert MCP + 6 Lifecycle-Hooks + 17 Skills. Vertrauen Sie den Hooks und verifizieren Sie die Erfassung in Ihrem Host; siehe [Codex-Setup und -Validierung](../docs/plugins/codex-local.md). |
 | **OpenCode (nur MCP)** | `opencode.json` | Anderes Format: `mcp`-Schlüssel auf oberster Ebene, Command als Array: `{"mcp": {"agentmemory": {"type": "local", "command": ["npx", "-y", "@agentmemory/mcp"], "enabled": true}}}`. |
 | **OpenCode (volles Plugin)** | `plugin/opencode/` | 22 Auto-Capture-Hooks für Session-Lifecycle, Messages, Tools, Fehler. Die Projekt-Zuordnung erfolgt pro Session, sodass ein OpenCode-Prozess, der mehrere Repositories umspannt, jede Session unter ihrem eigenen Projekt ablegt. Zwei Slash-Befehle (`/recall`, `/remember`). Kopieren Sie `plugin/opencode/` in Ihren OpenCode-Workspace und fügen Sie den Plugin-Eintrag zu `opencode.json` hinzu. Siehe [`plugin/opencode/README.md`](../plugin/opencode/README.md) für die vollständige Hook-Tabelle + Gap-Analyse. |
-| **pi** | `~/.pi/agent/extensions/agentmemory` | `agentmemory connect pi` installiert die mitgelieferte Extension in pis Auto-Discovery-Verzeichnis (Recall beim Agent-Start, Capture beim Agent-Ende, `memory_search` / `memory_save` / `memory_health` Tools, `/agentmemory-status`). `/reload` in einem laufenden pi übernimmt sie. [`integrations/pi`](../integrations/pi/) ist außerdem ein pi-Paket (`pi install ./integrations/pi` aus einem Checkout). |
+| **Pi / Oh My Pi** | `~/.pi/agent/` / `~/.omp/agent/` | native Suche + Erfassung + Skills. [Pi](../integrations/pi/) · [Oh My Pi](../integrations/omp/). |
 | **Hermes Agent** | `~/.hermes/config.yaml` | `cp -r integrations/hermes ~/.hermes/plugins/agentmemory` + `memory.provider: agentmemory` liefert den 6-Hook-Memory-Provider (Prefetch, Turn-Erfassung, Session-Ende, Vorkomprimierung, MEMORY.md-Spiegelung, System-Prompt-Block). Validieren Sie mit `hermes plugins doctor` und `hermes memory status`. Siehe [`integrations/hermes`](../integrations/hermes/). |
 | **Qwen Code** | `~/.qwen/settings.json` | `agentmemory connect qwen` schreibt den standardmäßigen `mcpServers`-Block. Die Hook-Payload ist feldkompatibel mit Claude Code, sodass die bestehenden 12 Hook-Skripte ohne Änderung funktionieren; verdrahten Sie sie über den Abschnitt `hooks` in derselben `settings.json`. |
 | **Antigravity IDE / 2.0** | `~/.gemini/config/mcp_config.json` | `agentmemory connect antigravity --with-hooks` installiert MCP und Capture-Hooks im gemeinsam genutzten Customization-Verzeichnis. Siehe [Antigravity-Setup und -Grenzen](../docs/plugins/antigravity.md). |
@@ -815,47 +836,19 @@ Der agentmemory-Eintrag ist der **gleiche MCP-Server-Block** für jeden Host, de
 | **Kiro** | `~/.kiro/settings/mcp.json` | `agentmemory connect kiro` schreibt die Konfig auf Benutzerebene. Workspace-Overrides liegen in `.kiro/settings/mcp.json` neben Ihrem Code. |
 | **Warp** | `~/.warp/.mcp.json` | `agentmemory connect warp` schreibt den standardmäßigen `mcpServers`-Block. Warp entdeckt außerdem Skills aus `.claude/skills/` automatisch; sobald das Claude-Code-Plugin installiert ist, erscheinen die 8 agentmemory-Skills (`remember`, `recall`, `recap`, `handoff`, `forget`, `commit-context`, `commit-history`, `session-history`) nativ in Warps Slash-Command-Palette. |
 | **Cline (CLI)** | `~/.cline/mcp.json` | `agentmemory connect cline` schreibt den standardmäßigen `mcpServers`-Block. Nutzer der VS-Code-Extension: Fügen Sie denselben Block über Cline Settings → MCP Servers → Edit JSON ein. |
-| **Continue.dev** | `~/.continue/config.yaml` (bevorzugt) oder `config.json` (Legacy) | `agentmemory connect continue` erstellt `config.yaml` von Grund auf, wenn keine der beiden existiert, oder modifiziert eine bestehende `config.json`. **Wenn Sie bereits eine `config.yaml` haben**, gibt der Adapter den exakten Block aus, den Sie unter `mcpServers:` einfügen; er schreibt Ihre yaml nicht stillschweigend um, weil das sichere Bewahren von Kommentaren und Ankern einen YAML-Parser braucht, den das Paket nicht mitliefert. Continue verwendet die Array-Form (kein Objekt) für `mcpServers`. |
+| **Continue.dev** | `~/.continue/config.yaml` (bevorzugt) oder `config.json` (Legacy) | `agentmemory connect continue` erstellt eine fehlende `config.yaml` oder aktualisiert eine vorhandene `config.json`. Bei bestehender YAML-Datei zeigt der Adapter den Block für `mcpServers:` zum Einfügen an; Kommentare und Anker bleiben erhalten. Continue verwendet dort ein Array, kein Objekt. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` schreibt unter `context_servers` (Zeds Schlüssel, NICHT `mcpServers`). Remote-MCP-Server können stattdessen via `{"url": "..."}` verdrahtet werden. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` schreibt den standardmäßigen `mcpServers`-Block. Projektbezogene Overrides liegen in `<repo>/.factory/mcp.json`. Übergeben Sie `--with-hooks` für native Auto-Erfassung. |
 | **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` aktiviert MCP-Werkzeuge. Mit `--with-hooks` wird das in AgentMemory enthaltene native Erfassungsplugin geladen. Kein separates Pluginpaket erforderlich. [DSH](../docs/dsh.md). |
 | **Goose** | Goose-MCP-Einstellungen-UI | Gleicher `mcpServers`-Block; nutzen Sie `goose configure` → Add Extension → MCP. Direktes YAML-Editieren unter `~/.config/goose/config.yaml` wird unterstützt, aber das Schema verwendet `extensions:` + `cmd` (nicht `mcpServers:` + `command`). |
-| **Aider** | n/v | Sprechen Sie direkt mit der REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
+| **Aider** | n/v | Nutzen Sie die [authentifizierten REST-Beispiele](#validate-a-fresh-install-and-restart-persistence), um Erinnerungen aus Skripten zu speichern und zu suchen. |
 | **Jeder Agent (32+)** | n/v | `npx skillkit install agentmemory` erkennt den Host automatisch und merged. |
 
 **MCP-Clients in Sandboxen** (Flatpak / Snap / restriktive Container), die den `localhost` des Hosts nicht erreichen können: Setzen Sie zusätzlich `"AGENTMEMORY_FORCE_PROXY": "1"` im `env`-Block und lassen Sie `AGENTMEMORY_URL` auf eine Route zeigen, die die Sandbox tatsächlich erreichen kann (z. B. Ihre LAN-IP).
 
 ### Programmatischer Zugriff (Python / Rust / Node)
 
-agentmemory registriert seine Kernoperationen als iii-Funktionen (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Jede Sprache mit einem iii-SDK kann sie direkt über `ws://localhost:49134` aufrufen, ohne separaten REST-Client pro Sprache.
-
-```bash
-pip install iii-sdk==0.25.0 # Python
-cargo add iii-sdk@=0.25.0   # Rust
-npm install --save-exact iii-sdk@0.25.0 # Node
-```
-
-```python
-import os
-from iii import InitOptions, register_worker
-
-# Native CLI: namespace is agentmemory-<REST port>, e.g. agentmemory-3111.
-# Docker runtime: deploy/runtime/worker-compose.yaml uses namespace "agentmemory".
-engine_url = os.environ.get("AGENTMEMORY_III_URL", "ws://127.0.0.1:49134")
-namespace = os.environ.get("AGENTMEMORY_III_NAMESPACE", "agentmemory-3111")
-iii = register_worker(engine_url, InitOptions(namespace=namespace))
-
-try:
-    hits = iii.trigger({
-        "function_id": "mem::smart-search",
-        "payload": {"project": "demo", "query": "how do tokens refresh", "limit": 5},
-    })
-    print(hits)
-finally:
-    iii.shutdown()
-```
-
-Durchgearbeitetes Beispiel: [`examples/python/`](../examples/python/) (Quickstart + Beobachtungs-/Recall-Fluss). REST auf `:3111` bleibt verfügbar für Hosts ohne iii-Runtime.
+Verwenden Sie die [REST-API](#api) aus jeder Programmiersprache oder die [MCP-Tools](#mcp-server) aus einem Agenten. REST-Anfragen nutzen JSON und Bearer-Authentifizierung; siehe das [Speicher- und Suchbeispiel](#validate-a-fresh-install-and-restart-persistence). Direkte Laufzeitintegration zeigen die [Python-Beispiele](../examples/python/).
 
 ### Aus den Quellen
 
@@ -864,7 +857,7 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` startet dieselbe iii-Worker-Compose-Runtime wie die CLI: iii 0.25.0 mit den Registry-Workern `state@0.22.20` und `http@0.22.7`. Unter macOS/Linux lädt die CLI das gepinnte Engine-Binary nach `~/.agentmemory/bin`; für die automatische Installation sind `curl`, eine POSIX-`sh` und `tar` erforderlich. Die lokalen REST- und Viewer-Listener binden an `127.0.0.1`. Viewer-Updates laufen per SSE über `GET /agentmemory/viewer/events` am REST-Port. `/agentmemory/status` meldet die gepinnte Engine-Version als `enginePinnedVersion`; die unterstützte Standardversion ist iii 0.25.0. Mit `AGENTMEMORY_III_VERSION` kann die Pin-Version gezielt überschrieben werden.
+`npm start` startet denselben lokalen Server wie die installierte CLI. Voraussetzungen stehen unter [Install](#install); API und Viewer binden an `127.0.0.1`.
 
 ### Windows
 
@@ -880,13 +873,13 @@ npx -y @agentmemory/agentmemory@latest mcp
 npx -y @agentmemory/mcp
 ```
 
-**Diagnose:** Wenn der Start fehlschlägt, führen Sie den Befehl erneut mit `--verbose` aus, um die Engine-Fehlerausgabe zu sehen. Prüfen Sie, ob REST-Port `3111`, Viewer-Port `3113` und Engine-Port `49134` frei sind; verwenden Sie `--port <N>` oder `--instance <N>` für eine weitere isolierte Runtime. Die CLI verwendet ihr eigenes gepinntes Engine-Binary und ersetzt keine iii-Executable auf dem `PATH`.
+Führen Sie `agentmemory doctor` aus oder starten Sie mit `--verbose` neu. Verwenden Sie bei belegten Ports `--port <N>` oder `--instance <N>`. Kompatibilität und Wiederherstellung stehen im [Upgrade-Leitfaden](../docs/upgrades/iii-0.25.md).
 
 ---
 
 <h2 id="deploy">Deploy</h2>
 
-Docker wird für Self-Hosting aus diesem Repository unterstützt, nicht als CLI-Startmodus. Ein-Klick-Vorlagen verwenden [`deploy/Dockerfile`](../deploy/Dockerfile) und [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml), pinnen dieselbe iii-0.25.0-Runtime mit ihren Workern und speichern State, Traces und das generierte Secret auf einem persistenten `/data`-Volume. Docker Compose verwendet standardmäßig das vorhandene benannte Volume `iii-data`; setzen Sie `AGENTMEMORY_DATA_DIR` auf einen Host-Pfad, um stattdessen einen Bind-Mount zu verwenden. Der vorhandene dateibasierte Store aus 0.22.1 wird direkt unter `/data/state_store.db` gelesen, ohne Migration oder Konvertierung. (Ausdrücklicher Hinweis zur direkten Verwendung des 0.22.1-Datenformats.) REST-CORS erlaubt standardmäßig die lokalen REST- und Viewer-Origins. Setzen Sie `REST_ALLOWED_ORIGINS` auf eine kommaseparierte Liste exakter Origins, wenn ein vertrauenswürdiger Browser-Origin Zugriff benötigt. Setup und Sicherheitshinweise finden Sie in [`deploy/README.md`](../deploy/README.md).
+Nutzen Sie Docker Compose oder die Plattformvorlagen zum Self-Hosting. Erinnerungen und Zugangsdaten liegen auf dem `/data`-Volume. Sichern Sie dieses Volume und verwenden Sie es bei Upgrades weiter. Der [Deployment-Leitfaden](../deploy/README.md) beschreibt Authentifizierung, Netzwerkzugriff, Backups und Migration.
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Deploy to fly.io" /></a>
@@ -908,34 +901,26 @@ Kostenuntergrenzen) finden Sie in [`deploy/`](.././deploy/README.md):
   eigenen VPS via [Coolify](https://coolify.io/self-hosted); derselbe
   Docker-Compose-Stack, Sie besitzen Host und Daten.
 
-REST läuft auf `3111`; der Viewer läuft auf `3113` und wird nur veröffentlicht, wenn die Plattformvorlage eine separate geschützte Route unterstützt. Live-Updates nutzen bearer-authentifiziertes SSE am REST-Endpunkt `/agentmemory/viewer/events`. Der Engine-WebSocket auf `49134` ist intern und darf nicht veröffentlicht werden. Hinweise zur plattformspezifischen Freigabe und zu Allowlists finden Sie in [`deploy/README.md`](../deploy/README.md).
+REST nutzt Port `3111`, der Viewer `3113`. Halten Sie beide privat oder schützen Sie sie mit Authentifizierung und TLS. Details zur Freigabe und zur [Migration älterer Docker-Installationen](../deploy/README.md#migrating-from-the-legacy-cli-docker-mode) stehen im Deployment-Leitfaden.
 
-
-### Migration älterer, vom CLI verwalteter Docker-Installationen
-
-Das aktuelle CLI startet oder verwaltet keine Docker-Deployments. Wenn es einen alten Docker-Lifecycle-Eintrag findet, bleiben die Metadaten erhalten und der genaue Befehl `docker stop ...` wird ausgegeben; führen Sie diesen Befehl vor der Migration aus. Starten Sie die neue Laufzeit nicht, solange das alte Container-Volume noch eingebunden ist.
-
-Behalten Sie das alte persistente Volume (normalerweise `iii-data`) und sichern Sie es, oder kopieren Sie den Inhalt von `/data` in ein Bind-Mount. Der State-Worker liest die vorhandene Datei `/data/state_store.db` direkt, ohne Export oder Konvertierung. Die alte Laufzeit verwendete UID/GID `65532:65532`; das neue Image migriert die Eigentümerschaft einmalig rekursiv zu `node:node` (`1000:1000`) und schreibt `/data/.ownership-migrated-node-v1`. Binden Sie das Volume nach dieser Migration nicht wieder in die alte Laufzeit ein.
-
-Die alte Laufzeit speicherte auch das generierte Bearer-Secret in `/data/.hmac`. Das neue Image erhält dieses Secret während der Migration; ein explizit gesetztes `AGENTMEMORY_SECRET` hat Vorrang. Starten Sie das neue Compose-Projekt im Stammverzeichnis des Repositorys mit `docker compose up --build -d`. Wenn das alte Volume statt `iii-data` einen Projektnamen als Präfix hat, verwenden Sie es ausdrücklich wieder oder benennen Sie es um — initialisieren Sie nicht versehentlich ein leeres Volume. Prüfen Sie `/agentmemory/livez` und bestätigen Sie, dass sowohl alte als auch neue Memories gefunden werden können. Vermeiden Sie `docker compose down -v`, es sei denn, die Daten sollen absichtlich gelöscht werden.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Warum agentmemory" height="32" /></picture></h2>
 
-Jeder Coding-Agent vergisst alles, wenn die Session endet, und jede neue Session beginnt damit, dass Sie Ihren Stack erneut erklären. agentmemory läuft im Hintergrund und schafft diesen Schritt ab.
+Projektwissen verteilt sich auf Chats und Anweisungsdateien. AgentMemory macht frühere Entscheidungen, Lösungen und Erfahrungen im aktuell verwendeten Agenten durchsuchbar.
 
 ```text
 Session 1: "Add auth to the API"
   Agent writes code, runs tests, fixes bugs
-  agentmemory silently captures every tool use
-  Session ends -> observations compressed into structured memory
+  Connected hooks capture supported tool events
+  Observations become searchable project history
 
 Session 2: "Now add rate limiting"
-  Agent already knows:
+  Agent recalls:
     - Auth uses JWT middleware in src/middleware/auth.ts
     - Tests in test/auth.test.ts cover token validation
     - You chose jose over jsonwebtoken for Edge compatibility
-  Zero re-explaining. Starts working immediately.
+  Continues with the earlier decisions in context.
 ```
 
 ### vs. eingebautes Agent-Memory
@@ -944,7 +929,7 @@ Jeder KI-Coding-Agent kommt mit eingebautem Memory: Claude Code hat `MEMORY.md`,
 
 | | Eingebaut (CLAUDE.md) | agentmemory |
 |---|---|---|
-| Skalierung | 200-Zeilen-Limit | Unbegrenzt |
+| Pflege | Manuell gepflegte Anweisungen | Indizierte Session-Historie und Erinnerungen |
 | Suche | Lädt alles in den Kontext | BM25 + Vector + Graph (nur Top-K) |
 | Token-Kosten | 22K+ bei 240 Beobachtungen | ~1,900 Tokens (92 % weniger) |
 | Agentenübergreifend | Dateien pro Agent | MCP + REST (jeder Agent) |
@@ -970,13 +955,13 @@ PostToolUse hook fires
 Stop / SessionEnd hook fires
   -> Summarize session
   -> Knowledge graph extraction (if GRAPH_EXTRACTION_ENABLED=true)
-  -> Slot reflection (if SLOT_REFLECT_ENABLED=true)
+  -> Slot reflection (if AGENTMEMORY_SLOTS=true and AGENTMEMORY_REFLECT=true)
 
 SessionStart hook fires
   -> Load project profile (top concepts, files, patterns)
   -> Hybrid search (BM25 + vector + graph)
   -> Token budget (default: 2000 tokens)
-  -> Inject into conversation
+  -> Inject context when enabled by the integration
 ```
 
 ### 4-stufige Memory-Konsolidierung
@@ -994,6 +979,8 @@ Erinnerungen klingen mit der Zeit ab (Ebbinghaus-Kurve). Häufig abgerufene Erin
 
 ### Was erfasst wird
 
+Diese Tabelle beschreibt die Claude-Code-Hooks. Andere Integrationen erfassen die Ereignisse, die ihr Host bereitstellt; siehe die jeweiligen Anleitungen. Automatische Kontextinjektion über gemeinsame Hooks ist mit `AGENTMEMORY_INJECT_CONTEXT=true` optional aktivierbar.
+
 | Hook | Erfasst |
 |------|----------|
 | `SessionStart` | Projektpfad, Session-ID |
@@ -1010,7 +997,7 @@ Erinnerungen klingen mit der Zeit ab (Ebbinghaus-Kurve). Häufig abgerufene Erin
 
 | Fähigkeit | Beschreibung |
 |---|---|
-| **Automatische Erfassung** | Jede Tool-Nutzung via Hooks aufgezeichnet, kein manueller Aufwand |
+| **Automatische Erfassung** | Unterstützte Session- und Tool-Ereignisse werden durch native Integrationen erfasst |
 | **Semantische Suche** | BM25 + Vector + Knowledge Graph mit RRF-Fusion |
 | **Memory-Evolution** | Versionierung, Supersession, Beziehungsgraphen |
 | **Recall-Hygiene** | Überholte Memory-Versionen verlassen die Suchindizes; die Versionskette im KV behält die volle Historie |
@@ -1228,128 +1215,6 @@ Der Viewer-Server bindet sich standardmäßig an `127.0.0.1` und hängt bei der 
 
 ---
 
-<h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
-
-iii 0.25 enthält die bisherige Engine-Konsole nicht mehr. `agentmemory console` zeigt Hinweise zur Migration. Der AgentMemory-Viewer bleibt auf Port 3113 verfügbar; `agentmemory status` zeigt den Laufzeitstatus.
-
-[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
-
----
-
-<h2 id="powered-by-iii"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-architecture.svg"><img src="../assets/tags/section-architecture.svg" alt="Powered by iii" height="32" /></picture></h2>
-
-agentmemory ist ein Worker auf der [iii](https://iii.dev)-Runtime. Worker Compose verwaltet die Engine und startet agentmemory zusammen mit den Registry-Workern `state` und `http`. Der Viewer-Feed wird als SSE über den REST-Endpunkt bereitgestellt.
-
-Das bedeutet, ein weiterer Befehl erweitert agentmemory um eine komplett neue Fähigkeit.
-
-### agentmemory mit weiteren Workern erweitern
-
-Die Runtime kombiniert die Registry-Worker `state` (KV) und `http` mit agentmemory. Weitere Worker aus der [iii-Registry](https://workers.iii.dev) können einem Worker-Compose-Projekt hinzugefügt werden.
-
-```yaml
-containers:
-  state:
-    worker: package://api.workers.iii.dev/state
-    version: "0.22.20"
-  http:
-    worker: package://api.workers.iii.dev/http
-    version: "0.22.7"
-```
-
-| Worker | Was Sie zusätzlich zu agentmemory erhalten |
-|---|---|
-| [`database`](https://workers.iii.dev/workers/database) | SQL-gestützter State-Adapter, wenn die In-Memory-KV-Voreinstellungen nicht mehr ausreichen |
-| [`iii-sandbox`](https://workers.iii.dev/workers/iii-sandbox) | Code aus `memory_recall` läuft in einer Wegwerf-VM statt in Ihrer Shell |
-| [`mcp`](https://workers.iii.dev/workers/mcp) | Zusätzliche MCP-Server neben agentmemory bereitstellen und dieselbe Engine nutzen |
-
-Die Runtime pinnt die Registry-Pakete `state@0.22.20` und `http@0.22.7` im von der CLI erzeugten Worker-Compose-Projekt.
-
-Vollständige Registry: [workers.iii.dev](https://workers.iii.dev). Jeder Worker dort wird über dieselben Primitiven wie agentmemory komponiert, und das agentmemory, das Sie bereits verwenden, ist selbst einer davon.
-
-### CLI-Runtime und Bind-Adressen
-
-Wenn Sie `agentmemory` (oder das Paket ohne Unterbefehl) ausführen, startet iii Worker Compose mit einem isolierten Manifest im ausgewählten Datenverzeichnis. Verwendet werden iii 0.25.0, `state@0.22.20` und `http@0.22.7`. Die lokalen REST- und Viewer-Listener der CLI binden an `127.0.0.1`; der Engine-WebSocket dient dem internen Runtime-Verkehr. Docker-Deployments aus dem Repository verwenden die separate Datei [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); siehe [`deploy/README.md`](../deploy/README.md).
-
-### Storage-Backend: file (Standard) vs. Redis
-
-Der `state`-Worker verwendet standardmäßig einen dateibasierten KV-Store, der im Arbeitsspeicher gehalten und regelmäßig auf die Festplatte geschrieben wird. Redis ist für gemeinsam genutzte Runtimes mit mehreren Schreibern verfügbar; es verursacht einen Netzwerk-Roundtrip und macht eine einzelne Worker-Verbindung nicht parallel.
-
-Setzen Sie `AGENTMEMORY_STATE_BACKEND=redis` und `AGENTMEMORY_REDIS_URL`, um den Redis-Adapter des State-Workers zu verwenden. Er speichert jeden Schlüssel als Redis-Hash-Feld (`HSET`):
-
-```env
-# ~/.agentmemory/.env
-AGENTMEMORY_STATE_BACKEND=redis
-AGENTMEMORY_REDIS_URL=redis://localhost:6379
-```
-
-`AGENTMEMORY_STATE_BACKEND` ist standardmäßig `file`; ohne diese Variable bleibt das bisherige Verhalten erhalten. Ein unbekannter Wert (alles außer `file` oder `redis`) führt beim Start zu einem Fehler statt zu einem stillen Fallback. `/agentmemory/status` und die Health-Seite des Viewers (Zeile „State store“) melden das aktive Backend und ob es antwortet, niemals jedoch die URL.
-
-**Nur einfaches `redis://`.** Der gepinnte State-Worker unterstützt nur `redis://`; für TLS-only-Dienste mit `rediss://` ist ein verschlüsselter Tunnel erforderlich. Die Redis-Verbindung ist unverschlüsselt. Verwenden Sie daher ein lokales oder privates Netzwerk beziehungsweise einen Tunnel. Enthält ein Redis-Passwort ein einfaches Anführungszeichen, kodieren Sie es als `%27`; die Engine expandiert die URL vor dem Parsen in ihrer YAML-Konfiguration.
-
-**Eine Redis-Datenbank pro Instanz.** Geben Sie jeder gleichzeitig laufenden Instanz eine eigene Datenbank oder einen eigenen Redis-Server, damit der State getrennt bleibt.
-
-**Was gleich bleibt und was sich unterscheidet.** Alle agentmemory-Funktionen arbeiten mit Redis: Sessions, Beobachtungen, Memories (remember, supersede, evolve, forget), Suche und Index-Buckets, Lessons, Graph, Audit-Log samt Monats-Scopes, Export und Import, Governance-Löschungen, Konsolidierungsstatus, Viewer-Snapshot samt Live-SSE-Feed und Health-Monitor. Der State-Worker speichert jeden Scope als Redis-Hash (`HSET`/`HGET`/`HGETALL`) und löst dieselben State-Trigger wie beim File-Store aus. Drei Speicherunterschiede behandelt agentmemory intern:
-
-- Redis gibt die Datensätze eines Scopes in keiner festen Reihenfolge zurück. agentmemory sortiert sie aufsteigend nach Alter (zuerst nach Erstellungszeit in der Datensatz-ID, dann nach Zeitstempel), damit Listen, Paging und Export-Chunks dieselbe Reihenfolge wie im File-Store haben.
-- Die Engine wendet partielle Redis-Updates in einem Lua-Skript an, das leere Arrays in leere Objekte umwandelt. agentmemory führt diese Updates selbst aus (lesen, ändern und unter einem Per-Key-Lock schreiben), damit Felder wie `tags: []` Arrays bleiben.
-- Die Prüfung des Legacy-Audit-Logs liest den alten Scope aus Redis, statt auf der Festplatte nach der Datei des File-Stores zu suchen.
-
-Viewer-Liveereignisse laufen per SSE über den REST-Worker und werden vom laufenden agentmemory-Prozess gesendet; sie verwenden weder Redis Pub/Sub noch periodische Prüfungen eines Redis-Streams. Die Verfügbarkeit von Redis wirkt sich auf State-Lese- und Schreibvorgänge aus, nicht auf den Viewer-Transport. Ist Redis nicht erreichbar, meldet der Statusbericht „Der State Store antwortet nicht“ und zeigt die Prüfung (`redis-cli -u "$AGENTMEMORY_REDIS_URL" ping`). Das Auflisten eines sehr großen Scopes liest den gesamten Hash mit einem `HGETALL`, vergleichbar mit dem Aufwand des File-Stores, ihn im Arbeitsspeicher zu halten.
-
-**Empfohlene Redis-Einstellungen.** Die Standard-Snapshot-Richtlinie `save 3600 1 300 100 60 10000` kann bei einem Absturz mehrere Minuten an Writes verlieren. Setzen Sie `appendonly yes`, wenn verlorene Daten problematisch wären. Setzen Sie `maxmemory-policy noeviction`; `allkeys-lru` oder Ähnliches verwirft Memories stillschweigend, sobald Redis sein Speicherlimit erreicht.
-
-Das von der CLI erzeugte Worker-Compose-Projekt übergibt diese Variablen an den State-Worker. Für Docker-Self-Hosting siehe [`deploy/README.md`](../deploy/README.md) und die [Dokumentation des State-Workers](https://workers.iii.dev/workers/state).
-
-Behandeln Sie persistierte Worker-Konfigurationen als vertraulich, wenn sie eine Redis-URL mit Zugangsdaten enthalten. Schützen Sie das ausgewählte Datenverzeichnis (zum Beispiel mit `chmod 700 <data-dir>` auf einem gemeinsam genutzten Host). Verwenden Sie nach Möglichkeit einen Redis-ACL-Benutzer mit den nötigen Berechtigungen statt der Admin-Zugangsdaten der Datenbank.
-
-**Migration erfolgt nicht automatisch.** Beim Wechsel von `AGENTMEMORY_STATE_BACKEND` startet der Store auf beiden Seiten leer; vorhandene Daten werden weder von File nach Redis noch zurück kopiert. Exportieren Sie die Daten aus dem bisherigen Backend und importieren Sie sie in das neue. Das funktioniert unter bash und zsh gleich (auch mit `bash -u`). Ein Array wie `AUTH=(${AGENTMEMORY_SECRET:+-H "Authorization: Bearer $AGENTMEMORY_SECRET"})` funktioniert dagegen nicht: zsh behält den Header als ein fehlerhaftes Wort, während bash ihn in zwei Wörter aufteilt; sobald `AGENTMEMORY_SECRET` gesetzt ist, liefern daher beide Requests 401:
-
-```bash
-# Set AGENTMEMORY_SECRET to the content of the `secret` file in the server's selected data directory before running these curl commands.
-
-# 1. On the old backend, while agentmemory is still running on it:
-if [ -n "${AGENTMEMORY_SECRET:-}" ]; then
-  curl -fsS -H "Authorization: Bearer $AGENTMEMORY_SECRET" http://localhost:3111/agentmemory/export > backup.json
-else
-  curl -fsS http://localhost:3111/agentmemory/export > backup.json
-fi
-
-# 2. Confirm backup.json is a usable export before switching backends:
-jq -e '.version and .exportedAt' backup.json > /dev/null || {
-  echo "backup.json is not a valid export; do not switch backends" >&2
-  exit 1
-}
-
-# 3. Switch AGENTMEMORY_STATE_BACKEND (and AGENTMEMORY_REDIS_URL if needed),
-#    restart agentmemory against the new backend, then:
-if [ -n "${AGENTMEMORY_SECRET:-}" ]; then
-  jq -n --slurpfile d backup.json '{exportData: $d[0], strategy: "merge"}' | \
-    curl -fsS -H "Authorization: Bearer $AGENTMEMORY_SECRET" -X POST http://localhost:3111/agentmemory/import \
-      -H 'Content-Type: application/json' -d @-
-else
-  jq -n --slurpfile d backup.json '{exportData: $d[0], strategy: "merge"}' | \
-    curl -fsS -X POST http://localhost:3111/agentmemory/import \
-      -H 'Content-Type: application/json' -d @-
-fi
-```
-
-`/agentmemory/export` akzeptiert außerdem `?maxSessions=` und `?offset=`, um große Korpora über mehrere Aufrufe aufzuteilen; `strategy` beim Import ist `merge` (sichere Voreinstellung), `replace` oder `skip`.
-
-### Was iii ersetzt
-
-| Traditioneller Stack | agentmemory verwendet |
-|---|---|
-| Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
-| SSE / Socket.io | SSE über den REST-Endpunkt |
-| pm2 / systemd | iii-Engine-Worker-Supervision |
-| Prometheus / Grafana | iii OTEL + Health-Monitor |
-| Eigene Plugin-Systeme | Worker Compose (`worker-compose.yaml`) |
-
-**253 Quelldateien · ~58,000 LOC · 4,000+ Tests · 322 Funktionen · 65 KV-Scopes**, alles auf drei Primitiven. Kein `agentmemory plugin install`. Das Plugin-System ist iii selbst.
-
----
-
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Konfiguration" height="32" /></picture></h2>
 
 ### LLM-Provider
@@ -1366,6 +1231,8 @@ agentmemory erkennt Provider automatisch aus Ihrer Umgebung. Ein Provider macht 
 | OpenAI API | `OPENAI_API_KEY` | Standard `gpt-5.6-luna`, Override per `OPENAI_MODEL` |
 | **Lokal (Ollama / LM Studio / vLLM / llama.cpp)** | `OPENAI_API_KEY=local` + `OPENAI_BASE_URL=http://localhost:11434/v1` (Ollama) oder `http://localhost:1234/v1` (LM Studio) + `OPENAI_MODEL=<your model>` | Alles, was OpenAI-API-kompatibel ist. Null Kosten, läuft auf Ihrer Hardware. Siehe [Lokale Modelle](#local-models-ollama--lm-studio--vllm) unten. |
 | Claude-Abonnement-Fallback | `AGENTMEMORY_ALLOW_AGENT_SDK=true` | Nur als Opt-in. Startet `@anthropic-ai/claude-agent-sdk`-Sessions; verursachte früher unbegrenzte Stop-Hook-Rekursion, daher nicht mehr Standard. |
+
+<a id="local-models-ollama--lm-studio--vllm"></a>
 
 ### Lokale Modelle (Ollama / LM Studio / vLLM)
 
@@ -1416,24 +1283,7 @@ Lokale Embeddings werden als optionale Abhängigkeit ausgeliefert, sind aber sta
 
 ### Kostenbewusste Modellwahl
 
-Wenn LLM-geschriebene Hintergrund-Kompression sowohl mit einem Provider als auch mit `AGENTMEMORY_AUTO_COMPRESS=true` aktiviert ist, läuft sie bei jeder Beobachtung, daher beeinflusst die Modellwahl die monatlichen Kosten spürbar. Erfasste Lastdaten: 635 Requests / 888K Tokens / 35 Stunden aktive Nutzung, gegen drei OpenRouter-Modelle zu den Preisen vom 2026-05-23.
-
-| Stufe | Modell | Eingabe / 1M | Ausgabe / 1M | Kosten für die erfassten 35 h | Hinweise |
-|------|-------|------------|-------------|---------------------------|-------|
-| Empfohlen | `deepseek/deepseek-v4-flash-0731` | $0.07 | $0.14 | ~$0.07 (est.) | Neuestes DeepSeek; günstigste empfohlene Wahl für Kompressions-Workloads. |
-| Empfohlen | `deepseek/deepseek-v4-pro` | $0.435 | $0.87 | ~$0.46 | Solide Kompressions-/Summarize-Qualität zu ~10× geringeren Kosten als Sonnet. |
-| Empfohlen | `qwen/qwen3-coder` | $0.45 | $1.80 | ~$0.55 | Starkes Code-Reasoning, wenn Ihre Sessions stark codelastig sind. |
-| Premium | `anthropic/claude-sonnet-5` | $3.00 | $15.00 | ~$5.02 (est.) | Gleicher Listenpreis wie der gemessene Sonnet-4.6-Lauf; Einführungspreis $2/$10 bis 2026-08-31. |
-| Premium | `openai/gpt-5.6-sol` | $5.00 | $30.00 | ~$9 (est.) | Flaggschiff-Stufe; teuer für dauerhafte Hintergrundarbeit. |
-| Vermeiden | `anthropic/claude-opus-5` | $5.00 | $25.00 | ~$8.40 (est.) | Modell der Flaggschiff-Klasse; Überausgabe für Kompression. |
-
-Gemessene Zeilen stammen aus dem erfassten Lauf; (est.)-Zeilen skalieren denselben Token-Mix mit dem Listenpreis des jeweiligen Modells.
-
-agentmemory gibt eine Runtime-Warnung aus, wenn `OPENROUTER_MODEL` auf ein Premium-Tier-Muster passt. Setzen Sie `AGENTMEMORY_SUPPRESS_COST_WARNING=1`, um sie zum Schweigen zu bringen, sobald Sie eine bewusste Wahl getroffen haben.
-
-Qualitäts-Kosten-Abwägung für Memory-Arbeit: Kompression ist eine Summarize-Aufgabe mit eher lockerer Qualitätsanforderung (der Agent liest die Zusammenfassung erneut, nicht der Benutzer). DeepSeek V4 Flash / V4 Pro / Qwen3-Coder landen bei dieser Aufgabe innerhalb von Rundungsfehlern an Sonnet, bei 10-70× weniger Kosten. Heben Sie Premium-Modelle für Anfragen auf, die Sie direkt lesen.
-
-Quellen: [OpenRouter-Preise für Claude Sonnet 5](https://openrouter.ai/anthropic/claude-sonnet-5), [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash-0731), [DeepSeek-Preis-Hinweise](https://api-docs.deepseek.com/quick_start/pricing/).
+Starten Sie schlüssellos mit Erfassung und Stichwortsuche. `EMBEDDING_PROVIDER=local` aktiviert nach dem ersten Modelldownload die lokale semantische Suche. LLM-Kompression benötigt einen Provider und `AGENTMEMORY_AUTO_COMPRESS=true`; dabei kann für jede erfasste Beobachtung eine Anfrage anfallen. Prüfen Sie vorher die aktuellen Preise Ihres Providers. Viewer und `agentmemory status` zeigen die aktiven Provider.
 
 ### Multi-Agent-Memory (`AGENT_ID` + `AGENTMEMORY_AGENT_SCOPE`)
 
@@ -1463,23 +1313,22 @@ Wenn `AGENT_ID` nicht gesetzt ist, bleibt Memory unscoped (Legacy-Verhalten, kei
 
 ### Ports
 
-Die lokale Runtime verwendet drei Listener. Der WebSocket der iii-Engine dient der internen Worker-Registrierung und darf nicht im öffentlichen Netzwerk erreichbar sein.
+| Port | Zweck | Konfiguration |
+|---|---|---|
+| `3111` | REST API, MCP HTTP, SSE | `III_REST_PORT` |
+| `3113` | Viewer UI | `III_VIEWER_PORT` |
 
-| Port | Prozess | Zweck | Env-Override |
-|------|---------|---------|--------------|
-| `3111` | Registry-Worker `http` | REST API, MCP HTTP, Health und authentifizierte Viewer-SSE unter `/agentmemory/viewer/events` | `III_REST_PORT` |
-| `3113` | agentmemory | Viewer-Oberfläche und Viewer-Proxy | `III_VIEWER_PORT` |
-| `49134` | iii-Engine | Interner Worker-WebSocket | `III_ENGINE_PORT` oder `III_ENGINE_URL` |
+`--port <N>` setzt den API-Port und standardmäßig den Viewer auf `N+2`. `--instance N` startet eine separate Laufzeit. Interne Listener müssen privat bleiben; lesen Sie vor einer entfernten Freigabe den [Deployment-Leitfaden](../deploy/README.md).
 
-`--port <N>` setzt den REST-Port und leitet daraus den Viewer-Port `N+2` sowie den Engine-WebSocket `N+46023` ab, sofern diese nicht explizit gesetzt sind. Verwenden Sie `--instance N` für eine isolierte Runtime.
+### Storage-Backend: file (Standard) vs. Redis
 
-Das Self-Hosting veröffentlicht REST und Viewer standardmäßig auf `127.0.0.1:3111` und `127.0.0.1:3113`; die Host-Ports lassen sich mit `AGENTMEMORY_REST_PORT` und `AGENTMEMORY_VIEWER_PORT` ändern. REST-CORS erlaubt standardmäßig `http://localhost` und `http://127.0.0.1` auf den konfigurierten REST- und Viewer-Ports. Setzen Sie bei Docker `REST_ALLOWED_ORIGINS` auf eine kommaseparierte Liste exakter Origins, um weitere vertrauenswürdige Browser-Origins zuzulassen.
+Der standardmäßige Dateispeicher benötigt keinen separaten Datenbankdienst. Redis ist mit `AGENTMEMORY_STATE_BACKEND=redis` und `AGENTMEMORY_REDIS_URL` optional. Ein Backend-Wechsel kopiert keine Erinnerungen. Der [Speicher- und Backup-Leitfaden](../docs/reliability/state-storage.md) beschreibt Persistenz, Redis-Grenzen und authentifizierten Export/Import.
 
 ### Konfigurationsdatei
 
 Legen Sie die agentmemory-Runtime-Konfiguration in `~/.agentmemory/.env` ab, statt Variablen in jeder Shell zu exportieren. Wenn der Viewer einen Setup-Hinweis wie `export ANTHROPIC_API_KEY=...` zeigt, kopieren Sie ihn ohne das Präfix `export` als `ANTHROPIC_API_KEY=...` in diese Datei und starten Sie agentmemory neu. Setzen Sie `AGENTMEMORY_ENV_FILE`, um einen anderen Pfad für die Env-Datei zu verwenden.
 
-Prozess-Umgebungsvariablen funktionieren weiterhin und haben Vorrang vor den Werten in der Datei. Das von der CLI erzeugte Worker-Compose-Projekt übergibt Redis-Einstellungen aus `AGENTMEMORY_STATE_BACKEND` und `AGENTMEMORY_REDIS_URL` an den `state`-Worker.
+Prozess-Umgebungsvariablen haben Vorrang vor Werten in der Datei. Starten Sie den Server nach Änderungen neu.
 
 Unter Windows liegt dieselbe Datei unter `%USERPROFILE%\.agentmemory\.env`:
 
@@ -1506,166 +1355,21 @@ GRAPH_EXTRACTION_ENABLED=true
 
 ### Umgebungsvariablen
 
-`~/.agentmemory/.env` anlegen:
+Häufig verwendete Optionen für `~/.agentmemory/.env`:
 
 ```env
-# LLM provider (pick one — default is the no-op provider: no LLM calls)
-# ANTHROPIC_API_KEY=sk-ant-...
-# ANTHROPIC_BASE_URL=...              # Optional: Anthropic-compatible proxy / Azure
-# GEMINI_API_KEY=...
-# OPENROUTER_API_KEY=...
-# MINIMAX_API_KEY=...
-# OPENAI_API_KEY=***                       # NOTE: this same key auto-activates BOTH the
-#                                          # OpenAI LLM provider (here) AND the OpenAI
-#                                          # embedding provider (further below). Set
-#                                          # OPENAI_API_KEY_FOR_LLM=false to scope it
-#                                          # to embeddings only.
-# OPENAI_BASE_URL=https://api.openai.com   # Optional: override for Azure / vLLM / LM Studio / proxies
-#                                          # Azure: https://<resource>.openai.azure.com/openai/deployments/<deployment>
-#                                          # Auto-detected from `.openai.azure.com` hostname; uses
-#                                          # api-key header + api-version query param.
-# OPENAI_API_VERSION=2024-08-01-preview    # Optional: Azure api-version query param
-# OPENAI_MODEL=gpt-5.6-luna                # Optional: default model
-# OPENAI_TIMEOUT_MS=60000                  # Optional: OpenAI-scoped alias for the outbound fetch
-#                                          # timeout. Takes precedence over AGENTMEMORY_LLM_TIMEOUT_MS
-#                                          # for back-compat with v0.9.17. New configs should
-#                                          # prefer the global AGENTMEMORY_LLM_TIMEOUT_MS below.
-# OPENAI_REASONING_EFFORT=none             # Optional: "low" | "medium" | "high" | "none"
-#                                          # Honored only by OpenAI's reasoning models (o1, o3,
-#                                          # gpt-*-reasoning) and providers that mirror that
-#                                          # schema (Ollama Cloud thinking models). Standard
-#                                          # chat models reject this field with 400. Set to
-#                                          # "none" for thinking models that return reasoning
-#                                          # but no content.
-# OPENAI_API_KEY_FOR_LLM=false             # Optional: set to false to skip OpenAI auto-detection
-#                                          # for LLM (useful if you only want OpenAI for embeddings)
-# Opt-in Claude-subscription fallback (spawns @anthropic-ai/claude-agent-sdk);
-# leave OFF unless you understand the Stop-hook recursion risk:
-# AGENTMEMORY_ALLOW_AGENT_SDK=true
+EMBEDDING_PROVIDER=local
 
-# Embedding provider (BM25-only when unset; local is an explicit opt-in)
-# EMBEDDING_PROVIDER=local
-# VOYAGE_API_KEY=...
-# OPENAI_API_KEY=sk-...
-# OPENAI_BASE_URL=https://api.openai.com   # Override for Azure / vLLM / LM Studio / proxies
-# OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-# OPENAI_EMBEDDING_DIMENSIONS=1536        # Required when the model is not in the known-models table
-# OPENAI_EMBEDDING_BASE_URL=https://...   # Embeddings only; falls back to OPENAI_BASE_URL
-# OPENAI_EMBEDDING_API_KEY=sk-...         # Embeddings only; wins over OPENAI_API_KEY when set
-
-# Outbound LLM / embedding timeout
-# AGENTMEMORY_LLM_TIMEOUT_MS=60000       # Default: 60 000 ms (60 s). Applies to every
-                                          # raw-fetch provider (Gemini, OpenRouter, MiniMax,
-                                          # OpenAI LLM, OpenAI/Cohere/Voyage/OpenRouter
-                                          # embedding). For the OpenAI LLM path, the
-                                          # OpenAI-scoped OPENAI_TIMEOUT_MS alias (above)
-                                          # takes precedence when set, for back-compat
-                                          # with v0.9.17.
-                                          # Increase for slow networks or large batch calls;
-                                          # decrease to fail-fast on rate-limit holds.
-
-# Search tuning
-# BM25_WEIGHT=0.4
-# VECTOR_WEIGHT=0.6
-# TOKEN_BUDGET=2000
-
-# Auth (generated into ~/.agentmemory/secret on first start when unset)
-# AGENTMEMORY_SECRET=your-secret
-# VIEWER_ALLOWED_ORIGINS=https://memory.example.com
-# AGENTMEMORY_IMPORT_ROOT=~/projects
-
-# Ports (defaults: 3111 API, 3113 viewer)
-# III_REST_PORT=3111
-
-# Engine usage telemetry (iii). Off unless you set it; true opts in.
-# III_TELEMETRY_ENABLED=false
-
-# Features
-# AGENTMEMORY_AUTO_COMPRESS=false  # OFF by default. Requires an LLM
-                                   # provider as well. When both are on,
-                                   # every PostToolUse hook calls your
-                                   # LLM provider to compress the
-                                   # observation — expect significant
-                                   # token spend on active sessions.
-# AGENTMEMORY_SLOTS=false          # OFF by default. Editable pinned
-                                   # memory slots — persona,
-                                   # user_preferences, tool_guidelines,
-                                   # project_context, guidance,
-                                   # pending_items, session_patterns,
-                                   # self_notes. Size-limited; agent
-                                   # edits via memory_slot_* tools.
-                                   # Pinned slots addressable for
-                                   # SessionStart injection.
-# AGENTMEMORY_REFLECT=false        # OFF by default. Requires SLOTS=on.
-                                   # Stop hook fires mem::slot-reflect:
-                                   # scans recent observations, auto-
-                                   # appends TODOs to pending_items,
-                                   # counts patterns in
-                                   # session_patterns, records touched
-                                   # files in project_context. Fire-
-                                   # and-forget; does not block.
-# AGENTMEMORY_INJECT_CONTEXT=false # OFF by default. When on:
-                                   # - SessionStart may inject ~1-2K
-                                   #   chars of project context into
-                                   #   the first turn of each session
-                                   #   (this is what actually reaches
-                                   #   the model — Claude Code treats
-                                   #   SessionStart stdout as context)
-                                   # - PreToolUse fires /agentmemory/enrich
-                                   #   on every file-touching tool call
-                                   #   (resource cleanup, not a token
-                                   #   fix — PreToolUse stdout is debug
-                                   #   log only per Claude Code docs)
-                                   # Observations are still captured via
-                                   # PostToolUse regardless of this flag.
-# GRAPH_EXTRACTION_ENABLED=false
-# AGENTMEMORY_LLM_NOTHINK=1        # Local reasoning models only: ask the
-                                   # model to skip its hidden thinking pass
-                                   # during graph extraction. Faster runs;
-                                   # relation quality can drop slightly.
-# CONSOLIDATION_ENABLED=false   # on by default when an LLM provider is configured
-# LESSON_DECAY_ENABLED=true
-# OBSIDIAN_AUTO_EXPORT=false
-# AGENTMEMORY_EXPORT_ROOT=~/.agentmemory
-# CLAUDE_MEMORY_BRIDGE=false
-# SNAPSHOT_ENABLED=false
-
-# Storage and durability
-# AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
-# AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
-# AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
-                                             # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
-
-# Sessions
-# AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
-                                           # the threshold as abandoned. Deletes nothing;
-                                           # new activity makes the session active again.
-# AGENTMEMORY_SESSION_SWEEP_STALE_HOURS=24
-
-# Capture filters (hooks)
-# AGENTMEMORY_CAPTURE_ALLOW=               # Comma or space list of tool names or globs;
-                                           # when set, only these tools are captured
-# AGENTMEMORY_CAPTURE_DENY=                # Extra names or globs to skip, added to the
-                                           # defaults: memory_*, toolsearch,
-                                           # listmcpresources, fetchmcpresource
-# AGENTMEMORY_CAPTURE_OUTPUT_MAX=8000      # Max characters of tool output per observation
-# AGENTMEMORY_PRE_COMPACT_BUDGET=1500      # Token budget for PreCompact context; 0 disables
-
-# Audit log
-# AGENTMEMORY_AUDIT_RETENTION_MONTHS=0     # Drop month scopes older than N months; 0 keeps all
-# AGENTMEMORY_AUDIT_INDEX_PERSIST=false    # 1 or true records index migration and cleanup
-                                           # rows (debugging only)
-
-# Team
-# TEAM_ID=
-# USER_ID=
-# TEAM_MODE=private
-
-# Tool visibility: "all" (54 tools, default) or "core" (8 tools, lean)
+# AGENTMEMORY_INJECT_CONTEXT=true
+# AGENTMEMORY_AUTO_COMPRESS=true
 # AGENTMEMORY_TOOLS=core
+
+# AUTO_FORGET_ENABLED=false
+# LESSON_DECAY_ENABLED=false
+# INSIGHT_DECAY_ENABLED=false
 ```
+
+Die vollständige Referenz steht in [`.env.example`](../.env.example), einschließlich Provider-Zugangsdaten, Erfassungsfiltern, Aufbewahrung, Speicher, Team-Scope und optionalen Funktionen. `AGENTMEMORY_ENV_FILE` wählt eine andere Datei. Committen Sie keine ausgefüllte `.env` oder Bearer-Secrets.
 
 ---
 
@@ -1673,7 +1377,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 146 Endpunkte auf Port `3111`. Die REST API bindet sich standardmäßig an `127.0.0.1`. Geschützte Endpunkte verlangen `Authorization: Bearer <secret>`, und Mesh-Sync-Endpunkte erfordern ein explizit gesetztes `AGENTMEMORY_SECRET` auf beiden Peers.
 
-**Authentifizierung ist standardmäßig aktiv.** Wenn `AGENTMEMORY_SECRET` nicht gesetzt ist (weder in der Shell noch in `~/.agentmemory/.env`), erzeugt der Server beim ersten Start ein zufälliges Secret und speichert es in `~/.agentmemory/secret` mit dem Modus `0600`. Jeder mitgelieferte Client liest es von dort, wenn er mit einem lokalen Server spricht: die CLI, der Viewer, die Hooks unter `plugin/scripts`, der MCP-Server und das `@agentmemory/mcp`-Shim, die von `agentmemory connect` geschriebenen Konfigs sowie die mitgelieferten Integrationen für OpenCode, Pi, OpenClaw, Hermes und den Filesystem-Watcher. Das gespeicherte Secret wird nur an Loopback-URLs gesendet (`localhost`, `127.0.0.0/8`, `::1`). Ein explizites `AGENTMEMORY_SECRET` gewinnt immer, und Remote-Clients benötigen es trotzdem gesetzt. Docker und die `deploy/`-Entrypoints erzeugen und exportieren bereits ihr eigenes Secret. Um die API von Hand aufzurufen:
+**Authentifizierung ist standardmäßig aktiv.** Wenn `AGENTMEMORY_SECRET` weder in der Shell noch in `~/.agentmemory/.env` gesetzt ist, erzeugt die CLI beim ersten Start ein zufälliges Secret unter `~/.agentmemory/secret` und spiegelt es als `secret` in das ausgewählte Datenverzeichnis, jeweils mit Dateimodus `0600`. Jeder mitgelieferte Client liest es von dort, wenn er mit einem lokalen Server spricht: die CLI, der Viewer, die Hooks unter `plugin/scripts`, der MCP-Server und das `@agentmemory/mcp`-Shim, die von `agentmemory connect` geschriebenen Konfigs sowie die mitgelieferten Integrationen für OpenCode, Pi, OpenClaw, Hermes und den Filesystem-Watcher. Das gespeicherte Secret wird nur an Loopback-URLs gesendet (`localhost`, `127.0.0.0/8`, `::1`). Ein explizites `AGENTMEMORY_SECRET` gewinnt immer, und Remote-Clients benötigen es trotzdem gesetzt. Docker und die `deploy/`-Entrypoints erzeugen und exportieren bereits ihr eigenes Secret. Um die API von Hand aufzurufen:
 
 ```bash
 curl -H "Authorization: Bearer $(cat ~/.agentmemory/secret)" http://localhost:3111/agentmemory/health
@@ -1712,7 +1416,7 @@ curl -H "Authorization: Bearer $(cat ~/.agentmemory/secret)" http://localhost:31
 | `POST` | `/agentmemory/team/share` | Mit Team teilen |
 | `GET` | `/agentmemory/audit` | Audit-Trail |
 
-Volle Endpunktliste: [`src/triggers/api.ts`](../src/triggers/api.ts)
+Volle Endpunktliste: [REST API](../plugin/skills/agentmemory-rest-api/REFERENCE.md)
 
 </details>
 
@@ -1756,7 +1460,7 @@ npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 
-**Voraussetzungen:** Node.js >= 20 mit npm/npx. Die von der CLI verwaltete Engine-Installation unter macOS/Linux benötigt außerdem `curl`, eine POSIX-`sh` und `tar`; unter nativem Windows muss die gepinnte `iii.exe` manuell installiert werden, alternativ können Sie WSL2 verwenden.
+[Install](#install) · [CONTRIBUTING.md](../CONTRIBUTING.md)
 
 <h2 id="license"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-license.svg"><img src="../assets/tags/section-license.svg" alt="Lizenz" height="32" /></picture></h2>
 

@@ -4,10 +4,9 @@
 
 <p align="center">
   <strong>
-    Váš kódovací agent si pamatuje všechno. Žádné další opakované vysvětlování.
-    Založeno na <a href="https://github.com/iii-hq/iii">iii engine</a>
+    Trvalá paměť napříč sessions a kódovacími agenty.
   </strong><br/>
-  Trvalá paměť pro Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI, Codex CLI, Hermes, OpenClaw, pi, OpenCode a jakéhokoli klienta MCP.
+  Trvalá paměť pro Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI, Codex CLI, Hermes, OpenClaw, pi, Oh My Pi, DeepSeek Harness, OpenCode a jakéhokoli klienta MCP.
 </p>
 
 <p align="center">
@@ -63,6 +62,7 @@
   <a href="https://github.com/rohitg00/agentmemory/actions"><img src="https://img.shields.io/github/actions/workflow/status/rohitg00/agentmemory/ci.yml?label=tests&style=for-the-badge&logo=github" alt="CI" /></a>
   <a href="https://github.com/rohitg00/agentmemory/blob/main/LICENSE"><img src="https://img.shields.io/github/license/rohitg00/agentmemory?color=blue&style=for-the-badge" alt="Licence" /></a>
   <a href="https://github.com/rohitg00/agentmemory/stargazers"><img src="https://img.shields.io/github/stars/rohitg00/agentmemory?style=for-the-badge&color=yellow&logo=github" alt="Hvězdy" /></a>
+  <a href="https://skills.sh/rohitg00/agentmemory"><img src="https://skills.sh/b/rohitg00/agentmemory?style=for-the-badge" alt="skills.sh installs" /></a>
 </p>
 
 <p align="center">
@@ -87,20 +87,23 @@
   <a href="#how-it-works">Jak to funguje</a> &bull;
   <a href="#mcp-server">MCP</a> &bull;
   <a href="#real-time-viewer">Viewer</a> &bull;
-  <a href="#powered-by-iii">Založeno na iii</a> &bull;
   <a href="#configuration">Konfigurace</a> &bull;
   <a href="#api">API</a>
 </p>
 
 ---
 
+AgentMemory zachycuje podporované události sessions, umožňuje vyhledávat rozhodnutí a opravy a sdílí projektovou paměť mezi agenty. Prohlížejte, upravujte, exportujte a mažte vzpomínky ve vieweru. Vyhledávání podle klíčových slov funguje bez API klíče; embeddingy přidávají sémantické vyhledávání.
+
+<a id="install"></a>
+
 ## Instalace
 
 Požadavky:
 
 - Node.js 20 nebo novější s npm a npx (`node -v`, `npm -v` a `npx -v`).
-- Automatická instalace iii-engine na macOS/Linuxu vyžaduje také `curl`, POSIX `sh` a `tar`. Minimální image, jako je `node:20-slim`, je nemusí obsahovat.
-- Nativní Windows vyžaduje manuální instalaci pinned iii-engine v0.25.0 `iii.exe`; WSL2 používá automatický instalátor pro macOS/Linux.
+- macOS/Linux také potřebují `curl`, POSIX `sh` a `tar` pro automatické nastavení běhového prostředí.
+- Ve Windows použijte WSL2 nebo [návod pro nativní Windows](#windows).
 
 Kanonický příkaz pro čistou instalaci:
 
@@ -108,11 +111,11 @@ Kanonický příkaz pro čistou instalaci:
 npx -y @agentmemory/agentmemory@latest
 ```
 
-První spuštění je interaktivní nastavení: vyberete agenty, které chcete propojit (Claude Code, Cursor, Codex, Gemini CLI, OpenCode, ...), vyberete poskytovatele LLM nebo zůstanete bez klíče, nastavení vytvoří konfiguraci, spustí server paměti i jeho pinned iii engine a nabídne globální instalaci, aby pak všude fungoval holý příkaz `agentmemory`. `-y` potvrzuje dotaz npx na balíček a `@latest` zabraňuje použití zastaralého cachovaného vydání. Poskytovatel zpřístupní funkce LLM, ale komprese pozorování psaná pomocí LLM se spustí až po nastavení `AGENTMEMORY_AUTO_COMPRESS=true`.
+Vyberte agenty a poskytovatele, nebo režim bez klíče. Průvodce zapíše konfiguraci, spustí paměťový server a nabídne globální instalaci příkazu `agentmemory`. `-y` potvrdí výzvu npm; `@latest` vybere aktuální vydání. Komprese pomocí LLM vyžaduje poskytovatele a `AGENTMEMORY_AUTO_COMPRESS=true`.
 
 Režim bez klíče (keyless) vypíná vektorová embeddingy. `memory_recall` (cesta `mem::search`) používá BM25, zatímco `memory_smart_search` může navíc kombinovat strukturální shody ze znalostního grafu, pokud už grafová data existují. Pro bezplatné sémantické vyhledávání přímo na zařízení nastavte `EMBEDDING_PROVIDER=local` v `~/.agentmemory/.env` a restartujte. První požadavek na embedding stáhne `Xenova/all-MiniLM-L6-v2`; po tomto prvním stažení modelu běží inference lokálně.
 
-Lokální runtime CLI používá REST/MCP HTTP na portu `3111`, viewer na `3113` a interní WebSocket iii workeru na `49134`. Aktualizace vieweru používají SSE přes `GET /agentmemory/viewer/events` na REST portu. Trvalý stav se standardně ukládá do `~/Library/Application Support/agentmemory` na macOS, `$XDG_DATA_HOME/agentmemory` nebo `~/.local/share/agentmemory` na Linuxu a `%APPDATA%\agentmemory` na Windows. Umístění změňte pomocí `--data-dir <path>` nebo `AGENTMEMORY_DATA_DIR`; instance 0 také znovu použije existující `./data/state_store.db`. `--instance N` izoluje další runtime a `AGENTMEMORY_ENV_FILE` vybere jiný soubor `.env`.
+API běží na `http://localhost:3111` a živý viewer na `http://localhost:3113`. Oba standardně naslouchají pouze lokálně. Konfigurace je v `~/.agentmemory/.env`; umístění paměti a samostatné instance popisuje [ukládání dat](#data-storage).
 
 Pak ověřte, že vyhledávání funguje, a dejte svému agentovi jeho skills:
 
@@ -127,14 +130,7 @@ Chcete, aby celou věc provedl kódovací agent? Dejte mu jedinou instrukci:
 
 > Retrieve and follow the instructions at: https://raw.githubusercontent.com/rohitg00/agentmemory/main/INSTALL_FOR_AGENTS.md
 
-Další agenty můžete kdykoli propojit pomocí `agentmemory connect <agent>` — 20 adaptérů je uvedeno v sekci [Funguje s každým agentem](#works-with-every-agent). Úplný přehled příkazů najdete v sekci [Rychlý start](#quick-start).
-
-<details>
-<summary><strong>Windows</strong></summary>
-
-Nejrychlejší cestou je WSL2. Nativní Windows vyžaduje ruční stažení pinned ZIP v0.25.0 a extrakci `iii.exe`. Postup najdete v [poznámkách k Windows](#windows).
-
-</details>
+Dalšího agenta připojte pomocí `agentmemory connect <agent>`. Viz [podporované integrace](#works-with-every-agent) a [běžné příkazy](#everyday-commands).
 
 <details>
 <summary><strong>Globální instalace / EACCES</strong></summary>
@@ -151,13 +147,6 @@ Výše uvedený příkaz npx zůstává kanonickou cestou pro čistou instalaci 
 <summary><strong>npx vrací starou verzi</strong></summary>
 
 npx cachuje podle verze. Vynuťte nejnovější verzi pomocí `npx -y @agentmemory/agentmemory@latest`, nebo jednou vymažte cache pomocí `rm -rf ~/.npm/_npx` (macOS/Linux; na Windows smažte `%LOCALAPPDATA%\npm-cache\_npx`).
-
-</details>
-
-<details>
-<summary><strong>Už mám běžící vlastní iii engine</strong></summary>
-
-agentmemory používá iii-engine v0.25.0 a nepřipojí se k jiné verzi (worker neumí mluvit protokolem jiného enginu). Zastavte jiný engine a pak spusťte `npx -y @agentmemory/agentmemory@latest`. Nainstaluje a spustí pinned v0.25.0 v `~/.agentmemory/bin`, aniž by se dotkl vašeho vlastního `iii`.
 
 </details>
 
@@ -187,7 +176,7 @@ agentmemory funguje s jakýmkoli agentem, který podporuje hooks, MCP nebo REST 
 <td align="center" width="20%">
 <a href="https://cursor.com"><picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/cursor_dark.svg"><img src="https://svgl.app/library/cursor_light.svg" alt="Cursor" width="48" height="48" /></picture></a><br/>
 <strong>Cursor</strong><br/>
-<sub>nativní plugin + 7 hooks + MCP</sub>
+<sub>nativní plugin + hooks životního cyklu + MCP</sub>
 </td>
 <td align="center" width="20%">
 <a href="../plugin/opencode/"><img src="https://raw.githubusercontent.com/rohitg00/agentmemory/main/website/public/opencode.png" alt="OpenCode" width="48" height="48" /></a><br/>
@@ -214,7 +203,7 @@ agentmemory funguje s jakýmkoli agentem, který podporuje hooks, MCP nebo REST 
 <td align="center" width="20%">
 <a href="../integrations/pi/"><img src="../assets/agents/pi.svg" alt="pi" width="48" height="48" /></a><br/>
 <strong>pi</strong><br/>
-<sub>nativní plugin + MCP</sub>
+<sub>nativní recall + zachycení + skills</sub>
 </td>
 <td align="center" width="20%">
 <a href="https://github.com/tinyhumansai/openhuman"><img src="https://github.com/tinyhumansai.png?size=120" alt="OpenHuman" width="48" height="48" /></a><br/>
@@ -280,7 +269,7 @@ agentmemory funguje s jakýmkoli agentem, který podporuje hooks, MCP nebo REST 
 <td align="center" width="20%">
 <a href="https://github.com/deepseek-ai/deepseek-harness"><img src="https://svgl.app/library/deepseek.svg" alt="DeepSeek Harness" width="48" height="48" /></a><br/>
 <strong>DeepSeek Harness</strong><br/>
-<sub>server MCP</sub>
+<sub>nativní zachycení + MCP</sub>
 </td>
 <td align="center" width="20%">
 <a href="https://github.com/RooCodeInc/Roo-Code"><img src="https://github.com/RooCodeInc.png?size=120" alt="Roo Code" width="48" height="48" /></a><br/>
@@ -303,6 +292,12 @@ agentmemory funguje s jakýmkoli agentem, který podporuje hooks, MCP nebo REST 
 <sub>REST API</sub>
 </td>
 </tr>
+<tr>
+<td align="center" colspan="5">
+<a href="../integrations/omp/"><strong>Oh My Pi</strong></a><br/>
+<sub>nativní recall + zachycení + skills + volitelné MCP</sub>
+</td>
+</tr>
 </table>
 
 <p align="center">
@@ -311,22 +306,26 @@ agentmemory funguje s jakýmkoli agentem, který podporuje hooks, MCP nebo REST 
 
 ---
 
-Stejnou architekturu vysvětlujete při každé session. Znovu objevujete stejné chyby. Znovu vysvětlujete stejné preference. Vestavěná paměť (CLAUDE.md, .cursorrules) má strop 200 řádků a postupně zastará. agentmemory to řeší. Tiše zachycuje, co váš agent dělá, komprimuje to do prohledávatelné paměti a při startu další session vloží ten správný kontext. Jeden příkaz. Funguje napříč agenty.
+<a id="data-storage"></a>
 
-**Co se změní:** V session 1 nastavíte JWT autentizaci. V session 2 požádáte o rate limiting. Agent už ví, že vaše autentizace používá middleware jose v `src/middleware/auth.ts`, že vaše testy pokrývají validaci tokenů a že jste zvolili jose před jsonwebtoken pro kompatibilitu s Edge, bez opakovaného vysvětlování a bez copy-pastování.
+### Ukládání dat
+
+Vzpomínky se standardně ukládají mimo repozitář:
+
+| Platforma | Adresář dat |
+|---|---|
+| macOS | `~/Library/Application Support/agentmemory` |
+| Linux | `$XDG_DATA_HOME/agentmemory` / `~/.local/share/agentmemory` |
+| Windows | `%APPDATA%\agentmemory` |
+
+Instance 0 znovu použije existující `./data/state_store.db`. Jiné umístění nastavíte pomocí `--data-dir <path>` nebo `AGENTMEMORY_DATA_DIR`. Při restartu a aktualizaci zachovejte stejný adresář.
 
 ```bash
-npx -y @agentmemory/agentmemory@latest
+agentmemory --data-dir ~/.agentmemory-projects/main
+agentmemory --instance 1
 ```
 
-Ve výchozím nastavení agentmemory ukládá stav iii-engine mimo repozitář, ze kterého jej spouštíte: `~/Library/Application Support/agentmemory` na macOS, `$XDG_DATA_HOME/agentmemory` nebo `~/.local/share/agentmemory` na Linuxu a `%APPDATA%\agentmemory` na Windows. Existující `./data/state_store.db` se znovu použije pro instanci 0. Umístění lze výslovně určit pomocí `--data-dir <path>` nebo `AGENTMEMORY_DATA_DIR`:
-
-```bash
-npx -y @agentmemory/agentmemory@latest --data-dir ~/.agentmemory-projects/main
-AGENTMEMORY_DATA_DIR=~/.agentmemory-projects/main npx -y @agentmemory/agentmemory@latest
-```
-
-`--instance 1` připojí k vyřešenému adresáři s daty `instance-1` a použije porty `3211` (REST), `3213` (viewer) a `49234` (engine).
+`--instance 1` používá podadresář `instance-1`, API port `3211` a viewer port `3213`. Redis a migraci backendu popisuje [průvodce úložištěm a zálohami](../docs/reliability/state-storage.md).
 
 Nejnovější poznámky k vydání: [CHANGELOG.md](../CHANGELOG.md).
 
@@ -476,7 +475,7 @@ Nejnovější poznámky k vydání: [CHANGELOG.md](../CHANGELOG.md).
 </tr>
 <tr>
 <td><strong>Externí závislosti</strong></td>
-<td>Žádné (file-based KV state + iii-engine)</td>
+<td>Není potřeba samostatná databázová služba</td>
 <td>Qdrant / pgvector</td>
 <td>Postgres + vektorová DB</td>
 <td>Více</td>
@@ -550,13 +549,11 @@ Nejnovější poznámky k vydání: [CHANGELOG.md](../CHANGELOG.md).
 | Zep / Graphiti | 30K | Temporální znalostní graf; nejsilnější publikované výsledky pro temporální dotazy (LongMemEval 63.8%), ale graf se buduje asynchronně, takže čerstvá fakta mohou zpožďovat |
 | Cognee | 30K | Načítání dokumentů do znalostního grafu, pouze Python, navrženo pro strukturovanou extrakci entit, nikoli pro zachytávání sessions |
 
-Nic z toho automaticky nezachytává data z hooks kódovacího agenta, nedodává lokální viewer jako primární prvek ani neumí běžet bez klíče — to je kombinace, kolem které je agentmemory postaveno.
+AgentMemory spojuje zachycení sessions, prohledávatelnou historii projektu a lokální viewer; bez klíče funguje od prvního spuštění.
 
 ---
 
 <h2 id="quick-start"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-quickstart.svg"><img src="../assets/tags/section-quickstart.svg" alt="Rychlý start" height="32" /></picture></h2>
-
-Kompatibilita: toto vydání používá iii 0.25.0 s registry workery `state@0.22.20` a `http@0.22.7`.
 
 ### Vyzkoušejte to za 30 sekund
 
@@ -572,9 +569,11 @@ npx -y @agentmemory/agentmemory@latest demo
 
 Otevřete `http://localhost:3113` a sledujte, jak se paměť živě staví.
 
+<a id="validate-a-fresh-install-and-restart-persistence"></a>
+
 ### Ověření čisté instalace a persistence po restartu
 
-Se spuštěným serverem ověřte REST, health, viewer a stav runtime podporovaného iii:
+Se spuštěným serverem ověřte zdraví, viewer a stav:
 
 ```bash
 curl -fsS http://localhost:3111/agentmemory/livez
@@ -583,7 +582,7 @@ curl -fsS -o /dev/null http://localhost:3113/
 npx -y @agentmemory/agentmemory@latest status
 ```
 
-Runtime používá REST/MCP HTTP na 3111, viewer na 3113 a interní WebSocket iii workeru na 49134. Živé události vieweru používají SSE přes REST. `status` potvrzuje zdraví agentmemory, pinned verzi enginu (`enginePinnedVersion`) a aktivního poskytovatele/režim embeddingů. Uložte sondu a ověřte, že je vyhledatelná:
+`status` ukazuje zdraví serveru, poskytovatele, režim embeddingů, doručování záznamů a obnovu. Chráněné REST požadavky vyžadují secret serveru. Pokud používáte vlastní `AGENTMEMORY_SECRET`, použijte stejnou hodnotu; jinak načtěte automaticky vygenerovaný lokální secret:
 
 ```bash
 # Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
@@ -602,6 +601,8 @@ curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
 
 Pak spusťte `npx -y @agentmemory/agentmemory@latest stop`, znovu spusťte kanonický příkaz v terminálu 1, počkejte na `/agentmemory/livez` a vyhledávání zopakujte. Sonda musí být stále vrácena. Pokud jste zvolili vlastní `--data-dir`, použijte při restartu stejný adresář.
 
+<a id="everyday-commands"></a>
+
 ### Běžné příkazy
 
 Instalace a nastavení jsou popsány výše v sekci [Instalace](#install) (první spuštění vás jimi provede). Den za dnem:
@@ -609,6 +610,9 @@ Instalace a nastavení jsou popsány výše v sekci [Instalace](#install) (prvn�
 ```bash
 agentmemory                    # start the server
 agentmemory stop               # stop it cleanly
+agentmemory status
+agentmemory capture
+agentmemory capture --drain
 agentmemory connect <agent>    # wire another agent
 agentmemory doctor             # interactive diagnostics + fix prompts
 agentmemory remove             # uninstall everything we created
@@ -628,7 +632,7 @@ npx -y @agentmemory/agentmemory@latest import-jsonl
 npx -y @agentmemory/agentmemory@latest import-jsonl ~/.claude/projects/-my-project/abc123.jsonl
 ```
 
-Importované sessions se objeví ve výběru Replay vedle nativních. Pod kapotou každá položka jde přes iii funkce `mem::replay::load`, `mem::replay::sessions` a `mem::replay::import-jsonl`, bez vedlejších serverů. Každý importovaný transkript je indexován pro vyhledávání, oražen původním kanálem `import` a prohledán na session crystal a lessons.
+Importované sessions se objeví v Replay vedle nativních. Transkripty jsou indexovány pro vyhledávání a označeny kanálem `import`; zpracování sessions může vytvořit také krystaly a lessons.
 
 > **Upozornění, pokud se spoléháte na `import-jsonl` jako hlavní cestu zachycení:** `cleanupPeriodDays` v Claude Code (v `~/.claude/settings.json`, výchozí **30**) automaticky maže JSONL transkripty starší než toto okno z `~/.claude/projects/`. Pokud instalujete agentmemory nově na měsíce starou historii Claude Code, vše starší než 30 dní je už pryč před prvním importem. Buď spouštějte `import-jsonl` na cronu, zvyšte `cleanupPeriodDays` na vyšší hodnotu, nebo zapojte hooks pro automatické zachycení (výchozí cesta instalace pluginu), aby se každý tah ukládal do agentmemory už za běhu session a čištění JSONL přestalo hrát roli.
 
@@ -640,12 +644,12 @@ Příkaz pro údržbu použijte, když chcete úmyslně aktualizovat svůj loká
 npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
-Varování: tento příkaz mění aktuální workspace/runtime. Může aktualizovat JavaScriptové závislosti a nainstalovat pinned binárku enginu iii 0.25.0.
+Příkaz aktualizuje místní běhové prostředí a může změnit JavaScriptové závislosti v aktuálním workspace. Zálohujte data a před aktualizací si přečtěte [průvodce upgradem](../docs/upgrades/iii-0.25.md).
 
 ### Claude Code (jeden blok, vložte ho)
 
 ```text
-Install agentmemory: run `npx -y @agentmemory/agentmemory@latest` in a separate terminal to start the memory server and its pinned iii engine. Then run `/plugin marketplace add rohitg00/agentmemory` and `/plugin install agentmemory` — the plugin registers all 12 hooks, 17 skills, AND auto-wires the `@agentmemory/mcp` stdio server via its `.mcp.json`, so you get 54 MCP tools (memory_smart_search, memory_save, memory_sessions, memory_governance_delete, etc.) without any extra config step. Verify with `curl http://localhost:3111/agentmemory/health`. The real-time viewer is at http://localhost:3113. Keyless mode disables vectors: `memory_recall` uses BM25, and `memory_smart_search` can also use existing structural graph data. Set `EMBEDDING_PROVIDER=local` in `~/.agentmemory/.env` and restart to opt into on-device semantic recall.
+Install agentmemory: run `npx -y @agentmemory/agentmemory@latest` in a separate terminal to start the memory server. Then run `/plugin marketplace add rohitg00/agentmemory` and `/plugin install agentmemory` — the plugin registers all 12 hooks, 17 skills, AND auto-wires the `@agentmemory/mcp` stdio server via its `.mcp.json`, so you get 54 MCP tools (memory_smart_search, memory_save, memory_sessions, memory_governance_delete, etc.) without any extra config step. Verify with `curl http://localhost:3111/agentmemory/health`. The real-time viewer is at http://localhost:3113. Keyless mode disables vectors: `memory_recall` uses BM25, and `memory_smart_search` can also use existing structural graph data. Set `EMBEDDING_PROVIDER=local` in `~/.agentmemory/.env` and restart to opt into on-device semantic recall.
 ```
 
 #### Claude Code bez instalace pluginu (cesta MCP-standalone)
@@ -706,6 +710,30 @@ copilot plugin install rohitg00/agentmemory:plugin
 
 `agentmemory connect copilot-cli` sloučí `mcpServers.agentmemory` do `~/.copilot/mcp-config.json` (nebo `$COPILOT_HOME/mcp-config.json`, pokud je nastaveno `COPILOT_HOME`) a zachová existující servery. Na nativním Windows je to jediný automatizovaný adaptér `connect`; každého dalšího nativního agenta na Windows nakonfigurujte manuálně. `connect` ve WSL je podporován pouze tehdy, když je cílový agent nainstalován ve stejném prostředí WSL. Copilot si server MCP vyzvedne při dalším spuštění nebo po `/mcp`. Pro plný zážitek s hooks/skills nainstalujte i plugin.
 
+### Cursor
+
+```bash
+agentmemory connect cursor
+```
+
+Potom v **Settings → Plugins → Add marketplace** vyberte checkout agentmemory obsahující `.cursor-plugin/plugin.json`, povolte plugin **agentmemory** a znovu načtěte okno. Plugin poskytuje zachycení životního cyklu, přiřazení projektu podle workspace, skills a MCP. Zapněte buď hooks pluginu, nebo manuální hooks v `~/.cursor/hooks.json`, abyste nezaznamenávali události dvakrát.
+
+[Cursor](../integrations/cursor/)
+
+### Pi, Oh My Pi, DeepSeek Harness
+
+```bash
+agentmemory connect pi --with-mcp
+agentmemory connect omp --with-mcp
+agentmemory connect dsh --with-hooks
+```
+
+Vyberte příkaz pro svého hostitele. Pi a OMP instalují nativní recall, zachycení, offline replay a skills; `--with-mcp` přidá úplnou sadu nástrojů. V Pi spusťte `/reload`, OMP restartujte a ověřte `/agentmemory-status`. DSH instaluje MCP a přibalený plugin pro zachycení; po připojení DSH restartujte.
+
+Pi podporuje také instalovatelný balíček `@agentmemory/pi`. Lokální instalaci a dostupnost na npm popisuje [průvodce Pi](../integrations/pi/). Pro každého hostitele používejte jen jeden způsob instalace.
+
+[Pi](../integrations/pi/) · [Oh My Pi](../integrations/omp/) · [DSH](../docs/dsh.md)
+
 <details>
 <summary><b>OpenClaw (vložte tento prompt)</b></summary>
 
@@ -752,6 +780,8 @@ Verify with `curl http://localhost:3111/agentmemory/health`. Open http://localho
 
 </details>
 
+<a id="other-agents"></a>
+
 ### Další agenti
 
 Spusťte server paměti: `npx -y @agentmemory/agentmemory@latest`
@@ -768,8 +798,8 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 
 Toto je **doplňkové** k `agentmemory connect <agent>`:
 
-- `agentmemory connect <agent>` zapíše konfiguraci serveru MCP, aby byly nástroje k dispozici.
-- `npx skills add rohitg00/agentmemory` nainstaluje skills, aby agent věděl, kdy je má volat.
+- `agentmemory connect <agent>` obvykle zapisuje konfiguraci MCP. Hermes, OpenClaw, Pi a Oh My Pi standardně instalují nativní integraci a skills; MCP zapnete pomocí `--with-mcp`.
+- `npx skills add rohitg00/agentmemory` instaluje skills pro agenty bez přibalených nativních skills. U Hermes, OpenClaw, Pi a Oh My Pi tento krok vynechte; skills už instaluje jejich konektor.
 
 Pro těch několik agentů, které CLI skills ještě nepokrývá (Zed v1.3.x a nižší), vložte 17 souborů SKILL.md do nativního adresáře skills agenta sami; stejný formát funguje všude.
 
@@ -793,7 +823,7 @@ Položka agentmemory je **stejný blok serveru MCP** na všech hostitelích, kte
 | Agent | Konfigurační soubor | Poznámky |
 |---|---|---|
 | **Cursor (pouze MCP)** | `~/.cursor/mcp.json` | Sloučte do `mcpServers`, nebo použijte `agentmemory connect cursor`. Na webu je k dispozici i deeplink na jedno kliknutí. |
-| **Cursor (plný plugin)** | `.cursor-plugin/` | Záznam v Cursor Marketplace (podání čeká na schválení) nebo Cursor Settings → Plugins → lokální checkout. Registruje 7 hooks pro automatické zachycení (sessionStart, beforeSubmitPrompt, preToolUse, postToolUse, postToolUseFailure, stop, sessionEnd) + 17 skills + server MCP, přičemž `AGENTMEMORY_URL` / `AGENTMEMORY_SECRET` se správují v dashboardu pluginu Cursor. Funguje v IDE Cursor i v CLI `cursor-agent`; prompty v print-mode CLI se na konci session doplní zpětně z transkriptu session. |
+| **Cursor (plný plugin)** | `.cursor-plugin/` | Plugin poskytuje hooks životního cyklu, rozpoznání workspace, skills a MCP v Cursor IDE i `cursor-agent`. Viz [nastavení Cursoru](#cursor). |
 | **Claude Desktop** | `claude_desktop_config.json` (Application Support) | Sloučte do `mcpServers`. Po úpravě Claude Desktop restartujte. |
 | **Cline / Roo Code / Kilo Code** | nastavení MCP v Cline (Settings UI → MCP Servers → Edit) | Stejný blok `mcpServers`. |
 | **Devin CLI (MCP + hooks)** | `~/.config/devin/config.json` | `agentmemory connect devin` sloučí položku MCP; `--with-hooks` přidá šest nativních hooks pro automatické zachycení (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SessionEnd) s malými písmeny v maticích nástrojů Devin. Ověřte pomocí `devin mcp list` a `/hooks` uvnitř devin. |
@@ -807,7 +837,8 @@ Položka agentmemory je **stejný blok serveru MCP** na všech hostitelích, kte
 | **Codex CLI (plný plugin)** | marketplace pluginů Codex | `codex plugin marketplace add rohitg00/agentmemory`, pak `codex plugin add agentmemory@agentmemory`. Registruje MCP + 6 hooks životního cyklu + 17 skills. Důvěřujte hookům a ověřte zachycení ve svém hostiteli; viz [nastavení a validace Codexu](../docs/plugins/codex-local.md). |
 | **OpenCode (pouze MCP)** | `opencode.json` | Jiný tvar: klíč `mcp` na nejvyšší úrovni, příkaz jako pole: `{"mcp": {"agentmemory": {"type": "local", "command": ["npx", "-y", "@agentmemory/mcp"], "enabled": true}}}`. |
 | **OpenCode (plný plugin)** | `plugin/opencode/` | 22 hooks pro automatické zachycení pokrývajících životní cyklus session, zprávy, nástroje a chyby. Přiřazení k projektu je po jednotlivých sessions, takže jeden proces OpenCode pokrývající více repozitářů zařadí každou session pod její vlastní projekt. Dva slash příkazy (`/recall`, `/remember`). Zkopírujte `plugin/opencode/` do svého workspace OpenCode a doplňte položku pluginu do `opencode.json`. Úplnou tabulku hooks + analýzu mezer najdete v [`plugin/opencode/README.md`](../plugin/opencode/README.md). |
-| **pi** | `~/.pi/agent/extensions/agentmemory` | `agentmemory connect pi` nainstaluje zabalené rozšíření do adresáře automatického vyhledávání pi (recall při startu agenta, zachycení při konci agenta, nástroje `memory_search` / `memory_save` / `memory_health`, `/agentmemory-status`). `/reload` v běžícím pi ho načte. [`integrations/pi`](../integrations/pi/) je také balíček pi (`pi install ./integrations/pi` z checkoutu). |
+| **pi** | `~/.pi/agent/extensions/agentmemory` | `agentmemory connect pi --with-mcp`. nativní recall + zachycení + skills. `/reload`, `/agentmemory-status`. [Pi](../integrations/pi/). |
+| **Oh My Pi** | `~/.omp/agent` | `agentmemory connect omp --with-mcp`. nativní recall + zachycení + skills. [Oh My Pi](../integrations/omp/). |
 | **Hermes Agent** | `~/.hermes/config.yaml` | `cp -r integrations/hermes ~/.hermes/plugins/agentmemory` + `memory.provider: agentmemory` dá poskytovatele paměti se 6 hooks (prefetch, zachycení tahu, konec session, pre-compress, zrcadlení MEMORY.md, blok systémového promptu). Ověřte pomocí `hermes plugins doctor` a `hermes memory status`. Viz [`integrations/hermes`](../integrations/hermes/). |
 | **Qwen Code** | `~/.qwen/settings.json` | `agentmemory connect qwen` zapíše standardní blok `mcpServers`. Payload hooks je polově kompatibilní s Claude Code, takže existující skripty pro 12 hooks fungují bez úprav; zapojte je přes sekci `hooks` ve stejném `settings.json`. |
 | **Antigravity IDE / 2.0** | `~/.gemini/config/mcp_config.json` | `agentmemory connect antigravity --with-hooks` nainstaluje MCP a hooky pro zachycení do sdíleného adresáře přizpůsobení. Viz [nastavení a limity Antigravity](../docs/plugins/antigravity.md). |
@@ -815,47 +846,19 @@ Položka agentmemory je **stejný blok serveru MCP** na všech hostitelích, kte
 | **Kiro** | `~/.kiro/settings/mcp.json` | `agentmemory connect kiro` zapíše konfiguraci na úrovni uživatele. Přepisy na úrovni workspace patří do `.kiro/settings/mcp.json` vedle vašeho kódu. |
 | **Warp** | `~/.warp/.mcp.json` | `agentmemory connect warp` zapíše standardní blok `mcpServers`. Warp také automaticky vyhledává skills z `.claude/skills/`; po instalaci pluginu Claude Code se 8 skills agentmemory (`remember`, `recall`, `recap`, `handoff`, `forget`, `commit-context`, `commit-history`, `session-history`) objeví nativně v paletě slash příkazů Warp. |
 | **Cline (CLI)** | `~/.cline/mcp.json` | `agentmemory connect cline` zapíše standardní blok `mcpServers`. Uživatelé rozšíření VS Code: vložte stejný blok přes Cline Settings → MCP Servers → Edit JSON. |
-| **Continue.dev** | `~/.continue/config.yaml` (preferované) nebo `config.json` (starší) | `agentmemory connect continue` vytvoří `config.yaml` od nuly, pokud žádný z nich neexistuje, nebo upraví existující `config.json`. **Pokud už máte `config.yaml`**, adaptér vypíše přesný blok k vložení pod `mcpServers:`; váš yaml tiše nepřepíše, protože bezpečné zachování komentářů a kotev vyžaduje parser YAML, který balíček nedodává. Continue používá pro `mcpServers` formu pole (ne objektu). |
+| **Continue.dev** | `~/.continue/config.yaml` (preferované) nebo `config.json` (starší) | `agentmemory connect continue` vytvoří `config.yaml`, pokud konfigurace chybí, nebo upraví existující `config.json`. U existujícího YAML vypíše blok k vložení pod `mcpServers:`, aby zachoval komentáře a kotvy. Continue používá pole, nikoli objekt. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` zapíše pod `context_servers` (klíč Zed, NE `mcpServers`). Vzdálené servery MCP lze zapojit místo toho přes `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` zapíše standardní blok `mcpServers`. Přepisy na úrovni projektu patří do `<repo>/.factory/mcp.json`. Pro nativní automatické zachycení přidejte `--with-hooks`. |
 | **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` zapne nástroje MCP. Přidejte `--with-hooks` pro nativní zachytávání zahrnuté v AgentMemory. Samostatný balíček pluginu není potřeba. [DSH](../docs/dsh.md). |
 | **Goose** | UI nastavení MCP v Goose | Stejný blok `mcpServers`; použijte `goose configure` → Add Extension → MCP. Přímá úprava YAML v `~/.config/goose/config.yaml` je podporována, ale schéma používá `extensions:` + `cmd` (ne `mcpServers:` + `command`). |
-| **Aider** | n/a | Mluvte přímo s REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
+| **Aider** | n/a | Použijte [autentizované REST příklady](#validate-a-fresh-install-and-restart-persistence) pro ukládání a vyhledávání ze skriptů. |
 | **Jakýkoli agent (32+)** | n/a | `npx skillkit install agentmemory` automaticky detekuje hostitele a sloučí konfiguraci. |
 
 **Sandboxovaní klienti MCP** (Flatpak / Snap / omezující kontejnery), kteří se nedostanou na `localhost` hostitele: navíc nastavte `"AGENTMEMORY_FORCE_PROXY": "1"` v bloku `env` a nasměrujte `AGENTMEMORY_URL` na cestu, na kterou se sandbox skutečně dostane (např. vaši LAN IP adresu).
 
 ### Programový přístup (Python / Rust / Node)
 
-agentmemory registruje své klíčové operace jako iii funkce (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Jakýkoli jazyk s iii SDK je může volat přímo přes `ws://localhost:49134`, bez samostatného klienta REST pro každý jazyk.
-
-```bash
-pip install iii-sdk==0.25.0 # Python
-cargo add iii-sdk@=0.25.0   # Rust
-npm install --save-exact iii-sdk@0.25.0 # Node
-```
-
-```python
-import os
-from iii import InitOptions, register_worker
-
-# Native CLI: namespace is agentmemory-<REST port>, e.g. agentmemory-3111.
-# Docker runtime: deploy/runtime/worker-compose.yaml uses namespace "agentmemory".
-engine_url = os.environ.get("AGENTMEMORY_III_URL", "ws://127.0.0.1:49134")
-namespace = os.environ.get("AGENTMEMORY_III_NAMESPACE", "agentmemory-3111")
-iii = register_worker(engine_url, InitOptions(namespace=namespace))
-
-try:
-    hits = iii.trigger({
-        "function_id": "mem::smart-search",
-        "payload": {"project": "demo", "query": "how do tokens refresh", "limit": 5},
-    })
-    print(hits)
-finally:
-    iii.shutdown()
-```
-
-Hotový příklad: [`examples/python/`](../examples/python/) (quickstart + průběh observation/recall). REST na `:3111` zůstává dostupné pro hostitele bez runtime iii.
+Použijte [REST API](#api) z libovolného jazyka nebo [MCP nástroje](#mcp-server) z agenta. REST používá JSON a bearer autentizaci; viz [příklad ukládání a vyhledávání](#validate-a-fresh-install-and-restart-persistence). Přímou integraci běhového prostředí ukazují [příklady v Pythonu](../examples/python/).
 
 ### Ze zdroje
 
@@ -864,7 +867,7 @@ git clone https://github.com/rohitg00/agentmemory.git && cd agentmemory
 npm install && npm run build && npm start
 ```
 
-`npm start` spouští stejné prostředí iii Worker Compose jako CLI: iii 0.25.0 s registry workery `state@0.22.20` a `http@0.22.7`. Na macOS/Linux CLI stáhne pinned binárku enginu do `~/.agentmemory/bin`; automatická instalace vyžaduje `curl`, POSIX `sh` a `tar`. Lokální REST a viewer naslouchají na `127.0.0.1`. Aktualizace vieweru používají SSE přes `GET /agentmemory/viewer/events` na REST portu. `/agentmemory/status` uvádí pinned verzi enginu jako `enginePinnedVersion`; podporovaná výchozí verze je iii 0.25.0. `AGENTMEMORY_III_VERSION` umožňuje záměrně změnit pin.
+`npm start` spustí stejný lokální server jako nainstalované CLI. Požadavky jsou v sekci [Instalace](#install); API a viewer naslouchají na `127.0.0.1`.
 
 ### Windows
 
@@ -880,13 +883,13 @@ npx -y @agentmemory/agentmemory@latest mcp
 npx -y @agentmemory/mcp
 ```
 
-**Diagnostika:** Pokud se spuštění nezdaří, spusťte jej znovu s `--verbose` a prohlédněte si stderr enginu. Ověřte, že porty REST `3111`, vieweru `3113` a enginu `49134` jsou volné; pro jiný izolovaný runtime použijte `--port <N>` nebo `--instance <N>`. CLI používá vlastní pinned binárku enginu a nenahrazuje spustitelný soubor iii v `PATH`.
+Spusťte `agentmemory doctor` nebo restartujte s `--verbose`. Jsou-li výchozí porty obsazené, použijte `--port <N>` nebo `--instance <N>`. Kompatibilitu a obnovu popisuje [průvodce upgradem](../docs/upgrades/iii-0.25.md).
 
 ---
 
 <h2 id="deploy">Nasazení</h2>
 
-Docker je podporován pro self-hosting z tohoto repozitáře, nikoli jako režim spouštění CLI. Šablony pro nasazení na jedno kliknutí používají `deploy/Dockerfile` a `deploy/runtime/worker-compose.yaml`, připínají stejný runtime iii 0.25.0 a workery a ukládají stav, traces i vygenerovaný secret na trvalý svazek `/data`. Docker Compose standardně používá existující pojmenovaný svazek `iii-data`; pro bind mount nastavte `AGENTMEMORY_DATA_DIR` na cestu hostitele. Starší souborové úložiště z verze 0.22.1 se čte přímo z `/data/state_store.db`, bez migrace nebo konverze. REST CORS ve výchozím stavu povoluje lokální původ REST a vieweru; pokud potřebuje přístup důvěryhodný původ prohlížeče, nastavte `REST_ALLOWED_ORIGINS` na seznam přesných původů oddělených čárkami. Podrobnosti nastavení a zabezpečení jsou v [`deploy/README.md`](../deploy/README.md).
+Pro vlastní hosting použijte Docker Compose nebo šablony níže. Paměť a přihlašovací údaje jsou na svazku `/data`; při aktualizaci ho zálohujte a znovu použijte. Autentizaci, síťový přístup, zálohy a migraci popisuje [průvodce nasazením](../deploy/README.md).
 
 <p>
   <a href="https://fly.io/launch?repo=https://github.com/rohitg00/agentmemory"><img src="https://img.shields.io/badge/Deploy%20to-fly.io-8b5cf6?style=for-the-badge&logo=fly.io&logoColor=white" alt="Nasadit na fly.io" /></a>
@@ -908,35 +911,13 @@ spodní hranice nákladů) jsou v [`deploy/`](.././deploy/README.md):
   VPS přes [Coolify](https://coolify.io/self-hosted); stejný Docker
   Compose stack, host i data vlastníte vy.
 
-REST používá port `3111`; viewer běží na portu `3113` a zveřejňuje se pouze tam, kde šablona platformy podporuje samostatnou chráněnou trasu. Živé aktualizace používají SSE s bearer autentizací na REST endpointu `/agentmemory/viewer/events`. WebSocket enginu na `49134` je interní a nesmí se zveřejňovat. Pokyny k vystavení a povoleným originům pro jednotlivé platformy najdete v [`deploy/README.md`](../deploy/README.md).
+REST používá `3111`, viewer `3113`. Ponechte je v privátní síti, nebo je chraňte autentizací a TLS. Nastavení platforem a [migraci starého Dockeru](../deploy/README.md#migrating-from-the-legacy-cli-docker-mode) popisuje průvodce nasazením.
 
-
-### Migrace starších instalací Dockeru spravovaných CLI
-
-Současné CLI nespouští ani nespravuje nasazení Dockeru. Pokud najde starý záznam životního cyklu Dockeru, zachová metadata a vypíše přesný příkaz `docker stop ...`; před migrací tento příkaz spusťte. Nové běhové prostředí nespouštějte, dokud má starý kontejner stále připojený svazek.
-
-Starý trvalý svazek (obvykle `iii-data`) si ponechte a zálohujte, nebo zkopírujte obsah `/data` do připojeného svazku (bind mount). Worker state čte existující soubor `/data/state_store.db` přímo, bez exportu či převodu. Staré běhové prostředí používalo UID/GID `65532:65532`; nový image jednorázově rekurzivně změní vlastníka na `node:node` (`1000:1000`) a zapíše `/data/.ownership-migrated-node-v1`. Po této migraci svazek znovu nepřipojujte ke starému běhovému prostředí.
-
-Staré běhové prostředí ukládalo také vygenerovaný bearer secret v `/data/.hmac`. Nový image tento secret během migrace zachová; výslovně nastavená hodnota `AGENTMEMORY_SECRET` má přednost. Nový projekt Compose spusťte z kořene repozitáře příkazem `docker compose up --build -d`. Pokud má starý svazek místo názvu `iii-data` název s prefixem projektu, výslovně jej znovu použijte nebo přejmenujte — omylem neinicializujte prázdný svazek. Ověřte `/agentmemory/livez` a potvrďte, že lze najít staré i nové vzpomínky. Příkazu `docker compose down -v` se vyhněte, pokud není záměrem data smazat.
 ---
 
 <h2 id="why-agentmemory"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-why.svg"><img src="../assets/tags/section-why.svg" alt="Proč agentmemory" height="32" /></picture></h2>
 
-Každý kódovací agent po skončení session zapomene všechno a každá nová session začíná tím, že znovu vysvětlujete svůj stack. agentmemory běží na pozadí a tento krok odstraňuje.
-
-```text
-Session 1: "Add auth to the API"
-  Agent writes code, runs tests, fixes bugs
-  agentmemory silently captures every tool use
-  Session ends -> observations compressed into structured memory
-
-Session 2: "Now add rate limiting"
-  Agent already knows:
-    - Auth uses JWT middleware in src/middleware/auth.ts
-    - Tests in test/auth.test.ts cover token validation
-    - You chose jose over jsonwebtoken for Edge compatibility
-  Zero re-explaining. Starts working immediately.
-```
+Znalosti o projektu se rozptylují mezi chaty a soubory instrukcí. AgentMemory umožňuje najít dřívější rozhodnutí, opravy a lessons z právě používaného agenta.
 
 ### vs vestavěná paměť agenta
 
@@ -944,7 +925,7 @@ Každý AI kódovací agent se dodává s vestavěnou pamětí: Claude Code má 
 
 | | Vestavěné (CLAUDE.md) | agentmemory |
 |---|---|---|
-| Rozsah | strop 200 řádků | neomezený |
+| Údržba | Ručně spravované instrukce | Indexovaná historie sessions a vzpomínky |
 | Vyhledávání | načte vše do kontextu | BM25 + vektor + graf (pouze top-K) |
 | Náklady na tokeny | 22K+ při 240 pozorováních | ~1,900 tokenů (o 92% méně) |
 | Napříč agenty | soubory po agentech | MCP + REST (jakýkoli agent) |
@@ -970,13 +951,13 @@ PostToolUse hook fires
 Stop / SessionEnd hook fires
   -> Summarize session
   -> Knowledge graph extraction (if GRAPH_EXTRACTION_ENABLED=true)
-  -> Slot reflection (if SLOT_REFLECT_ENABLED=true)
+  -> Slot reflection (if AGENTMEMORY_SLOTS=true and AGENTMEMORY_REFLECT=true)
 
 SessionStart hook fires
   -> Load project profile (top concepts, files, patterns)
   -> Hybrid search (BM25 + vector + graph)
   -> Token budget (default: 2000 tokens)
-  -> Inject into conversation
+  -> Inject context when enabled by the integration
 ```
 
 ### 4úrovňová konsolidace paměti
@@ -994,6 +975,8 @@ Paměti v čase slábnou (Ebbinghausova křivka). Často navštěvované paměti
 
 ### Co se zachycuje
 
+Tabulka popisuje hooks Claude Code. Ostatní integrace zachycují události poskytované svým hostitelem. Automatické vkládání kontextu přes sdílené hooks je volitelné: `AGENTMEMORY_INJECT_CONTEXT=true`.
+
 | Hook | Zachycuje |
 |------|----------|
 | `SessionStart` | cestu k projektu, ID session |
@@ -1010,7 +993,7 @@ Paměti v čase slábnou (Ebbinghausova křivka). Často navštěvované paměti
 
 | Schopnost | Popis |
 |---|---|
-| **Automatické zachycení** | každé použití nástroje se zaznamená přes hooks, bez manuálního úsilí |
+| **Automatické zachycení** | Podporované události sessions a nástrojů zaznamenané nativními integracemi |
 | **Sémantické vyhledávání** | BM25 + vektor + znalostní graf s fúzí RRF |
 | **Evoluce paměti** | verzování, nahrazování (supersession), grafy vztahů |
 | **Hygiena vyhledávání** | nahrazené verze paměti opustí vyhledávací indexy; řetězec verzí v KV si uchovává úplnou historii |
@@ -1228,130 +1211,6 @@ Server vieweru se ve výchozím stavu váže na `127.0.0.1` a při předávání
 
 ---
 
-<h2 id="iii-console"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-viewer.svg"><img src="../assets/tags/section-viewer.svg" alt="iii Console" height="32" /></picture></h2>
-
-iii 0.25 již neobsahuje vestavěnou konzoli. `agentmemory console` zobrazí pokyny k přechodu. Prohlížeč AgentMemory zůstává na portu 3113; stav ověříte příkazem `agentmemory status`.
-
-[iii 0.25 migration](../docs/upgrades/iii-0.25.md)
-
----
-
-<h2 id="powered-by-iii"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-architecture.svg"><img src="../assets/tags/section-architecture.svg" alt="Založeno na iii" height="32" /></picture></h2>
-
-agentmemory je worker na runtime [iii](https://iii.dev). Worker Compose spravuje engine a spouští agentmemory spolu s registry workery `state` a `http`. Viewer přijímá události přes SSE obsluhované REST endpointem.
-
-To znamená, že jeden další příkaz může agentmemory rozšířit o novou schopnost.
-
-### Rozšiřte agentmemory dalšími workery
-
-Runtime skládá registry workery `state` (KV) a `http` s agentmemory. Do projektu Worker Compose lze přidat i další workery z [registru workerů iii](https://workers.iii.dev).
-
-```yaml
-containers:
-  state:
-    worker: package://api.workers.iii.dev/state
-    version: "0.22.20"
-  http:
-    worker: package://api.workers.iii.dev/http
-    version: "0.22.7"
-```
-
-| Worker | Co navíc získáte oproti agentmemory |
-|---|---|
-| [`database`](https://workers.iii.dev/workers/database) | adaptér stavu nad SQL, když vám výchozí KV nestačí |
-| [`iii-sandbox`](https://workers.iii.dev/workers/iii-sandbox) | kód z `memory_recall` běží v jednorázovém VM, nikoli ve vašem shellu |
-| [`mcp`](https://workers.iii.dev/workers/mcp) | další servery MCP vedle agentmemory ve stejném enginu |
-
-Runtime připíná registry balíčky `state@0.22.20` a `http@0.22.7` v projektu Worker Compose generovaném CLI.
-
-Úplný registr: [workers.iii.dev](https://workers.iii.dev). Každý worker tam skládá stejné primitivy jako agentmemory a agentmemory, které už používáte, je jedním z nich.
-
-### Runtime CLI a adresy bindu
-
-Spuštění `agentmemory` (nebo balíčku bez podřízeného příkazu) spustí iii Worker Compose s izolovaným manifestem ve vybraném datovém adresáři. Používá iii 0.25.0 a workery `state@0.22.20` a `http@0.22.7`. REST a viewer místního CLI naslouchají na `127.0.0.1`; WebSocket enginu slouží internímu provozu runtime. Docker nasazení z tohoto repozitáře používají oddělený [`deploy/runtime/worker-compose.yaml`](../deploy/runtime/worker-compose.yaml); viz [`deploy/README.md`](../deploy/README.md).
-
-### Úložný backend: file (výchozí) vs redis
-
-Worker `state` standardně používá souborové KV úložiště, které je drženo v paměti a pravidelně zapisováno na disk. Redis lze použít, když runtime sdílí více zapisujících; přidává síťový round-trip a nezpůsobuje paralelní připojení jediného workeru.
-
-Nastavte `AGENTMEMORY_STATE_BACKEND=redis` a `AGENTMEMORY_REDIS_URL`, chcete-li použít Redis adaptér workeru `state`, který ukládá každý klíč jako pole hash Redis (`HSET`):
-
-```env
-# ~/.agentmemory/.env
-AGENTMEMORY_STATE_BACKEND=redis
-AGENTMEMORY_REDIS_URL=redis://localhost:6379
-```
-
-`AGENTMEMORY_STATE_BACKEND` má výchozí hodnotu `file`; nerozpoznaná hodnota (cokoli jiného než `file` nebo `redis`) způsobí chybu při startu, ne tichý fallback. `/agentmemory/status` a stránka Health ve viewer (řádek State store) uvádějí aktivní backend a jeho dostupnost, nikdy však URL.
-
-**Pouze čisté `redis://`.** Pinned worker `state` podporuje pouze obyčejné `redis://`; služby vyžadující TLS přes `rediss://` potřebují šifrovaný tunel. Připojení Redis není šifrované, proto použijte místní Redis, důvěryhodnou privátní síť nebo tunel. Pokud heslo Redis obsahuje jednoduchou uvozovku, zakódujte ji procentově (`%27`); engine rozvine URL do konfigurace YAML před jejím parsováním.
-
-**Samostatná databáze Redis pro každou instanci.** Každá souběžná instance má používat vlastní databázi nebo Redis server, aby zůstal stav izolovaný.
-
-**Co zůstává stejné a co se liší.** Všechny funkce agentmemory fungují s Redis: sessions, pozorování, paměti (remember, supersede, evolve, forget), vyhledávání a indexové dávky, lessons, graf, audit log a jeho měsíční scopy, export a import, governance delete, stav konsolidace, snapshot vieweru i živý SSE feed a health monitor. Worker `state` ukládá každý scope jako hash Redis (`HSET`/`HGET`/`HGETALL`) a spouští stejné state triggery jako souborové úložiště. Tři rozdíly úložiště ošetřuje agentmemory:
-
-- Redis nevrací záznamy scope v pevném pořadí. agentmemory je řadí od nejstarších (podle času vytvoření v ID záznamu a poté timestampu), takže seznamy, stránkování a dávky exportu mají stejné pořadí jako v souborovém úložišti.
-- Engine aplikuje částečné aktualizace v Redis pomocí skriptu Lua, který prázdná pole převádí na prázdné objekty. agentmemory tyto aktualizace provádí samo (čtení, změna a zápis pod zámkem pro daný klíč), aby pole jako `tags: []` zůstala poli.
-- Kontrola staršího audit logu čte starý scope z Redis namísto hledání souboru na disku.
-
-Živé události vieweru používají SSE na workeru REST a vysílá je běžící proces agentmemory; nepoužívají Redis pub/sub ani pravidelnou kontrolu Redis streamu. Dostupnost Redis ovlivňuje čtení a zápisy stavu, nikoli transport vieweru. Když Redis není dostupný, status uvádí „The state store is not answering“ a způsob kontroly (`redis-cli -u "$AGENTMEMORY_REDIS_URL" ping`). Výpis velmi velkého scope přečte celý hash jediným `HGETALL`, se stejnými náklady jako u souborového úložiště drženého v paměti.
-
-**Doporučená nastavení Redis.** Výchozí politika snapshotů `save 3600 1 300 100 60 10000` může při pádu ztratit několik minut zápisů. Nastavte `appendonly yes` pro data, o která nechcete přijít. Nastavte `maxmemory-policy noeviction`; `allkeys-lru` a podobné politiky tiše zahazují paměti po dosažení limitu paměti Redis.
-
-Projekt Worker Compose generovaný CLI předává tyto proměnné workeru `state`. Informace o self-host nasazení Dockeru jsou v [`deploy/README.md`](../deploy/README.md) a [dokumentaci workeru state](https://workers.iii.dev/workers/state).
-
-Pokud uložená konfigurace workeru obsahuje URL Redis, může obsahovat přihlašovací údaje, a proto je citlivá. Chraňte oprávnění vybraného datového adresáře (například `chmod 700 <data-dir>` na sdíleném hostiteli). Před administrátorskými údaji databáze dejte přednost Redis ACL uživateli omezenému na potřebné operace.
-
-**Migrace není automatická.** Přepnutí `AGENTMEMORY_STATE_BACKEND` začíná na obou stranách prázdným úložištěm; existující data se mezi souborovým úložištěm a Redis nekopírují. Exportujte data ze starého backendu a importujte je do nového. Následující postup funguje stejně v bash i zsh (včetně `bash -u`). Pole jako `AUTH=(${AGENTMEMORY_SECRET:+-H "Authorization: Bearer $AGENTMEMORY_SECRET"})` nefunguje: zsh zachová hlavičku jako jedno chybně utvořené slovo, zatímco bash ji rozdělí na dvě, takže oba požadavky při nastaveném `AGENTMEMORY_SECRET` vrátí 401:
-
-```bash
-# Set AGENTMEMORY_SECRET to the content of the `secret` file in the server's selected data directory before running these curl commands.
-
-# 1. On the old backend, while agentmemory is still running on it:
-if [ -n "${AGENTMEMORY_SECRET:-}" ]; then
-  curl -fsS -H "Authorization: Bearer $AGENTMEMORY_SECRET" http://localhost:3111/agentmemory/export > backup.json
-else
-  curl -fsS http://localhost:3111/agentmemory/export > backup.json
-fi
-
-# 2. Confirm backup.json is a usable export before switching backends:
-jq -e '.version and .exportedAt' backup.json > /dev/null || {
-  echo "backup.json is not a valid export; do not switch backends" >&2
-  exit 1
-}
-
-# 3. Switch AGENTMEMORY_STATE_BACKEND (and AGENTMEMORY_REDIS_URL if needed),
-#    restart agentmemory against the new backend, then:
-if [ -n "${AGENTMEMORY_SECRET:-}" ]; then
-  jq -n --slurpfile d backup.json '{exportData: $d[0], strategy: "merge"}' | \
-    curl -fsS -H "Authorization: Bearer $AGENTMEMORY_SECRET" -X POST http://localhost:3111/agentmemory/import \
-      -H 'Content-Type: application/json' -d @-
-else
-  jq -n --slurpfile d backup.json '{exportData: $d[0], strategy: "merge"}' | \
-    curl -fsS -X POST http://localhost:3111/agentmemory/import \
-      -H 'Content-Type: application/json' -d @-
-fi
-```
-
----
-
-`/agentmemory/export` také přijímá `?maxSessions=` a `?offset=` pro rozdělení velkého korpusu do více volání, `?collectionLimit=` a `?collectionOffset=` pro stránkování pamětí, grafu a dalších kolekcí a `?collections=` pro vrácení pouze pojmenovaných kolekcí; `strategy` při importu je `merge` (bezpečná výchozí hodnota), `replace` nebo `skip`, přičemž `replace` odmítne stránkovaný nebo vybraný export.
-
-### Co iii nahrazuje
-
-| Tradiční stack | agentmemory používá |
-|---|---|
-| Express.js / Fastify | iii HTTP Triggers |
-| SQLite / Postgres + pgvector | iii state worker (file-based KV) + in-memory vector index |
-| SSE / Socket.io | REST endpoint `GET /agentmemory/viewer/events` (SSE) |
-| pm2 / systemd | dohled nad workery iii engine |
-| Prometheus / Grafana | iii OTEL + health monitor |
-| Vlastní systémy pluginů | Worker Compose (`worker-compose.yaml`) |
-
-**253 zdrojových souborů · ~58,000 řádků kódu · 4,000+ testů · 322 funkcí · 65 KV scopes**, vše na třech primitivech. Žádné `agentmemory plugin install`. Systém pluginů je samo iii.
-
----
-
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Konfigurace" height="32" /></picture></h2>
 
 ### Poskytovatelé LLM
@@ -1368,6 +1227,8 @@ agentmemory automaticky detekuje poskytovatele z vašeho prostředí. Poskytovat
 | OpenAI API | `OPENAI_API_KEY` | výchozí `gpt-5.6-luna`, přepište pomocí `OPENAI_MODEL` |
 | **Lokální (Ollama / LM Studio / vLLM / llama.cpp)** | `OPENAI_API_KEY=local` + `OPENAI_BASE_URL=http://localhost:11434/v1` (Ollama) nebo `http://localhost:1234/v1` (LM Studio) + `OPENAI_MODEL=<your model>` | cokoli kompatibilní s OpenAI API. Nulové náklady, běží na vašem hardwaru. Viz [Lokální modely](#local-models-ollama--lm-studio--vllm) níže. |
 | Záložní řešení přes předplatné Claude | `AGENTMEMORY_ALLOW_AGENT_SDK=true` | pouze opt-in. Spouští sessions `@anthropic-ai/claude-agent-sdk`; dříve to způsobovalo neomezenou rekurzi Stop-hook, takže už to není výchozí nastavení. |
+
+<a id="local-models-ollama--lm-studio--vllm"></a>
 
 ### Lokální modely (Ollama / LM Studio / vLLM)
 
@@ -1418,24 +1279,7 @@ Lokální embeddingy se dodávají jako volitelná závislost, ale ve výchozím
 
 ### Výběr modelu s ohledem na náklady
 
-Když je komprese na pozadí psaná LLM zapnutá (poskytovatel i `AGENTMEMORY_AUTO_COMPRESS=true`), běží u každého pozorování, takže volba modelu výrazně ovlivní měsíční výdaje. Zachycená data o zátěži: 635 requestů / 888K tokenů / 35 hodin aktivního používání, spuštěno proti třem modelům OpenRouter podle ceníku z 2026-05-23.
-
-| Úroveň | Model | Vstup / 1M | Výstup / 1M | Náklady za zachycených 35h | Poznámky |
-|------|-------|------------|-------------|---------------------------|-------|
-| Doporučeno | `deepseek/deepseek-v4-flash-0731` | $0.07 | $0.14 | ~$0.07 (odhad) | nejnovější DeepSeek; nejlevnější doporučená volba pro zátěž typu komprese. |
-| Doporučeno | `deepseek/deepseek-v4-pro` | $0.435 | $0.87 | ~$0.46 | solidní kvalita komprese + shrnutí za ~10× nižší náklady než Sonnet. |
-| Doporučeno | `qwen/qwen3-coder` | $0.45 | $1.80 | ~$0.55 | silné uvažování nad kódem, pokud jsou vaše sessions silně orientované na kód. |
-| Prémiová | `anthropic/claude-sonnet-5` | $3.00 | $15.00 | ~$5.02 (odhad) | stejná ceníková cena jako naměřený běh Sonnet 4.6; úvodní cena $2/$10 do 2026-08-31. |
-| Prémiová | `openai/gpt-5.6-sol` | $5.00 | $30.00 | ~$9 (odhad) | vlajková úroveň; nákladná pro neustále běžící práci na pozadí. |
-| Vyhněte se | `anthropic/claude-opus-5` | $5.00 | $25.00 | ~$8.40 (odhad) | model vlajkové třídy; přeplatíte za kompresi. |
-
-Naměřené řádky pocházejí ze zachyceného běhu; řádky (odhad) škálují stejnou směs tokenů podle ceníkové ceny každého modelu.
-
-agentmemory vypíše při startu varování, když `OPENROUTER_MODEL` odpovídá vzoru prémiové úrovně. Nastavte `AGENTMEMORY_SUPPRESS_COST_WARNING=1`, abyste ho umlčeli, jakmile učiníte informovanou volbu.
-
-Poměr kvality a nákladů pro práci s pamětí: komprese je úloha typu shrnutí s poměrně volnými nároky na kvalitu (shrnutí si znovu čte agent, ne uživatel). DeepSeek V4 Flash / V4 Pro / Qwen3-Coder se v této úloze blíží Sonnet na úroveň zaokrouhlovací chyby, za 10-70× nižší náklady. Prémiové modely šetřete na dotazy, které čtete přímo vy.
-
-Zdroje: [ceník OpenRouter pro Claude Sonnet 5](https://openrouter.ai/anthropic/claude-sonnet-5), [DeepSeek V4 Flash](https://openrouter.ai/deepseek/deepseek-v4-flash-0731), [poznámky k cenám DeepSeek](https://api-docs.deepseek.com/quick_start/pricing/).
+Začněte bez klíče pro zachycení a vyhledávání podle klíčových slov. `EMBEDDING_PROVIDER=local` zapne lokální sémantické vyhledávání po prvním stažení modelu. Komprese pomocí LLM vyžaduje poskytovatele a `AGENTMEMORY_AUTO_COMPRESS=true`; může odeslat požadavek pro každé pozorování, proto ověřte aktuální ceny poskytovatele. Aktivní poskytovatele ukazuje viewer a `agentmemory status`.
 
 ### Paměť pro víc agentů (`AGENT_ID` + `AGENTMEMORY_AGENT_SCOPE`)
 
@@ -1465,23 +1309,22 @@ Když `AGENT_ID` není nastaveno, paměť zůstává bez rozsahu (starší chov�
 
 ### Porty
 
-Místní runtime používá tři listenery. WebSocket enginu iii slouží interní registraci workerů a nesmí být vystaven veřejné síti.
+| Port | Účel | Proměnná prostředí |
+|---|---|---|
+| `3111` | REST API, MCP HTTP a živé události vieweru | `III_REST_PORT` |
+| `3113` | Rozhraní vieweru | `III_VIEWER_PORT` |
 
-| Port | Proces | Účel | Přepis přes env |
-|------|---------|---------|--------------|
-| `3111` | registry worker `http` | REST API, MCP HTTP, health a autentizované SSE vieweru na `/agentmemory/viewer/events` | `III_REST_PORT` |
-| `3113` | agentmemory | UI vieweru a proxy vieweru | `III_VIEWER_PORT` |
-| `49134` | engine iii | interní WebSocket workerů | `III_ENGINE_PORT` nebo `III_ENGINE_URL` |
+`--port <N>` nastaví REST port a výchozí port vieweru na `N+2`. `--instance N` vytvoří samostatné prostředí. Interní porty musí zůstat privátní; před vzdáleným zpřístupněním si přečtěte [průvodce nasazením](../deploy/README.md).
 
-`--port <N>` nastavuje REST port a odvozuje port vieweru `N+2` a WebSocket enginu `N+46023`, pokud nejsou výslovně určeny. Pro izolovaný runtime použijte `--instance N`.
+### Úložiště: soubor nebo Redis
 
-Self-host nasazení publikuje REST a viewer, standardně `127.0.0.1:3111` a `127.0.0.1:3113`; hostitelské porty lze změnit pomocí `AGENTMEMORY_REST_PORT` a `AGENTMEMORY_VIEWER_PORT`. REST CORS ve výchozím nastavení povoluje `http://localhost` a `http://127.0.0.1` na nakonfigurovaných portech REST i vieweru. Další důvěryhodné originy prohlížeče povolte seznamem přesných originů oddělených čárkami v Docker proměnné `REST_ALLOWED_ORIGINS`.
+Výchozí souborové úložiště nepotřebuje samostatnou databázi. Redis je volitelný přes `AGENTMEMORY_STATE_BACKEND=redis` a `AGENTMEMORY_REDIS_URL`. Změna backendu nepřenese existující paměť. Nastavení persistence, omezení Redis a autentizovaný export/import jsou v [průvodci úložištěm](../docs/reliability/state-storage.md).
 
 ### Konfigurační soubor
 
 Dejte runtime konfiguraci agentmemory do `~/.agentmemory/.env`, místo exportování proměnných v každém shellu. Pokud viewer zobrazí instalační nápovědu jako `export ANTHROPIC_API_KEY=...`, zkopírujte ji do tohoto souboru jako `ANTHROPIC_API_KEY=...` bez prefixu `export`, pak agentmemory restartujte. Pro výběr jiného souboru env nastavte `AGENTMEMORY_ENV_FILE`.
 
-Proměnné prostředí procesu stále fungují a mají přednost před hodnotami v souboru. Projekt Worker Compose generovaný CLI předává nastavení Redis z proměnných `AGENTMEMORY_STATE_BACKEND` a `AGENTMEMORY_REDIS_URL` workeru `state`.
+Proměnné prostředí procesu mají přednost před souborem. Po změně konfigurace server restartujte.
 
 Na Windows žije stejný soubor na `%USERPROFILE%\.agentmemory\.env`:
 
@@ -1508,166 +1351,19 @@ GRAPH_EXTRACTION_ENABLED=true
 
 ### Proměnné prostředí
 
-Vytvořte `~/.agentmemory/.env`:
+Běžné volby pro `~/.agentmemory/.env`. Vkládání kontextu a komprese jsou volitelné; komprese navíc vyžaduje poskytovatele. Režim `core` omezuje viditelné nástroje MCP:
 
 ```env
-# LLM provider (pick one — default is the no-op provider: no LLM calls)
-# ANTHROPIC_API_KEY=sk-ant-...
-# ANTHROPIC_BASE_URL=...              # Optional: Anthropic-compatible proxy / Azure
-# GEMINI_API_KEY=...
-# OPENROUTER_API_KEY=...
-# MINIMAX_API_KEY=...
-# OPENAI_API_KEY=***                       # NOTE: this same key auto-activates BOTH the
-#                                          # OpenAI LLM provider (here) AND the OpenAI
-#                                          # embedding provider (further below). Set
-#                                          # OPENAI_API_KEY_FOR_LLM=false to scope it
-#                                          # to embeddings only.
-# OPENAI_BASE_URL=https://api.openai.com   # Optional: override for Azure / vLLM / LM Studio / proxies
-#                                          # Azure: https://<resource>.openai.azure.com/openai/deployments/<deployment>
-#                                          # Auto-detected from `.openai.azure.com` hostname; uses
-#                                          # api-key header + api-version query param.
-# OPENAI_API_VERSION=2024-08-01-preview    # Optional: Azure api-version query param
-# OPENAI_MODEL=gpt-5.6-luna                # Optional: default model
-# OPENAI_TIMEOUT_MS=60000                  # Optional: OpenAI-scoped alias for the outbound fetch
-#                                          # timeout. Takes precedence over AGENTMEMORY_LLM_TIMEOUT_MS
-#                                          # for back-compat with v0.9.17. New configs should
-#                                          # prefer the global AGENTMEMORY_LLM_TIMEOUT_MS below.
-# OPENAI_REASONING_EFFORT=none             # Optional: "low" | "medium" | "high" | "none"
-#                                          # Honored only by OpenAI's reasoning models (o1, o3,
-#                                          # gpt-*-reasoning) and providers that mirror that
-#                                          # schema (Ollama Cloud thinking models). Standard
-#                                          # chat models reject this field with 400. Set to
-#                                          # "none" for thinking models that return reasoning
-#                                          # but no content.
-# OPENAI_API_KEY_FOR_LLM=false             # Optional: set to false to skip OpenAI auto-detection
-#                                          # for LLM (useful if you only want OpenAI for embeddings)
-# Opt-in Claude-subscription fallback (spawns @anthropic-ai/claude-agent-sdk);
-# leave OFF unless you understand the Stop-hook recursion risk:
-# AGENTMEMORY_ALLOW_AGENT_SDK=true
-
-# Embedding provider (BM25-only when unset; local is an explicit opt-in)
-# EMBEDDING_PROVIDER=local
-# VOYAGE_API_KEY=...
-# OPENAI_API_KEY=sk-...
-# OPENAI_BASE_URL=https://api.openai.com   # Override for Azure / vLLM / LM Studio / proxies
-# OPENAI_EMBEDDING_MODEL=text-embedding-3-small
-# OPENAI_EMBEDDING_DIMENSIONS=1536        # Required when the model is not in the known-models table
-# OPENAI_EMBEDDING_BASE_URL=https://...   # Embeddings only; falls back to OPENAI_BASE_URL
-# OPENAI_EMBEDDING_API_KEY=sk-...         # Embeddings only; wins over OPENAI_API_KEY when set
-
-# Outbound LLM / embedding timeout
-# AGENTMEMORY_LLM_TIMEOUT_MS=60000       # Default: 60 000 ms (60 s). Applies to every
-                                          # raw-fetch provider (Gemini, OpenRouter, MiniMax,
-                                          # OpenAI LLM, OpenAI/Cohere/Voyage/OpenRouter
-                                          # embedding). For the OpenAI LLM path, the
-                                          # OpenAI-scoped OPENAI_TIMEOUT_MS alias (above)
-                                          # takes precedence when set, for back-compat
-                                          # with v0.9.17.
-                                          # Increase for slow networks or large batch calls;
-                                          # decrease to fail-fast on rate-limit holds.
-
-# Search tuning
-# BM25_WEIGHT=0.4
-# VECTOR_WEIGHT=0.6
-# TOKEN_BUDGET=2000
-
-# Auth (generated into ~/.agentmemory/secret on first start when unset)
-# AGENTMEMORY_SECRET=your-secret
-# VIEWER_ALLOWED_ORIGINS=https://memory.example.com
-# AGENTMEMORY_IMPORT_ROOT=~/projects
-
-# Ports (defaults: 3111 API, 3113 viewer)
-# III_REST_PORT=3111
-
-# Engine usage telemetry (iii). Off unless you set it; true opts in.
-# III_TELEMETRY_ENABLED=false
-
-# Features
-# AGENTMEMORY_AUTO_COMPRESS=false  # OFF by default. Requires an LLM
-                                   # provider as well. When both are on,
-                                   # every PostToolUse hook calls your
-                                   # LLM provider to compress the
-                                   # observation — expect significant
-                                   # token spend on active sessions.
-# AGENTMEMORY_SLOTS=false          # OFF by default. Editable pinned
-                                   # memory slots — persona,
-                                   # user_preferences, tool_guidelines,
-                                   # project_context, guidance,
-                                   # pending_items, session_patterns,
-                                   # self_notes. Size-limited; agent
-                                   # edits via memory_slot_* tools.
-                                   # Pinned slots addressable for
-                                   # SessionStart injection.
-# AGENTMEMORY_REFLECT=false        # OFF by default. Requires SLOTS=on.
-                                   # Stop hook fires mem::slot-reflect:
-                                   # scans recent observations, auto-
-                                   # appends TODOs to pending_items,
-                                   # counts patterns in
-                                   # session_patterns, records touched
-                                   # files in project_context. Fire-
-                                   # and-forget; does not block.
-# AGENTMEMORY_INJECT_CONTEXT=false # OFF by default. When on:
-                                   # - SessionStart may inject ~1-2K
-                                   #   chars of project context into
-                                   #   the first turn of each session
-                                   #   (this is what actually reaches
-                                   #   the model — Claude Code treats
-                                   #   SessionStart stdout as context)
-                                   # - PreToolUse fires /agentmemory/enrich
-                                   #   on every file-touching tool call
-                                   #   (resource cleanup, not a token
-                                   #   fix — PreToolUse stdout is debug
-                                   #   log only per Claude Code docs)
-                                   # Observations are still captured via
-                                   # PostToolUse regardless of this flag.
-# GRAPH_EXTRACTION_ENABLED=false
-# AGENTMEMORY_LLM_NOTHINK=1        # Local reasoning models only: ask the
-                                   # model to skip its hidden thinking pass
-                                   # during graph extraction. Faster runs;
-                                   # relation quality can drop slightly.
-# CONSOLIDATION_ENABLED=false   # on by default when an LLM provider is configured
-# LESSON_DECAY_ENABLED=true
-# OBSIDIAN_AUTO_EXPORT=false
-# AGENTMEMORY_EXPORT_ROOT=~/.agentmemory
-# CLAUDE_MEMORY_BRIDGE=false
-# SNAPSHOT_ENABLED=false
-
-# Storage and durability
-# AGENTMEMORY_STATE_BACKEND=file           # file (default) or redis; see "Storage backend" below
-# AGENTMEMORY_REDIS_URL=redis://localhost:6379   # Required with redis, plain redis:// only
-# AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
-# AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
-                                             # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
-
-# Sessions
-# AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
-                                           # the threshold as abandoned. Deletes nothing;
-                                           # new activity makes the session active again.
-# AGENTMEMORY_SESSION_SWEEP_STALE_HOURS=24
-
-# Capture filters (hooks)
-# AGENTMEMORY_CAPTURE_ALLOW=               # Comma or space list of tool names or globs;
-                                           # when set, only these tools are captured
-# AGENTMEMORY_CAPTURE_DENY=                # Extra names or globs to skip, added to the
-                                           # defaults: memory_*, toolsearch,
-                                           # listmcpresources, fetchmcpresource
-# AGENTMEMORY_CAPTURE_OUTPUT_MAX=8000      # Max characters of tool output per observation
-# AGENTMEMORY_PRE_COMPACT_BUDGET=1500      # Token budget for PreCompact context; 0 disables
-
-# Audit log
-# AGENTMEMORY_AUDIT_RETENTION_MONTHS=0     # Drop month scopes older than N months; 0 keeps all
-# AGENTMEMORY_AUDIT_INDEX_PERSIST=false    # 1 or true records index migration and cleanup
-                                           # rows (debugging only)
-
-# Team
-# TEAM_ID=
-# USER_ID=
-# TEAM_MODE=private
-
-# Tool visibility: "all" (54 tools, default) or "core" (8 tools, lean)
+EMBEDDING_PROVIDER=local
+# AGENTMEMORY_INJECT_CONTEXT=true
+# AGENTMEMORY_AUTO_COMPRESS=true
 # AGENTMEMORY_TOOLS=core
+# AUTO_FORGET_ENABLED=false
+# LESSON_DECAY_ENABLED=false
+# INSIGHT_DECAY_ENABLED=false
 ```
+
+Úplný přehled je v [`.env.example`](../.env.example): přihlašovací údaje poskytovatelů, filtry zachycení, retence, úložiště, týmové scope a volitelné funkce. `AGENTMEMORY_ENV_FILE` vybere jiný soubor. Vyplněný `.env` ani bearer secret nikdy necommitujte.
 
 ---
 
@@ -1675,7 +1371,7 @@ Vytvořte `~/.agentmemory/.env`:
 
 146 endpointů na portu `3111`. REST API se ve výchozím stavu váže na `127.0.0.1`. Chráněné endpointy vyžadují `Authorization: Bearer <secret>`, a endpointy pro mesh sync vyžadují explicitně nastavené `AGENTMEMORY_SECRET` na obou stranách.
 
-**Autentizace je ve výchozím stavu zapnutá.** Pokud není nastavena `AGENTMEMORY_SECRET` (v shellu ani v `~/.agentmemory/.env`), CLI při prvním spuštění vygeneruje náhodný secret a uloží jej do vybraného datového adresáře jako `secret` s režimem `0600` (výchozí umístění podle platformy je popsáno výše). Všichni zabalení klienti jej načítají odtud při komunikaci s lokálním serverem: CLI, viewer, hooks v `plugin/scripts`, server MCP a shim `@agentmemory/mcp`, konfigurace zapsané pomocí `agentmemory connect` a zabalené integrace OpenCode, Pi, OpenClaw, Hermes a filesystem-watcher. Uložený secret se odesílá pouze na loopback URL (`localhost`, `127.0.0.0/8`, `::1`). Výslovně nastavená `AGENTMEMORY_SECRET` má vždy přednost a vzdálení klienti ji musí mít ve svém prostředí. Self-host nasazení Dockeru z repozitáře a entrypointy `deploy/` generují a exportují vlastní secret. Pro ruční volání API:
+**Autentizace je ve výchozím stavu zapnutá.** Pokud `AGENTMEMORY_SECRET` není nastaveno, CLI při prvním spuštění vygeneruje náhodný secret v `~/.agentmemory/secret` s oprávněním `0600` a zkopíruje jej také do vybraného datového adresáře. Všichni zabalení klienti jej načítají odtud při komunikaci s lokálním serverem: CLI, viewer, hooks v `plugin/scripts`, server MCP a shim `@agentmemory/mcp`, konfigurace zapsané pomocí `agentmemory connect` a zabalené integrace OpenCode, Pi, OpenClaw, Hermes a filesystem-watcher. Uložený secret se odesílá pouze na loopback URL (`localhost`, `127.0.0.0/8`, `::1`). Výslovně nastavená `AGENTMEMORY_SECRET` má vždy přednost a vzdálení klienti ji musí mít ve svém prostředí. Self-host nasazení Dockeru z repozitáře a entrypointy `deploy/` generují a exportují vlastní secret. Pro ruční volání API:
 
 ```bash
 curl -H "Authorization: Bearer <secret-from-data-dir>" http://localhost:3111/agentmemory/health
@@ -1714,7 +1410,7 @@ curl -H "Authorization: Bearer <secret-from-data-dir>" http://localhost:3111/age
 | `POST` | `/agentmemory/team/share` | sdílí s týmem |
 | `GET` | `/agentmemory/audit` | audit trail |
 
-Úplný seznam endpointů: [`src/triggers/api.ts`](../src/triggers/api.ts)
+Úplný seznam endpointů: [Generovaný přehled REST](../plugin/skills/agentmemory-rest-api/REFERENCE.md)
 
 </details>
 
@@ -1758,7 +1454,7 @@ npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 
-**Požadavky:** Node.js >= 20 s npm/npx. Instalace enginu spravovaná CLI na macOS/Linuxu vyžaduje také `curl`, POSIX `sh` a `tar`; nativní Windows vyžaduje ručně nainstalovanou pinned binárku `iii.exe` nebo lze použít WSL2.
+Požadavky jsou v sekci [Instalace](#install). Pravidla přispívání a kontroly vydání najdete v [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 <h2 id="license"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-license.svg"><img src="../assets/tags/section-license.svg" alt="Licence" height="32" /></picture></h2>
 
