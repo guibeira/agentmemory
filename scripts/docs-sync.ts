@@ -106,7 +106,8 @@ const FACTS: Fact[] = [
     label: "REST endpoints",
     value: () => String(
       countMatches("src/triggers/api.ts", /api_path:\s*["`]/g) +
-      countMatches("src/triggers/viewer-sse.ts", /api_path:\s*["`]/g),
+      countMatches("src/triggers/viewer-sse.ts", /api_path:\s*["`]/g) +
+      countMatches("src/triggers/viewer-streams.ts", /api_path:\s*["`]/g),
     ),
     nouns: [
       "REST endpoints", "REST API endpoints", "endpoints", "endpoint", "Endpunkte", "эндпоинт", "个端点", "個端點", "개 엔드포인트", "개의 엔드포인트", "エンドポイント",
@@ -316,6 +317,11 @@ function main(): void {
     report.push(`engine: ${previousEngineVersion} -> ${engineVersion}`);
   }
   nextState.engineVersion = engineVersion;
+  const ompPath = "integrations/omp/package.json";
+  const ompManifest = files.get(ompPath);
+  if (ompManifest) {
+    files.set(ompPath, ompManifest.replace(/("version":\s*")[^"]+(")/, `$1${version}$2`));
+  }
   if (version !== state.version) {
     for (const extra of ["src/types.ts", "src/functions/export-import.ts", "CHANGELOG.md"]) {
       if (!files.has(extra)) files.set(extra, read(extra));

@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP ツール" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 自動 hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="外部 DB 0 個" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ 件のテストが成功" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ 件のテストが成功" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 ランタイムは REST/MCP HTTP を 3111、ビューワーを 3113、内部 iii worker WebSocket を 49134 で使用します。ビューワーのライブイベントは REST 上の SSE で配信されます。`status` は agentmemory の正常性、ピン留めされたエンジンバージョン(`enginePinnedVersion`)、有効な provider/embedding モードを確認します。プローブを保存し、検索できることを確認してください:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 警告: このコマンドは現在のワークスペース/ランタイムを変更します。JavaScript 依存関係を更新し、ピン留めされた iii 0.25.0 エンジンバイナリをインストールする場合があります。
-
-実装の詳細は `src/cli.ts` を参照してください(`src/cli.ts:544-595` 付近の `runUpgrade`)。
 
 ### Claude Code(1 ブロックそのまま貼り付け)
 
@@ -815,7 +818,7 @@ agentmemory のエントリは、`mcpServers` の形式を使うすべてのホ�
 | **Continue.dev** | `~/.continue/config.yaml`(推奨)または `config.json`(レガシー) | `agentmemory connect continue` は、どちらも存在しない場合は新規に `config.yaml` を作成し、既存の `config.json` があればそれを変更します。**既に `config.yaml` がある場合**、アダプタは `mcpServers:` の下に貼り付ける正確なブロックを表示するだけです — コメントやアンカーを安全に保持するには YAML パーサーが必要で、このパッケージは同梱していないため、yaml を黙って書き換えることはありません。Continue は `mcpServers` に配列形式(オブジェクトではなく)を使います。 |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` は `context_servers`(`mcpServers` ではなく Zed 独自のキー)の下に書き込みます。リモート MCP サーバーは、代わりに `{"url": "..."}` で配線できます。 |
 | **Droid(Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` が標準の `mcpServers` ブロックを書き込みます。プロジェクト単位の上書きは `<repo>/.factory/mcp.json` に書いてください。`--with-hooks` を渡すとネイティブ自動キャプチャが使えます。 |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` が、すべての Harness プロファイルが読み込むホームレベルのパッチ層に `@deepseek-ai/dsh-mcp-client` の行を追加します。ツールは `mcp__agentmemory__*` として登録されます。`--with-hooks` を渡すと自動キャプチャも配線されます: 同梱の Claude Code hook スクリプトが、Harness の純正の `@deepseek-ai/dsh-hooks-claude-code` ブリッジ(SessionStart、UserPromptSubmit、PreToolUse、PostToolUse、Stop)経由で、`$DSH_HOME/agentmemory.hooks.json` に書き込まれたマニフェストを通じて実行されます。`DSH_HOME` が未設定の場合は `~/.dsh` がデフォルトです。 |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` で MCP ツールを有効にします。`--with-hooks` を追加すると、AgentMemory 同梱のネイティブキャプチャプラグインを読み込みます。別のプラグインパッケージは不要です。 [DSH](../docs/dsh.md). |
 | **Goose** | Goose の MCP 設定 UI | 同じ `mcpServers` ブロック。`goose configure` → Add Extension → MCP を使用。`~/.config/goose/config.yaml` の直接編集もサポートされていますが、スキーマは `mcpServers:` + `command` ではなく `extensions:` + `cmd` を使います。 |
 | **Aider** | n/a | REST API に直接話しかけます: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`。 |
 | **任意のエージェント(32+)** | n/a | `npx skillkit install agentmemory` がホストを自動検出してマージします。 |
@@ -827,9 +830,9 @@ agentmemory のエントリは、`mcpServers` の形式を使うすべてのホ�
 agentmemory はコア操作を iii functions(`mem::remember`、`mem::observe`、`mem::context`、`mem::smart-search`、`mem::forget`)として登録します。iii SDK を持つあらゆる言語が `ws://localhost:49134` で直接これらを呼び出せます。言語ごとに個別の REST クライアントを用意する必要はありません。
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1339,7 +1342,7 @@ fi
 | Prometheus / Grafana | iii OTEL + ヘルスモニタ |
 | カスタムプラグインシステム | Worker Compose (`worker-compose.yaml`) |
 
-**245 ソースファイル · ~56,000 LOC · 3,800+ テスト · 322 functions · 65 KV スコープ** — すべて 3 つのプリミティブ上に。`agentmemory plugin install` はありません。プラグインシステムは iii そのものです。
+**253 ソースファイル · ~58,000 LOC · 4,000+ テスト · 322 functions · 65 KV スコープ** — すべて 3 つのプリミティブの上に。`agentmemory plugin install` はありません。プラグインシステムは iii そのものです。
 
 ---
 
@@ -1630,8 +1633,7 @@ GRAPH_EXTRACTION_ENABLED=true
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1666,7 +1668,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-ポート `3111` 上の 144 エンドポイント。REST API はデフォルトで `127.0.0.1` にバインドします。保護されたエンドポイントは `Authorization: Bearer <secret>` を要求し、mesh sync エンドポイントは両ピアで明示的に設定された `AGENTMEMORY_SECRET` を要求します。
+ポート `3111` 上の 146 エンドポイント。REST API はデフォルトで `127.0.0.1` にバインドします。保護されたエンドポイントは `Authorization: Bearer <secret>` を要求し、mesh sync エンドポイントは両ピアで明示的に設定された `AGENTMEMORY_SECRET` を要求します。
 
 **認証はデフォルトでオンです。** `AGENTMEMORY_SECRET` が(シェルにも `~/.agentmemory/.env` にも)設定されていない場合、サーバーは初回起動時にランダムなシークレットを生成し、モード `0600` で `~/.agentmemory/secret` に保存します。同梱のすべてのクライアント — CLI、ビューワー、`plugin/scripts` 配下の hooks、MCP サーバーと `@agentmemory/mcp` の shim、`agentmemory connect` が書き込む設定、同梱の OpenCode、Pi、OpenClaw、Hermes、ファイルシステムウォッチャーの各統合 — は、ローカルサーバーと話すときにそこから読み取ります。保存されたシークレットは、ループバックの URL(`localhost`、`127.0.0.0/8`、`::1`)にのみ送信されます。明示的な `AGENTMEMORY_SECRET` は常に優先され、リモートクライアントではそれでも設定が必要です。Docker と `deploy/` のエントリポイントは、既に独自のシークレットを生成・export しています。手動で API を呼ぶには:
 
@@ -1725,19 +1727,19 @@ curl -H "Authorization: Bearer $(cat ~/.agentmemory/secret)" http://localhost:31
 
 サーバーがダウンしている、時間内に応答しない、または 5xx を返す場合、hook はその観測をローカルのスプールファイル `<data dir>/capture-spool/<host>-<port>.jsonl` に追記します(フォルダは `AGENTMEMORY_CAPTURE_SPOOL_DIR` で上書きできます)。このファイルはあなたのユーザーに非公開(モード 600)で、シークレットはサーバーが行うのと同じ方法でマスクされ、最大 `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES`(5 MiB)まで保持し、`AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS`(168)より古いエントリを捨てます。満杯になると、新しいエントリは破棄されカウントされ、`/agentmemory/status` がそれを報告します。サーバーが健全なときは、hook はその時間制限内でそのまま exit 0 し、リクエストは追加されません。スプールは次回起動時、およびサーバーに再び到達できた最初の hook によって、エージェントを待たせないバックグラウンドプロセスで送信されます。イベント id がこれを安全にします: タイムアウト前に到達済みの観測が二重に保存されることはありません。`npx @agentmemory/agentmemory capture` はスプールとサーバーの受信箱を表示し、`--drain` はスプールを今すぐ送信し、`GET /agentmemory/capture` は同じ内容を JSON で返します。スプールをオフにするには `AGENTMEMORY_CAPTURE_SPOOL=false` を設定してください。
 
-**グラフの来歴のコンパクション。** 各ナレッジグラフのノードとエッジは、その由来となった最新 32 件の観測の id を保持します。この上限ができる前に書き込まれたストアでは、アクセスの多いノード 1 つあたり数千件の id を持つことがあり、グラフ検索とビューワーが遅くなったり、worker が落ちたりします。agentmemory はこれを自力で修正します: アップグレード後の最初の起動時に、すべてのノード、エッジ、上書きされたエッジ(時系列のグラフ履歴)、キャッシュされたスナップショットをバックグラウンドでこの上限まで、間に一時停止を挟んだ小さなスライスで切り詰めるため、検索、キャプチャ、ビューワーは動作を続けられます。進捗は保存され、再起動後も再開され、完了すると二度と実行されません。`/agentmemory/status` とビューワーの Health ページには、保留中、実行中(現在のスコープと位置とともに)、完了、失敗のいずれかとして表示されます。オフにするには `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` を設定してください。
+**グラフの来歴のコンパクション。** 旧来の来歴データのコンパクションは、旧来のスコープ全体を読み取るため、起動時には延期されます。`/agentmemory/status` は `deferred`、`AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` の場合は `off` を返します。メンテナンス中に以下の手動コンパクションを実行してください。検索インデックスの移行は別の操作です。[メンテナンスガイド](../docs/reliability/graph-index-migration.md)に従って `agentmemory graph-index migrate --allow-legacy-scan` を使用してください。
 
 手動で実行するには `POST /agentmemory/graph/compact` を呼び出してください。すべてのノードとエッジを列挙するのではなく、名前とエッジキーのインデックスを走査するため、再実行しても安全です。id を切り詰めたときは `graph_compact` の監査エントリを書き込みます。
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 大規模なストアで、あるいは呼び出しが 504 を返す場合は、分割して実行してください。`scope`(`nodes`、`edges`、または `history`)、`offset`、`limit` を送り、返ってきた `nextOffset` が `null` になるまで呼び出しを繰り返します。これを `nodes`、`edges`、`history` それぞれについて行い、最後に `{"scope":"snapshot"}` を 1 回呼んで終えてください。分割実行はキャッシュされたスナップショットには触れないためです。
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1747,7 +1749,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

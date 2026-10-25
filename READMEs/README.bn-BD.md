@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP টুল" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 অটো হুক" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 এক্সটার্নাল ডিবি" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ টেস্ট পাস" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ টেস্ট পাস" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 রানটাইমে REST/MCP HTTP চলে 3111-এ, ভিউয়ার 3113-এ, এবং iii worker-এর অভ্যন্তরীণ WebSocket 49134-এ। ভিউয়ারের লাইভ ইভেন্ট REST-এ SSE দিয়ে আসে। `status` agentmemory-র স্বাস্থ্য, পিন করা ইঞ্জিন সংস্করণ (`enginePinnedVersion`), এবং সক্রিয় provider/embedding মোড নিশ্চিত করে। একটি প্রোব সেভ করুন এবং নিশ্চিত করুন এটি সার্চযোগ্য:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 সতর্কতা: এই কমান্ড বর্তমান workspace/runtime বদলে দেয়। এটি JavaScript dependency আপডেট করতে পারে এবং পিন করা iii 0.25.0 engine বাইনারি ইনস্টল করতে পারে।
-
-ইমপ্লিমেন্টেশনের ডিটেইল থাকে `src/cli.ts`-এ (দেখুন `src/cli.ts:544-595` অঞ্চলের কাছে `runUpgrade`)।
 
 ### Claude Code (এক ব্লক, পেস্ট করুন)
 
@@ -815,7 +818,7 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 | **Continue.dev** | `~/.continue/config.yaml` (পছন্দনীয়) বা `config.json` (লেগ্যাসি) | দুটোরই অস্তিত্ব না থাকলে `agentmemory connect continue` শূন্য থেকে `config.yaml` তৈরি করে, বা বিদ্যমান `config.json` পরিবর্তন করে। **আপনার আগে থেকে `config.yaml` থাকলে** অ্যাডাপ্টারটি `mcpServers:`-এর নিচে পেস্ট করার জন্য ঠিক ব্লকটি প্রিন্ট করে; এটি নিঃশব্দে আপনার yaml পুনরায় লেখে না কারণ কমেন্ট ও অ্যাঙ্কর নিরাপদে রক্ষা করতে একটি YAML পার্সার লাগে যা প্যাকেজটি বহন করে না। Continue `mcpServers`-এর জন্য (অবজেক্ট না) অ্যারে ফর্ম ব্যবহার করে। |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` `context_servers`-এর নিচে লেখে (Zed-র কি, `mcpServers` নয়)। রিমোট MCP সার্ভার এর বদলে `{"url": "..."}` দিয়েও ওয়্যার করা যায়। |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` স্ট্যান্ডার্ড `mcpServers` ব্লক লেখে। প্রজেক্ট-স্কোপড ওভাররাইড যায় `<repo>/.factory/mcp.json`-এ। নেটিভ অটো-ক্যাপচারের জন্য `--with-hooks` পাস করুন। |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` প্রতিটি Harness প্রোফাইল লোড করা হোম-লেভেল প্যাচ লেয়ারে একটি `@deepseek-ai/dsh-mcp-client` সারি যুক্ত করে; টুলগুলো `mcp__agentmemory__*` হিসেবে রেজিস্টার হয়। অটো-ক্যাপচারও ওয়্যার করতে `--with-hooks` পাস করুন: বান্ডলড Claude Code হুক স্ক্রিপ্টগুলো Harness-র ফার্স্ট-পার্টি `@deepseek-ai/dsh-hooks-claude-code` ব্রিজের (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) মাধ্যমে চলে, `$DSH_HOME/agentmemory.hooks.json`-এ লেখা একটি ম্যানিফেস্টের মাধ্যমে। `DSH_HOME` আনসেট থাকলে ডিফল্ট `~/.dsh`। |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` MCP টুল চালু করে। AgentMemory-এর সঙ্গে থাকা নেটিভ ক্যাপচার প্লাগইন চালু করতে `--with-hooks` যোগ করুন। আলাদা প্লাগইন প্যাকেজ প্রয়োজন নেই। [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP সেটিংস UI | একই `mcpServers` ব্লক; `goose configure` → Add Extension → MCP ব্যবহার করুন। `~/.config/goose/config.yaml`-এ সরাসরি YAML এডিট সাপোর্টেড, কিন্তু স্কিমা `extensions:` + `cmd` ব্যবহার করে (`mcpServers:` + `command` নয়)। |
 | **Aider** | n/a | সরাসরি REST API-র সাথে কথা বলুন: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`। |
 | **যেকোনো এজেন্ট (32+)** | n/a | `npx skillkit install agentmemory` হোস্ট অটো-ডিটেক্ট করে মার্জ করে। |
@@ -827,9 +830,9 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 agentmemory তার কোর অপারেশনগুলো iii ফাংশন হিসেবে রেজিস্টার করে (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`)। iii SDK আছে এমন যেকোনো ভাষা `ws://localhost:49134`-এর উপর সরাসরি এগুলো কল করতে পারে, প্রতি ভাষার জন্য আলাদা REST ক্লায়েন্ট ছাড়াই।
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1342,7 +1345,7 @@ fi
 | Prometheus / Grafana | iii OTEL + হেলথ মনিটর |
 | কাস্টম প্লাগইন সিস্টেম | Worker Compose (`worker-compose.yaml`) |
 
-**245 সোর্স ফাইল · ~56,000 LOC · 3,800+ টেস্ট · 322 ফাংশন · 65 KV স্কোপ**, সবকিছু তিনটি প্রিমিটিভের উপর। কোনো `agentmemory plugin install` নেই। প্লাগইন সিস্টেমটাই iii নিজে।
+**253 সোর্স ফাইল · ~58,000 LOC · 4,000+ টেস্ট · 322 ফাংশন · 65 KV স্কোপ**, সবকিছু তিনটি প্রিমিটিভের উপর। কোনো `agentmemory plugin install` নেই। প্লাগইন সিস্টেমটাই iii নিজে।
 
 ---
 
@@ -1632,8 +1635,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1668,7 +1670,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-`3111` পোর্টে 144 এন্ডপয়েন্ট। REST API ডিফল্টভাবে `127.0.0.1`-এ বাইন্ড করে। প্রোটেক্টেড এন্ডপয়েন্টে `Authorization: Bearer <secret>` লাগে, এবং mesh sync এন্ডপয়েন্টে দুই পিয়ারেই স্পষ্টভাবে সেট করা `AGENTMEMORY_SECRET` লাগে।
+`3111` পোর্টে 146 এন্ডপয়েন্ট। REST API ডিফল্টভাবে `127.0.0.1`-এ বাইন্ড করে। প্রোটেক্টেড এন্ডপয়েন্টে `Authorization: Bearer <secret>` লাগে, এবং mesh sync এন্ডপয়েন্টে দুই পিয়ারেই স্পষ্টভাবে সেট করা `AGENTMEMORY_SECRET` লাগে।
 
 **অথেন্টিকেশন ডিফল্টভাবে চালু।** `AGENTMEMORY_SECRET` সেট না থাকলে (শেলে বা `~/.agentmemory/.env`-এ), সার্ভার প্রথম স্টার্টে একটি র‍্যান্ডম সিক্রেট জেনারেট করে এবং `0600` মোডে `~/.agentmemory/secret`-এ জমা রাখে। লোকাল সার্ভারের সাথে কথা বলার সময় প্রতিটি বান্ডলড ক্লায়েন্ট সেখান থেকেই এটা পড়ে: CLI, ভিউয়ার, `plugin/scripts`-এর নিচের হুক, MCP সার্ভার এবং `@agentmemory/mcp` শিম, `agentmemory connect`-এ লেখা কনফিগ, এবং বান্ডলড OpenCode, Pi, OpenClaw, Hermes, এবং filesystem-watcher ইন্টিগ্রেশন। জমা রাখা সিক্রেটটি কেবল লুপব্যাক URL-এ (`localhost`, `127.0.0.0/8`, `::1`) পাঠানো হয়। একটি এক্সপ্লিসিট `AGENTMEMORY_SECRET` সবসময় জেতে, এবং রিমোট ক্লায়েন্টদেরও এটা সেট করা লাগে। Docker এবং `deploy/` এন্ট্রিপয়েন্ট নিজেরাই নিজেদের সিক্রেট জেনারেট ও এক্সপোর্ট করে। হাতে API কল করতে:
 
@@ -1727,19 +1729,19 @@ curl -H "Authorization: Bearer <secret-from-data-dir>" http://localhost:3111/age
 
 সার্ভার ডাউন থাকলে, সময়মতো উত্তর না দিলে, বা একটা 5xx রিটার্ন করলে, হুক অবজারভেশনটিকে একটি লোকাল স্পুল ফাইলে যুক্ত করে, `<data dir>/capture-spool/<host>-<port>.jsonl` (`AGENTMEMORY_CAPTURE_SPOOL_DIR` দিয়ে ফোল্ডারটি ওভাররাইড করুন)। ফাইলটি আপনার ইউজারের জন্য প্রাইভেট (মোড 600), সিক্রেটগুলো সার্ভার যেভাবে রিড্যাক্ট করে ঠিক সেভাবেই রিড্যাক্ট করা হয়, এটা সর্বোচ্চ `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) ধরে রাখে এবং `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168)-এর চেয়ে পুরোনো এন্ট্রি ড্রপ করে। এটা ভরে গেলে, নতুন এন্ট্রি ড্রপ হয় এবং গণনা করা হয়, এবং `/agentmemory/status` তা রিপোর্ট করে। সার্ভার স্বাস্থ্যবান থাকলে হুক তখনও তার টাইম লিমিটের মধ্যে 0 দিয়ে exit হয় এবং কোনো রিকোয়েস্ট যুক্ত করে না। পরের স্টার্টে এবং সার্ভারে আবার পৌঁছানো প্রথম হুক দিয়ে স্পুলটি পাঠানো হয়, একটা ব্যাকগ্রাউন্ড প্রসেসে যাতে এজেন্ট অপেক্ষা না করে। ইভেন্ট id এটা নিরাপদ করে: একটা টাইমআউটের আগে পৌঁছানো অবজারভেশন দুইবার জমা হয় না। `npx @agentmemory/agentmemory capture` স্পুল এবং সার্ভার ইনবক্স দেখায়, `--drain` স্পুলটি এখনই পাঠায়, এবং `GET /agentmemory/capture` JSON হিসেবে একই জিনিস রিটার্ন করে। স্পুল বন্ধ করতে `AGENTMEMORY_CAPTURE_SPOOL=false` সেট করুন।
 
-**গ্রাফ প্রোভেন্যান্স কমপ্যাক্ট করা।** প্রতিটি নলেজ গ্রাফ নোড ও এজ সবচেয়ে নতুন 32টি অবজারভেশনের id রাখে যেখান থেকে এটা এসেছে। সেই ক্যাপের আগে লেখা store হট নোড প্রতি হাজার হাজার id ধরে রাখতে পারে, যা গ্রাফ সার্চ ও ভিউয়ারকে স্লো করে দেয় বা ওয়ার্কারকে ক্র্যাশ করায়। agentmemory নিজেই এটা ঠিক করে: আপগ্রেডের পর প্রথম স্টার্টে এটা ব্যাকগ্রাউন্ডে ছোট ছোট স্লাইসে, মাঝে একটা বিরতি দিয়ে, প্রতিটি নোড, এজ, সুপারসিডেড এজ (টেম্পোরাল গ্রাফ ইতিহাস), এবং ক্যাশড স্ন্যাপশটকে ক্যাপে ট্রিম করে, যাতে সার্চ, ক্যাপচার, এবং ভিউয়ার চলতে থাকে। এটা তার অগ্রগতি সেভ করে, রিস্টার্টের পর আবার শুরু করে এবং শেষ হওয়ার পর আর কখনো চলে না। `/agentmemory/status` এবং ভিউয়ার Health পেজ এটাকে pending, running (বর্তমান scope ও position সহ), done, বা failed হিসেবে দেখায়। এটা বন্ধ করতে `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` সেট করুন।
+**গ্রাফ প্রোভেন্যান্স কমপ্যাক্ট করা।** পুরোনো provenance কমপ্যাকশন শুরুতে স্থগিত থাকে, কারণ এটি সম্পূর্ণ পুরোনো scope পড়ে। `/agentmemory/status`-এ `deferred` দেখায়, অথবা `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` হলে `off`। রক্ষণাবেক্ষণের সময় নিচের ম্যানুয়াল কমপ্যাকশন চালান। Retrieval index migration আলাদা: [রক্ষণাবেক্ষণ নির্দেশিকা](../docs/reliability/graph-index-migration.md) অনুযায়ী `agentmemory graph-index migrate --allow-legacy-scan` ব্যবহার করুন।
 
 হাতে চালাতে, `POST /agentmemory/graph/compact` কল করুন। এটা প্রতিটি নোড ও এজ লিস্ট করার বদলে নাম ও edge-key ইনডেক্সের মধ্য দিয়ে হাঁটে, এবং আবার চালানো নিরাপদ। id ট্রিম করলে এটা একটি `graph_compact` অডিট এন্ট্রি লেখে।
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 একটা বড় store-এ, বা কলটি 504 রিটার্ন করলে, এটা স্লাইসে চালান। `scope` (`nodes`, `edges`, বা `history`), `offset`, এবং `limit` পাঠান, তারপর রিটার্ন করা `nextOffset` দিয়ে আবার কল করুন যতক্ষণ না এটা `null` হয়। `nodes`, `edges`, এবং `history`-র জন্য এটা করুন, এবং একটা `{"scope":"snapshot"}` কল দিয়ে শেষ করুন, কারণ একটা স্লাইসড রান ক্যাশড স্ন্যাপশট ছোঁয় না।
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1749,7 +1751,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

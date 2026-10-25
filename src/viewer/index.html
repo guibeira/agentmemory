@@ -1643,8 +1643,8 @@
       eventLoop: { term: 'Event loop delay', text: 'How far behind the worker is in handling work. Under 20 ms is healthy; a large value means it is busy or blocked.' },
       uptime: { term: 'Uptime', text: 'How long the agentmemory worker has been running since it last started.' },
       health: { term: 'Health status', text: 'Healthy means everything is normal. Degraded means something needs attention but memory still works. Critical means a core part is failing.' },
-      stateBackend: { term: 'State store', text: 'Where the engine keeps every record: file (local files on this machine, the default) or redis (a Redis server set by AGENTMEMORY_STATE_BACKEND and AGENTMEMORY_REDIS_URL). ok means a test write and read just succeeded; the number is how long it took.' },
-      engineConnection: { term: 'Engine connection', text: 'Whether the agentmemory worker is connected to the iii engine that stores its data and runs its functions.' },
+      stateBackend: { term: 'State store', text: 'Where the state worker keeps every record: file (local files on this machine, the default) or redis (a Redis server set by AGENTMEMORY_STATE_BACKEND and AGENTMEMORY_REDIS_URL). ok means a test write and read just succeeded; the number is how long it took.' },
+      engineConnection: { term: 'Engine connection', text: 'Whether the agentmemory worker is connected to the iii engine that routes calls between workers.' },
       live: { term: 'Live updates', text: 'The viewer keeps one SSE connection open and updates every page the moment data changes. Nothing is refreshed on a timer.' },
       flags: { term: 'Feature flags', text: 'Optional features that are on or off in this install. Off features leave some pages empty; each one lists the setting that turns it on.' },
       audit: { term: 'Audit log', text: 'A record of every change agentmemory made to stored data: saves, deletes, imports, consolidation runs. Use it to see who changed what and when.' },
@@ -7209,7 +7209,7 @@
       }
       if (store.lastHealthAt && Date.now() - store.lastHealthAt > HEALTH_STALE_MS) {
         var secs = Math.round((Date.now() - store.lastHealthAt) / 1000);
-        return '<div class="hstale" id="health-live-state"><strong>Stale: no health report for ' + secs + 's.</strong> Reports normally arrive every 30 seconds. The SSE feed is connected, so the worker is busy or the iii engine is paused' + (r && r.service && r.service.stateBackend === 'redis' ? ', or Redis restarted: the engine stops relaying live events after a Redis restart until agentmemory restarts' : '') + '. The numbers below are from ' + esc(last) + '.' +
+        return '<div class="hstale" id="health-live-state"><strong>Stale: no health report for ' + secs + 's.</strong> Reports normally arrive every 30 seconds. The SSE feed is connected, but the worker may be busy or unable to publish a health report. The numbers below are from ' + esc(last) + '.' +
           '<div style="margin-top:6px;">Fix: wait a minute; if it stays stale, press Re-check now for the full report, check the server log and restart agentmemory.</div></div>';
       }
       return '';
@@ -7256,8 +7256,8 @@
       var backend = r && r.service ? r.service.stateBackend : null;
       var streamText = conn.state === 'live' ? 'live' : conn.state;
       return '<div class="card"><div class="card-title">Engine and connection ' + help('engineConnection') + '</div>' +
-        hrow('Engine connection', esc(snap.connectionState || 'unknown'), 'engineConnection', 'The worker\'s link to the iii engine, which stores the data and runs the functions.') +
-        ((kv || backend) ? hrow('State store', esc((backend ? backend + (kv ? ' · ' : '') : '') + (kv ? kv.status + (kv.latencyMs !== undefined ? ' · ' + kv.latencyMs + ' ms' : '') + (kv.error ? ' · ' + kv.error : '') : '')), 'stateBackend', backend === 'redis' ? 'Stored in Redis (AGENTMEMORY_STATE_BACKEND=redis). If Redis restarts, restart agentmemory so the SSE feed resumes.' : 'Stored in the engine\'s local files (the default). Set AGENTMEMORY_STATE_BACKEND=redis to use Redis.') : '') +
+        hrow('Engine connection', esc(snap.connectionState || 'unknown'), 'engineConnection', 'The worker\'s link to the iii engine, which routes calls between workers.') +
+        ((kv || backend) ? hrow('State store', esc((backend ? backend + (kv ? ' · ' : '') : '') + (kv ? kv.status + (kv.latencyMs !== undefined ? ' · ' + kv.latencyMs + ' ms' : '') + (kv.error ? ' · ' + kv.error : '') : '')), 'stateBackend', backend === 'redis' ? 'The state worker stores records in Redis (AGENTMEMORY_STATE_BACKEND=redis).' : 'The state worker stores records in local files (the default). Set AGENTMEMORY_STATE_BACKEND=redis to use Redis.') : '') +
         hrow('Viewer feed', esc(streamText), 'live', 'This page\'s own connection. Offline means the numbers here stop changing.') +
         hrow('Uptime', esc(formatUptime(snap.uptimeSeconds)), 'uptime') +
         hrow('Version', esc('v' + (store.version || (r && r.service.version) || '?') + (r ? ' · engine pinned ' + r.service.enginePinnedVersion : ''))) +

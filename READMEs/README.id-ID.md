@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 tool MCP" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 hook otomatis" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 DB eksternal" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ pengujian lolos" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ pengujian lolos" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Runtime CLI lokal menggunakan REST/MCP HTTP pada `3111`, viewer pada `3113`, dan WebSocket worker iii internal pada `49134`. Pembaruan viewer dikirim melalui SSE di `GET /agentmemory/viewer/events` pada port REST. Secara default, state persisten disimpan di `~/Library/Application Support/agentmemory` pada macOS, `$XDG_DATA_HOME/agentmemory` atau `~/.local/share/agentmemory` pada Linux, dan `%APPDATA%\agentmemory` pada Windows. Ubah lokasinya dengan `--data-dir <path>` atau `AGENTMEMORY_DATA_DIR`; instance 0 juga menggunakan kembali `./data/state_store.db` yang sudah ada. `--instance N` mengisolasi runtime tambahan, dan `AGENTMEMORY_ENV_FILE` memilih file `.env` lain.
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Peringatan: perintah ini mengubah workspace/runtime saat ini. Perintah dapat memperbarui dependensi JavaScript dan memasang biner engine iii 0.25.0 yang dipatok.
-
-Detail implementasi ada di `src/cli.ts` (lihat `runUpgrade` di sekitar region `src/cli.ts:544-595`).
 
 ### Claude Code (satu blok, tempel saja)
 
@@ -815,7 +818,7 @@ Entri agentmemory adalah **blok server MCP yang sama** di setiap host yang memak
 | **Continue.dev** | `~/.continue/config.yaml` (disarankan) atau `config.json` (legacy) | `agentmemory connect continue` membuat `config.yaml` dari awal saat keduanya belum ada, atau memodifikasi `config.json` yang sudah ada. **Jika Anda sudah punya `config.yaml`**, adapter ini mencetak blok persis untuk ditempel di bawah `mcpServers:`; ia tidak akan diam-diam menulis ulang yaml Anda karena mempertahankan komentar dan anchor dengan aman membutuhkan parser YAML yang tidak disertakan paket ini. Continue memakai bentuk array (bukan objek) untuk `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` menulis di bawah `context_servers` (key milik Zed, BUKAN `mcpServers`). Server MCP remote bisa disambungkan lewat `{"url": "..."}` sebagai gantinya. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` menulis blok `mcpServers` standar. Override berbasis proyek masuk di `<repo>/.factory/mcp.json`. Tambahkan `--with-hooks` untuk auto-capture native. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` menambahkan baris `@deepseek-ai/dsh-mcp-client` ke layer patch tingkat home yang dimuat setiap profil Harness; tool terdaftar sebagai `mcp__agentmemory__*`. Tambahkan `--with-hooks` untuk juga menyambungkan auto-capture: script hook Claude Code bundel berjalan lewat bridge first-party Harness `@deepseek-ai/dsh-hooks-claude-code` (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) lewat manifest yang ditulis ke `$DSH_HOME/agentmemory.hooks.json`. Default ke `~/.dsh` saat `DSH_HOME` tidak diset. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` mengaktifkan alat MCP. Tambahkan `--with-hooks` untuk memuat plugin perekaman native yang disertakan dalam AgentMemory. Tidak perlu paket plugin terpisah. [DSH](../docs/dsh.md). |
 | **Goose** | Settings UI MCP Goose | Blok `mcpServers` yang sama; gunakan `goose configure` → Add Extension → MCP. Edit YAML langsung di `~/.config/goose/config.yaml` juga didukung tapi skemanya memakai `extensions:` + `cmd` (bukan `mcpServers:` + `command`). |
 | **Aider** | n/a | Bicara langsung dengan REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Agen apa pun (32+)** | n/a | `npx skillkit install agentmemory` auto-detect host dan menggabungkannya. |
@@ -827,9 +830,9 @@ Entri agentmemory adalah **blok server MCP yang sama** di setiap host yang memak
 agentmemory mendaftarkan operasi intinya sebagai fungsi iii (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Bahasa apa pun yang punya SDK iii bisa memanggilnya langsung lewat `ws://localhost:49134`, tanpa klien REST terpisah per bahasa.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1340,7 +1343,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Sistem plugin custom | Worker Compose (`worker-compose.yaml`) |
 
-**245 file sumber · ~56.000 LOC · 3.600+ pengujian · 322 fungsi · 65 scope KV**, semuanya di atas tiga primitif. Tidak ada `agentmemory plugin install`. Sistem plugin-nya adalah iii itu sendiri.
+**253 file sumber · ~58,000 LOC · 4,000+ pengujian · 322 fungsi · 65 scope KV**, semua di atas tiga primitif. Tidak ada `agentmemory plugin install`. Sistem plugin-nya adalah iii itu sendiri.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Konfigurasi" height="32" /></picture></h2>
@@ -1630,8 +1633,7 @@ Buat `~/.agentmemory/.env`:
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1666,7 +1668,7 @@ Buat `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoint di port `3111`. REST API terbind ke `127.0.0.1` secara default. Endpoint yang terlindungi membutuhkan `Authorization: Bearer <secret>`, dan endpoint mesh sync membutuhkan `AGENTMEMORY_SECRET` yang diset secara eksplisit di kedua peer.
+146 endpoint di port `3111`. REST API terbind ke `127.0.0.1` secara default. Endpoint yang terlindungi membutuhkan `Authorization: Bearer <secret>`, dan endpoint mesh sync membutuhkan `AGENTMEMORY_SECRET` yang diset secara eksplisit di kedua peer.
 
 **Autentikasi aktif secara default.** Saat `AGENTMEMORY_SECRET` tidak diset (di shell atau di `~/.agentmemory/.env`), server menghasilkan secret acak pada start pertama dan menyimpannya di `~/.agentmemory/secret` dengan mode `0600`. Setiap klien bundel membacanya dari sana saat berbicara dengan server lokal: CLI, viewer, hook di bawah `plugin/scripts`, server MCP dan shim `@agentmemory/mcp`, konfigurasi yang ditulis `agentmemory connect`, serta integrasi OpenCode, Pi, OpenClaw, Hermes, dan filesystem-watcher bundel. Secret yang tersimpan hanya dikirim ke URL loopback (`localhost`, `127.0.0.0/8`, `::1`). `AGENTMEMORY_SECRET` eksplisit selalu menang, dan klien remote tetap membutuhkannya diset. Docker dan entrypoint `deploy/` sudah menghasilkan dan mengekspor secret-nya sendiri. Untuk memanggil API secara manual:
 
@@ -1725,19 +1727,19 @@ Event yang gagal di-retry setiap `AGENTMEMORY_CAPTURE_RETRY_INTERVAL_MS` (10 d) 
 
 Saat server mati, tidak menjawab tepat waktu, atau mengembalikan 5xx, hook menambahkan observasi itu ke file spool lokal, `<data dir>/capture-spool/<host>-<port>.jsonl` (ganti foldernya dengan `AGENTMEMORY_CAPTURE_SPOOL_DIR`). File itu privat untuk user Anda (mode 600), secret disamarkan dengan cara yang sama seperti server menyamarkannya, ia menampung paling banyak `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) dan membuang entri yang lebih tua dari `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Saat penuh, entri baru dibuang dan dihitung, dan `/agentmemory/status` melaporkannya. Hook tetap exit 0 dalam batas waktunya dan tidak menambah permintaan saat server sehat. Spool-nya dikirim pada start berikutnya dan oleh hook pertama yang menjangkau server lagi, dalam proses background sehingga agen tidak menunggu. Id event membuat ini aman: observasi yang memang tiba sebelum timeout tidak disimpan dua kali. `npx @agentmemory/agentmemory capture` menunjukkan spool dan inbox server, `--drain` mengirim spool itu sekarang, dan `GET /agentmemory/capture` mengembalikan hal yang sama sebagai JSON. Set `AGENTMEMORY_CAPTURE_SPOOL=false` untuk mematikan spool-nya.
 
-**Memadatkan provenance graph.** Setiap node dan edge knowledge graph menyimpan id dari 32 observasi terbaru asal-usulnya. Store yang ditulis sebelum batas itu bisa menyimpan ribuan id per node yang panas, yang membuat search graph dan viewer jadi lambat atau menjatuhkan worker-nya. agentmemory memperbaiki ini sendiri: pada start pertama setelah upgrade, ia memangkas setiap node, edge, edge yang disupersede (histori temporal graph), dan snapshot yang di-cache ke batas itu di background, dalam potongan kecil dengan jeda di antaranya, sehingga search, capture, dan viewer tetap bekerja. Ia menyimpan progresnya, melanjutkan setelah restart, dan tidak pernah berjalan lagi setelah selesai. `/agentmemory/status` dan halaman Health viewer menunjukkannya sebagai pending, running (dengan scope dan posisi saat ini), done, atau failed. Set `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` untuk mematikannya.
+**Memadatkan provenance graph.** Pemadatan provenance lama ditunda saat startup karena membaca seluruh scope lama. `/agentmemory/status` melaporkan `deferred`, atau `off` dengan `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Jalankan pemadatan manual di bawah saat pemeliharaan. Migrasi indeks pencarian terpisah: gunakan `agentmemory graph-index migrate --allow-legacy-scan` sesuai [panduan pemeliharaan](../docs/reliability/graph-index-migration.md).
 
 Untuk menjalankannya secara manual, panggil `POST /agentmemory/graph/compact`. Ia menjelajahi index nama dan edge-key bukan mendaftar setiap node dan edge, dan aman untuk dijalankan ulang. Saat memangkas id, ia menulis entri audit `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Pada store yang besar, atau saat panggilannya mengembalikan 504, jalankan dalam potongan. Kirim `scope` (`nodes`, `edges`, atau `history`), `offset`, dan `limit`, lalu panggil lagi dengan `nextOffset` yang dikembalikan sampai nilainya `null`. Lakukan ini untuk `nodes`, `edges`, dan `history`, dan selesaikan dengan satu panggilan `{"scope":"snapshot"}`, karena run yang terpotong tidak menyentuh snapshot yang di-cache.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1747,7 +1749,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

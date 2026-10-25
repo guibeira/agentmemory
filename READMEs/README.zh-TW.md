@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 個 MCP 工具" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 個自動 hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 個外部資料庫" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ 測試通過" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ 測試通過" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 執行階段使用 3111 上的 REST/MCP HTTP、3113 上的檢視器和 49134 上的內部 WebSocket；檢視器即時事件透過 REST SSE 傳送。`status` 回報 `enginePinnedVersion`、agentmemory 狀態及 provider/embedding mode。儲存 probe 並確認可搜尋：
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 警告：此指令會變更目前的 workspace/runtime，可能更新 JavaScript 相依套件並安裝釘選的 iii 0.25.0 engine 執行檔。
-
-實作細節位於 `src/cli.ts`(參見 `src/cli.ts:544-595` 附近的 `runUpgrade`)。
 
 ### Claude Code(一段文字,直接貼上)
 
@@ -815,7 +818,7 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 | **Continue.dev** | `~/.continue/config.yaml`(建議)或 `config.json`(舊版) | 當兩者都不存在時,`agentmemory connect continue` 會從零建立 `config.yaml`;若已有 `config.json`,則會修改既有檔案。**若你已經有 `config.yaml`**,轉接器會印出可直接貼在 `mcpServers:` 下的確切區塊;它不會靜默改寫你的 yaml,因為要安全保留註解與錨點需要一個套件未隨附的 YAML 解析器。Continue 的 `mcpServers` 使用陣列格式(而非物件)。 |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` 會寫入 `context_servers`(Zed 自己的鍵,**不是** `mcpServers`)。遠端 MCP 伺服器可改用 `{"url": "..."}` 接上。 |
 | **Droid(Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` 會寫入標準的 `mcpServers` 區塊。專案層級的覆寫請放在 `<repo>/.factory/mcp.json`。傳入 `--with-hooks` 以取得原生自動擷取。 |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` 會在每個 Harness profile 都會載入的家目錄層級 patch layer 中,附加一列 `@deepseek-ai/dsh-mcp-client`;工具會以 `mcp__agentmemory__*` 註冊。傳入 `--with-hooks` 也接上自動擷取:捆綁的 Claude Code hook 腳本會透過 Harness 官方的 `@deepseek-ai/dsh-hooks-claude-code` 橋接器(SessionStart、UserPromptSubmit、PreToolUse、PostToolUse、Stop)執行,透過寫入 `$DSH_HOME/agentmemory.hooks.json` 的清單檔運作。未設定 `DSH_HOME` 時預設為 `~/.dsh`。 |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` 啟用 MCP 工具。加入 `--with-hooks` 可載入 AgentMemory 內建的原生擷取外掛程式，無需額外的外掛套件。 [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP 設定介面 | 同樣的 `mcpServers` 區塊;使用 `goose configure` → Add Extension → MCP。也支援直接編輯 `~/.config/goose/config.yaml`,但其格式使用 `extensions:` + `cmd`(而非 `mcpServers:` + `command`)。 |
 | **Aider** | 不適用 | 直接呼叫 REST API:`curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`。 |
 | **任何代理(32+)** | 不適用 | `npx skillkit install agentmemory` 會自動偵測宿主並合併設定。 |
@@ -827,9 +830,9 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 agentmemory 把它的核心操作註冊為 iii 函式(`mem::remember`、`mem::observe`、`mem::context`、`mem::smart-search`、`mem::forget`)。任何擁有 iii SDK 的語言都可以透過 `ws://localhost:49134` 直接呼叫它們,不需要為每種語言準備獨立的 REST 用戶端。
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1330,7 +1333,7 @@ fi
 | Prometheus / Grafana | iii OTEL + 健康監控 |
 | 自訂外掛系統 | Worker Compose (`worker-compose.yaml`) |
 
-**245 個原始檔 · ~56,000 行程式碼 · 3,800+ 測試 · 322 個函式 · 65 個 KV 範圍**,全部基於三種原語。沒有 `agentmemory plugin install`。外掛系統就是 iii 本身。
+**253 個原始檔 · ~58,000 行程式碼 · 4,000+ 測試 · 322 個函式 · 65 個 KV 範圍**,全部基於三種原語。沒有 `agentmemory plugin install`。外掛系統就是 iii 本身。
 
 ---
 
@@ -1614,8 +1617,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1650,7 +1652,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-連接埠 `3111` 上有 144 個端點。REST API 預設綁定 `127.0.0.1`。受保護的端點需要 `Authorization: Bearer <secret>`,而網狀同步端點要求兩端都明確設定 `AGENTMEMORY_SECRET`。
+連接埠 `3111` 上有 146 個端點。REST API 預設綁定 `127.0.0.1`。受保護的端點需要 `Authorization: Bearer <secret>`,而網狀同步端點要求兩端都明確設定 `AGENTMEMORY_SECRET`。
 
 **預設啟用驗證。** 若未在 shell 或 `~/.agentmemory/.env` 設定 `AGENTMEMORY_SECRET`，CLI 首次啟動會產生隨機 secret，並以 mode `0600` 儲存為所選 data directory 中的 `secret`。內建用戶端連接本機 server 時會從該處讀取；secret 僅傳送至 loopback URL。遠端用戶端需在自己的 environment 設定 secret。Docker 自行託管和 `deploy/` 會產生自己的 secret。手動呼叫 API:
 
@@ -1710,19 +1712,19 @@ curl -H "Authorization: Bearer <secret-from-data-dir>" http://localhost:3111/age
 
 當伺服器當機、沒有及時回應,或回傳 5xx 時,hook 會把觀測附加到一個本機暫存檔 `<data dir>/capture-spool/<host>-<port>.jsonl`(可用 `AGENTMEMORY_CAPTURE_SPOOL_DIR` 覆寫此目錄)。這個檔案僅限你的使用者存取(權限 600),密鑰的清除方式與伺服器相同,它最多容納 `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES`(5 MiB),並丟棄超過 `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS`(168)的條目。滿了之後,新的條目會被丟棄並計數,`/agentmemory/status` 會回報這個情況。hook 仍會在其時間限制內以 0 退出,且伺服器健康時不會增加任何請求。暫存會在下次啟動時,以及之後第一個成功連到伺服器的 hook,在背景行程中送出,代理不需要等待。事件 id 讓這一切是安全的:在超時之前就已送達的觀測不會被儲存兩次。`npx @agentmemory/agentmemory capture` 會顯示暫存和伺服器收件匣,`--drain` 會立即送出暫存,`GET /agentmemory/capture` 則以 JSON 回傳同樣的內容。設定 `AGENTMEMORY_CAPTURE_SPOOL=false` 可關閉暫存功能。
 
-**壓實圖溯源資料。** 每個知識圖譜節點和邊,都只保留它所來自的最新 32 筆觀測的 id。在這個上限出現之前寫入的儲存,每個熱門節點可能持有數千個 id,這會讓圖搜尋和檢視器變慢,甚至讓 worker 掉線。agentmemory 會自行修正這個問題:在升級後的第一次啟動時,它會在背景把每個節點、邊、被取代的邊(時間性的圖歷史)和快取的快照修剪到這個上限,分成小批次執行,批次之間有停頓,讓搜尋、捕捉和檢視器都能持續運作。它會儲存進度,重啟後繼續執行,完成後就不再執行。`/agentmemory/status` 和檢視器的 Health 頁面會顯示它是 pending、running(附上目前的範圍和位置)、done 或 failed。設定 `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` 可關閉它。
+**壓實圖溯源資料。** 舊溯源資料的壓實會在啟動時延後，因為它需要讀取完整的舊作用域。`/agentmemory/status` 顯示 `deferred`，設定 `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` 時顯示 `off`。請在維護期間執行下方的手動壓實。檢索索引遷移是獨立操作：按照[維護指南](../docs/reliability/graph-index-migration.md)使用 `agentmemory graph-index migrate --allow-legacy-scan`。
 
 要手動執行它,呼叫 `POST /agentmemory/graph/compact`。它會走訪名稱和 edge-key 索引,而不是列出每個節點和邊,並且可以安全地重複執行。當它修剪了 id,會寫入一筆 `graph_compact` 稽核條目。
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 在大型儲存上,或當呼叫回傳 504 時,請分批執行。傳入 `scope`(`nodes`、`edges` 或 `history`)、`offset` 和 `limit`,然後用回傳的 `nextOffset` 再次呼叫,直到它是 `null`。對 `nodes`、`edges` 和 `history` 都這樣做,最後再用一次 `{"scope":"snapshot"}` 呼叫結束,因為分批執行不會動到快取的快照。
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1732,7 +1734,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

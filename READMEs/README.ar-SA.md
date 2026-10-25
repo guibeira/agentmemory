@@ -73,7 +73,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,600+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -588,11 +588,16 @@ npx -y @agentmemory/agentmemory@latest status
 يستخدم runtime منافذ REST/MCP HTTP على 3111، والعارض على 3113، ومقبس WebSocket الداخلي لعمّال iii على 49134. تصل أحداث العارض الحية عبر SSE على REST. يؤكد `status` سلامة agentmemory وإصدار المحرك المثبّت (`enginePinnedVersion`) ووضع المزوّد/التضمين النشط. احفظ عيّنة اختبار (probe) وتأكّد من إمكانية البحث عنها:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -638,8 +643,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 تحذير: يغيّر هذا الأمر مساحة العمل/بيئة التشغيل الحالية. قد يحدّث اعتماديات JavaScript ويثبّت الملف التنفيذي لمحرك iii 0.25.0 المحدد.
-
-تفاصيل التنفيذ موجودة في `src/cli.ts` (راجع `runUpgrade` حول نطاق `src/cli.ts:544-595`).
 
 ### Claude Code (كتلة واحدة، الصقها)
 
@@ -817,7 +820,7 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 | **Continue.dev** | `~/.continue/config.yaml` (مفضّل) أو `config.json` (قديم) | يُنشئ `agentmemory connect continue` ملف `config.yaml` من الصفر إن لم يوجد أي منهما، أو يُعدِّل `config.json` الموجود مسبقًا. **إذا كان لديك `config.yaml` مسبقًا**، يطبع المحوّل الكتلة الدقيقة لتلصقها تحت `mcpServers:`؛ ولن يُعيد كتابة ملف yaml بصمت لأن الحفاظ الآمن على التعليقات والمراسي يتطلب مُحلِّل YAML لا تشحنه الحزمة. يستخدم Continue الصيغة المصفوفية (لا الكائنية) لـ `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | يكتب `agentmemory connect zed` تحت `context_servers` (مفتاح Zed الخاص، وليس `mcpServers`). يمكن ربط خوادم MCP البعيدة بدلًا من ذلك عبر `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | يكتب `agentmemory connect droid` كتلة `mcpServers` القياسية. وتوضع تجاوزات نطاق المشروع في `<repo>/.factory/mcp.json`. مرّر `--with-hooks` لالتقاط تلقائي أصلي. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | يُضيف `agentmemory connect dsh` صفًا من نوع `@deepseek-ai/dsh-mcp-client` إلى طبقة الترقيع على مستوى الدليل الرئيسي التي يحمّلها كل ملف تعريف في Harness؛ وتُسجَّل الأدوات بصيغة `mcp__agentmemory__*`. مرّر `--with-hooks` لربط الالتقاط التلقائي أيضًا: تعمل نصوص خطافات Claude Code المُضمَّنة عبر جسر `@deepseek-ai/dsh-hooks-claude-code` الأصلي الخاص بـ Harness (SessionStart و UserPromptSubmit و PreToolUse و PostToolUse و Stop) من خلال بيان يُكتب في `$DSH_HOME/agentmemory.hooks.json`. يُستخدم `~/.dsh` افتراضيًا عندما لا يكون `DSH_HOME` مضبوطًا. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | يُفعّل `agentmemory connect dsh` أدوات MCP. أضف `--with-hooks` لتحميل إضافة الالتقاط الأصلية المضمّنة مع AgentMemory، دون حزمة إضافية. [DSH](../docs/dsh.md). |
 | **Goose** | واجهة إعدادات MCP في Goose | نفس كتلة `mcpServers`؛ استخدم `goose configure` ← Add Extension ← MCP. يُدعم التعديل المباشر لملف YAML في `~/.config/goose/config.yaml`، لكن المخطط يستخدم `extensions:` + `cmd` (وليس `mcpServers:` + `command`). |
 | **Aider** | لا ينطبق | تحدَّث مباشرة مع REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **أي وكيل (أكثر من 32)** | لا ينطبق | يكتشف `npx skillkit install agentmemory` المضيف تلقائيًا ويدمج الإعدادات. |
@@ -829,9 +832,9 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 يُسجِّل agentmemory عملياته الأساسية كدوال iii (`mem::remember` و`mem::observe` و`mem::context` و`mem::smart-search` و`mem::forget`). يمكن لأي لغة تملك SDK لـ iii استدعاءها مباشرة عبر `ws://localhost:49134`، دون الحاجة إلى عميل REST منفصل لكل لغة.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1344,7 +1347,7 @@ fi
 | Prometheus / Grafana | OTEL في iii + مراقب الحالة الصحية |
 | أنظمة إضافات مخصصة | Worker Compose (`worker-compose.yaml`) |
 
-**245 ملف مصدري · ~56,000 سطر برمجي · 3,800+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
+**253 ملف مصدري · ~58,000 سطر برمجي · 4,000+ اختبار · 322 دالة · 65 نطاق KV**، كل ذلك على ثلاث بنى أساسية. لا يوجد أمر `agentmemory plugin install`. نظام الإضافات هو iii نفسه.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Configuration" height="32" /></picture></h2>
@@ -1633,8 +1636,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1669,7 +1671,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 نقطة نهاية على المنفذ `3111`. ترتبط REST API بـ `127.0.0.1` افتراضيًا. تتطلب نقاط النهاية المحمية ترويسة `Authorization: Bearer <secret>`، وتتطلب نقاط نهاية مزامنة mesh ضبط `AGENTMEMORY_SECRET` صريحًا على كلا الطرفين.
+146 نقطة نهاية على المنفذ `3111`. ترتبط REST API بـ `127.0.0.1` افتراضيًا. تتطلب نقاط النهاية المحمية ترويسة `Authorization: Bearer <secret>`، وتتطلب نقاط نهاية مزامنة mesh ضبط `AGENTMEMORY_SECRET` صريحًا على كلا الطرفين.
 
 **المصادقة مُفعّلة افتراضيًا.** عندما لا يكون `AGENTMEMORY_SECRET` مضبوطًا (في الصدفة أو في `~/.agentmemory/.env`)، ينشئ CLI سرًا عشوائيًا عند أول تشغيل ويحفظه باسم `secret` في دليل البيانات المحدد بصلاحية `0600` (يُشرح دليل البيانات الافتراضي الخاص بكل منصة أعلاه). يقرأ كل عميل مضمّن هذا السر عند الاتصال بخادم محلي: CLI والعارض والخطافات تحت `plugin/scripts` وخادم MCP ووسيط `@agentmemory/mcp` والإعدادات التي يكتبها `agentmemory connect` وتكاملات OpenCode وPi وOpenClaw وHermes ومراقب نظام الملفات المضمّنة. لا يُرسل السر المحفوظ إلا إلى عناوين loopback (`localhost` و`127.0.0.0/8` و`::1`). وتكون الأولوية دائمًا لقيمة `AGENTMEMORY_SECRET` الصريحة، كما يجب ضبط السر في بيئة العملاء البعيدين. تنشئ عمليات الاستضافة الذاتية عبر Docker من المستودع ونقاط دخول [`deploy/`](../deploy/) سرها وتصدّره. لاستدعاء API يدويًا:
 
@@ -1728,19 +1730,19 @@ curl -H "Authorization: Bearer <secret-from-data-dir>" http://localhost:3111/age
 
 وعندما يكون الخادم متوقفًا، أو لا يُجيب في الوقت المناسب، أو يُعيد 5xx، يُلحق الخطاف الملاحظة بملف تخزين مؤقت محلي، `<data dir>/capture-spool/<host>-<port>.jsonl` (تجاوز المجلد بـ `AGENTMEMORY_CAPTURE_SPOOL_DIR`). الملف خاص بمستخدمك (وضع صلاحيات 600)، وتُحذف الأسرار منه بنفس الطريقة التي يحذفها الخادم بها، ويحمل بحد أقصى `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 ميبيبايت)، ويُسقِط الإدخالات الأقدم من `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). وعندما يكون ممتلئًا، تُسقَط الإدخالات الجديدة وتُعَدّ، ويُسجِّل `/agentmemory/status` ذلك. ولا يزال الخطاف يخرج بالرمز 0 ضمن حده الزمني ولا يُضيف أي طلب عندما يكون الخادم سليمًا. ويُرسَل التخزين المؤقت عند البدء التالي وبواسطة أول خطاف يصل إلى الخادم مرة أخرى، في عملية خلفية حتى لا ينتظر الوكيل. ومعرّفات الأحداث تجعل ذلك آمنًا: فالملاحظة التي وصلت فعلًا قبل انتهاء المهلة لا تُخزَّن مرتين. يُظهر أمر `npx @agentmemory/agentmemory capture` التخزين المؤقت وصندوق وارد الخادم، ويرسل `--drain` التخزين المؤقت الآن، ويُعيد `GET /agentmemory/capture` الشيء نفسه كـ JSON. اضبط `AGENTMEMORY_CAPTURE_SPOOL=false` لتعطيل التخزين المؤقت.
 
-**ضغط مصدرية الرسم البياني.** تحتفظ كل عقدة وحافة في الرسم البياني المعرفي بمعرّفات أحدث 32 ملاحظة أتت منها. وقد تحمل المخازن المكتوبة قبل ذلك الحد آلاف المعرّفات لكل عقدة نشطة، وهذا يُبطئ بحث الرسم البياني والعارض أو يُسقِط العامل. ويُصلح agentmemory ذلك بنفسه: في أول تشغيل بعد الترقية، يُقلِّص كل عقدة، وحافة، وحافة مُستبدَلة (تاريخ الرسم البياني الزمني)، واللقطة المخبَّأة إلى الحد في الخلفية، في شرائح صغيرة مع توقّف بينها، بحيث يستمر البحث والالتقاط والعارض في العمل. ويحفظ تقدّمه، ويستأنف بعد إعادة التشغيل، ولا يعمل مرة أخرى أبدًا بعد أن ينتهي. ويُظهره `/agentmemory/status` وصفحة الحالة الصحية في العارض بصفته معلَّقًا، أو قيد التشغيل (مع النطاق والموضع الحاليين)، أو مكتملًا، أو فاشلًا. اضبط `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` لتعطيله.
+**ضغط مصدرية الرسم البياني.** يؤجَّل ضغط المصدرية القديمة عند بدء التشغيل لأنه يقرأ النطاقات القديمة كاملة. يعرض `/agentmemory/status` الحالة `deferred`، أو `off` عند ضبط `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. شغّل الضغط اليدوي أدناه أثناء الصيانة. ترحيل فهرس الاسترجاع عملية منفصلة: استخدم `agentmemory graph-index migrate --allow-legacy-scan` كما يوضح [دليل الصيانة](../docs/reliability/graph-index-migration.md).
 
 لتشغيله يدويًا، استدعِ `POST /agentmemory/graph/compact`. فهو يتجوّل عبر فهارس الأسماء ومفاتيح الحواف بدلًا من سرد كل عقدة وحافة، وهو آمن لإعادة التشغيل. وعندما يُقلِّص المعرّفات، يكتب إدخال تدقيق `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 في مخزن كبير، أو عندما يُعيد الاستدعاء 504، شغِّله على شرائح. أرسل `scope` (`nodes` أو `edges` أو `history`)، و`offset`، و`limit`، ثم استدعِ مجددًا بالقيمة المُعادة `nextOffset` إلى أن تصبح `null`. فعل ذلك لـ `nodes` و`edges` و`history`، وأنهِ باستدعاء واحد لـ `{"scope":"snapshot"}`، لأن تشغيلًا على شرائح لا يلمس اللقطة المخبَّأة.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1750,7 +1752,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

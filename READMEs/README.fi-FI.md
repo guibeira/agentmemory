@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP-työkalua" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 automaattista hookia" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 ulkoista tietokantaa" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ testiä läpäisty" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ testiä läpäisty" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Ajonaikainen ympäristö käyttää REST/MCP HTTP:tä portissa 3111, katseluohjelmaa portissa 3113 ja sisäistä iii-workerien WebSocket-yhteyttä portissa 49134. Katseluohjelman reaaliaikaiset tapahtumat kulkevat SSE:nä REST-yhteyden kautta. `status` vahvistaa agentmemoryn kunnon, moottorin kiinnitetyn version (`enginePinnedVersion`) sekä aktiivisen tarjoajan/upotusten tilan. Tallenna koetin ja varmista, että se löytyy haulla:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Varoitus: tämä komento muuttaa nykyistä työtilaa/ajonaikaista ympäristöä. Se voi päivittää JavaScript-riippuvuuksia ja asentaa iii 0.25.0:n kiinnitetyn moottoribinäärin.
-
-Toteutuksen yksityiskohdat löytyvät tiedostosta `src/cli.ts` (katso `runUpgrade` alueen `src/cli.ts:544-595` kohdalla).
 
 ### Claude Code (yksi lohko, liitä se)
 
@@ -815,7 +818,7 @@ agentmemory-merkintä on **sama MCP-palvelinlohko** jokaisessa isännässä, jok
 | **Continue.dev** | `~/.continue/config.yaml` (suositeltu) tai `config.json` (vanha) | `agentmemory connect continue` luo tiedoston `config.yaml` tyhjästä, kun kumpaakaan ei ole, tai muokkaa olemassa olevaa `config.json`-tiedostoa. **Jos sinulla on jo `config.yaml`**, sovitin tulostaa tarkan lohkon liitettäväksi `mcpServers:`-kohtaan; se ei hiljaa uudelleenkirjoita yamliasi, koska kommenttien ja ankkureiden turvallinen säilyttäminen vaatisi YAML-jäsentimen, jota paketti ei toimita. Continue käyttää taulukkomuotoa (ei objektia) `mcpServers`-kentälle. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` kirjoittaa avaimen `context_servers` alle (Zedin avain, EI `mcpServers`). Etä-MCP-palvelimet voidaan kytkeä myös muodolla `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` kirjoittaa standardin `mcpServers`-lohkon. Projektikohtaiset ylikirjoitukset menevät tiedostoon `<repo>/.factory/mcp.json`. Välitä `--with-hooks` natiivia automaattitallennusta varten. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` lisää `@deepseek-ai/dsh-mcp-client`-rivin kotihakemistotason patch-kerrokseen, jonka joka Harness-profiili lataa; työkalut rekisteröityvät muodossa `mcp__agentmemory__*`. Välitä `--with-hooks` kytkeäksesi myös automaattitallennuksen: mukana tulevat Claude Code -hook-skriptit kulkevat Harnessin ensiosapuolen `@deepseek-ai/dsh-hooks-claude-code`-sillan läpi (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) manifestin kautta, joka kirjoitetaan tiedostoon `$DSH_HOME/agentmemory.hooks.json`. Oletusarvo on `~/.dsh`, kun `DSH_HOME` on asettamatta. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` ottaa MCP-työkalut käyttöön. Lisää `--with-hooks` ladataksesi AgentMemoryn mukana tulevan natiivin tallennuslisäosan. Erillistä lisäosapakettia ei tarvita. [DSH](../docs/dsh.md). |
 | **Goose** | Goosen MCP-asetuskäyttöliittymä | Sama `mcpServers`-lohko; käytä `goose configure` → Add Extension → MCP. Suora YAML-muokkaus polussa `~/.config/goose/config.yaml` on tuettu, mutta skeema käyttää `extensions:` + `cmd` (ei `mcpServers:` + `command`). |
 | **Aider** | ei saatavilla | Puhu suoraan REST-rajapinnalle: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Mikä tahansa agentti (32+)** | ei saatavilla | `npx skillkit install agentmemory` tunnistaa isännän automaattisesti ja yhdistää. |
@@ -827,9 +830,9 @@ agentmemory-merkintä on **sama MCP-palvelinlohko** jokaisessa isännässä, jok
 agentmemory rekisteröi sen ydintoiminnot iii-funktioina (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Mikä tahansa kieli, jolla on iii-SDK, voi kutsua niitä suoraan osoitteen `ws://localhost:49134` kautta, ei erillistä REST-asiakasta per kieli.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1343,7 +1346,7 @@ fi
 | Prometheus / Grafana | iii OTEL + terveysmonitori |
 | Mukautetut plugin-järjestelmät | Worker Compose (`worker-compose.yaml`) |
 
-**245 lähdetiedostoa · noin 56 000 LOC · 3,600+ testiä · 322 funktiota · 65 KV-scopea**, kaikki kolmen primitiivin päällä. Ei `agentmemory plugin install` -komentoa. Plugin-järjestelmä on iii itse.
+**253 lähdetiedostoa · ~58,000 LOC · 4,000+ testiä · 322 funktiota · 65 KV-scopea**, kaikki kolmen primitiivin päällä. Ei `agentmemory plugin install` -komentoa. Plugin-järjestelmä on iii itse.
 
 ---
 
@@ -1634,8 +1637,7 @@ Luo `~/.agentmemory/.env`:
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1670,7 +1672,7 @@ Luo `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpointia portissa `3111`. REST-rajapinta sitoutuu oletuksena osoitteeseen `127.0.0.1`. Suojatut endpointit vaativat `Authorization: Bearer <secret>`, ja mesh-synkronointiendpointit vaativat nimenomaisesti asetetun `AGENTMEMORY_SECRET`-arvon molemmilla vertaisilla.
+146 endpointia portissa `3111`. REST-rajapinta sitoutuu oletuksena osoitteeseen `127.0.0.1`. Suojatut endpointit vaativat `Authorization: Bearer <secret>`, ja mesh-synkronointiendpointit vaativat nimenomaisesti asetetun `AGENTMEMORY_SECRET`-arvon molemmilla vertaisilla.
 
 **Autentikointi on oletuksena päällä.** Kun `AGENTMEMORY_SECRET`-muuttujaa ei ole asetettu (shellissä tai tiedostossa `~/.agentmemory/.env`), CLI luo ensimmäisellä käynnistyksellä satunnaisen salaisuuden ja tallentaa sen `secret`-nimisenä tiedostona valittuun datakansioon oikeuksin `0600` (alustakohtainen oletuskansio on kuvattu yllä). Kaikki mukana toimitetut asiakkaat lukevat salaisuuden sieltä käyttäessään paikallista palvelinta: CLI, katseluohjelma, `plugin/scripts`-hakemiston hookit, MCP-palvelin ja `@agentmemory/mcp`-shim, `agentmemory connect` -komennon luomat asetukset sekä mukana toimitetut OpenCode-, Pi-, OpenClaw-, Hermes- ja filesystem-watcher-integraatiot. Tallennettu salaisuus lähetetään vain loopback-osoitteisiin (`localhost`, `127.0.0.0/8`, `::1`). Nimenomainen `AGENTMEMORY_SECRET` voittaa aina, ja etäasiakkaiden on asetettava salaisuus ympäristöönsä. Repositorion Docker-itseylläpitokäyttöönotot ja `deploy/`-entrypointit luovat ja vievät oman salaisuutensa. Rajapinnan manuaalinen kutsu:
 
@@ -1729,19 +1731,19 @@ Epäonnistuneita tapahtumia yritetään uudelleen `AGENTMEMORY_CAPTURE_RETRY_INT
 
 Kun palvelin on alhaalla, ei vastaa ajoissa tai palauttaa 5xx:n, hook liittää havainnon paikalliseen spool-tiedostoon, `<data dir>/capture-spool/<host>-<port>.jsonl` (ylikirjoita kansio `AGENTMEMORY_CAPTURE_SPOOL_DIR`:llä). Tiedosto on yksityinen käyttäjällesi (oikeudet 600), salaisuudet peitetään samalla tavalla kuin palvelin peittää ne, se pitää enintään `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) ja pudottaa merkinnät, jotka ovat vanhempia kuin `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Kun se on täynnä, uudet merkinnät pudotetaan ja lasketaan, ja `/agentmemory/status` raportoi sen. Hook poistuu yhä koodilla 0 aikarajansa sisällä ja lisää ei yhtään pyyntöä, kun palvelin on terve. Spool lähetetään seuraavassa käynnistyksessä ja ensimmäisellä hookilla, joka tavoittaa palvelimen uudelleen, taustaprosessissa, niin agentti ei odota. Tapahtuma-ID:t tekevät tämän turvalliseksi: havainto, joka saapui ennen aikakatkaisua, ei tallenneta kahdesti. `npx @agentmemory/agentmemory capture` näyttää spoolin ja palvelimen saapuvat, `--drain` lähettää spoolin nyt, ja `GET /agentmemory/capture` palauttaa saman JSON:na. Aseta `AGENTMEMORY_CAPTURE_SPOOL=false` kytkeäksesi spoolin pois.
 
-**Graafin alkuperän tiivistäminen.** Joka tietograafin solmu ja reuna pitää 32 uusimman havainnon ID:t, joista se tuli. Varastot, jotka kirjoitettiin ennen tätä kattoa, voivat pitää tuhansia ID:itä per kuuma solmu, mikä tekee graafihausta ja katseluohjelmasta hitaan tai kaataa workerin. agentmemory korjaa tämän itse: ensimmäisellä käynnistyksellä päivityksen jälkeen se tiivistää joka solmun, reunan, korvatun reunan (temporaalinen graafihistoria) ja välimuistitetun tilannevedoksen kattoon taustalla, pienissä viipaleissa tauolla niiden välissä, niin haku, tallennus ja katseluohjelma pysyvät toiminnassa. Se tallentaa edistymisensä, jatkaa uudelleenkäynnistyksen jälkeen ja ei koskaan aja uudelleen, kun se on valmistunut. `/agentmemory/status` ja katseluohjelman Health-sivu näyttävät sen odottavana, käynnissä (nykyisellä scopella ja sijainnilla), valmiina tai epäonnistuneena. Aseta `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` kytkeäksesi sen pois.
+**Graafin alkuperän tiivistäminen.** Vanhojen alkuperätietojen tiivistäminen lykätään käynnistyksessä, koska se lukee vanhat scopet kokonaan. `/agentmemory/status` näyttää tilan `deferred`, tai `off`, kun `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Suorita alla kuvattu manuaalinen tiivistäminen huollon aikana. Hakuindeksin migraatio on erillinen: käytä komentoa `agentmemory graph-index migrate --allow-legacy-scan` [huolto-ohjeen](../docs/reliability/graph-index-migration.md) mukaisesti.
 
 Ajaaksesi sen käsin, kutsu `POST /agentmemory/graph/compact`. Se kävelee nimi- ja reuna-avainindeksit sen sijaan, että listaisi joka solmun ja reunan, ja sen voi turvallisesti ajaa uudelleen. Kun se tiivistää ID:itä, se kirjoittaa `graph_compact`-auditointimerkinnän.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Suurella varastolla, tai kun kutsu palauttaa 504:n, aja se viipaleissa. Lähetä `scope` (`nodes`, `edges` tai `history`), `offset` ja `limit`, ja kutsu sitten uudelleen palautetulla `nextOffset`:lla, kunnes se on `null`. Tee tämä `nodes`:lle, `edges`:lle ja `history`:lle, ja lopeta yhdellä `{"scope":"snapshot"}`-kutsulla, koska viipaloitu ajo ei koske välimuistitettua tilannevedosta.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1751,7 +1753,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

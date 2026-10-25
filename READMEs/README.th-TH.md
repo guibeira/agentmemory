@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 เครื่องมือ MCP" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 hook อัตโนมัติ" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="ไม่ต้องพึ่ง external DB เลย" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="ผ่านการทดสอบ 3,800+ รายการ" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="ผ่านการทดสอบ 4,000+ รายการ" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -584,11 +584,16 @@ npx -y @agentmemory/agentmemory@latest status
 runtime ใช้ REST/MCP HTTP 3111, viewer 3113 และ iii worker WebSocket ภายใน 49134; live event ใช้ SSE ผ่าน REST `status` รายงาน `enginePinnedVersion` พร้อมสถานะ agentmemory และ provider/embedding mode ที่ใช้งาน บันทึก probe แล้วตรวจว่าค้นหาเจอ:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -634,8 +639,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 คำเตือน: คำสั่งนี้เปลี่ยน workspace/runtime ปัจจุบัน และอาจอัปเดต JavaScript dependencies หรือติดตั้งไบนารี iii 0.25.0 ที่ pin ไว้
-
-รายละเอียดการ implement อยู่ใน `src/cli.ts` (ดู `runUpgrade` รอบ ๆ ส่วน `src/cli.ts:544-595`)
 
 ### Claude Code (one block, paste it)
 
@@ -813,7 +816,7 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 | **Continue.dev** | `~/.continue/config.yaml` (แนะนำ) หรือ `config.json` (รุ่นเก่า) | `agentmemory connect continue` จะสร้าง `config.yaml` ใหม่ทั้งหมดเมื่อยังไม่มีไฟล์ใดเลย หรือแก้ `config.json` ที่มีอยู่ **ถ้าคุณมี `config.yaml` อยู่แล้ว** adapter จะพิมพ์ block ที่ต้อง paste ใต้ `mcpServers:` ออกมาให้ตรง ๆ มันจะไม่เขียนทับไฟล์ yaml ของคุณแบบเงียบ ๆ เพราะการรักษา comment และ anchor ให้ปลอดภัยต้องใช้ YAML parser ที่แพ็กเกจนี้ไม่ได้ ship มาด้วย Continue ใช้ array (ไม่ใช่ object) สำหรับ `mcpServers` |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` เขียนไว้ใต้ `context_servers` (key ของ Zed ไม่ใช่ `mcpServers`) MCP server แบบ remote เชื่อมต่อผ่าน `{"url": "..."}` ได้เช่นกัน |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` เขียน `mcpServers` block แบบมาตรฐาน การ override ระดับ project ไปอยู่ที่ `<repo>/.factory/mcp.json` ใส่ `--with-hooks` เพื่อ auto-capture แบบ native |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` จะต่อแถว `@deepseek-ai/dsh-mcp-client` เข้าไปใน patch layer ระดับ home ที่ทุก Harness profile โหลด; เครื่องมือจะลงทะเบียนเป็น `mcp__agentmemory__*` ใส่ `--with-hooks` เพื่อเชื่อมต่อ auto-capture ด้วย: hook script ของ Claude Code ที่ bundle มาจะรันผ่าน bridge first-party `@deepseek-ai/dsh-hooks-claude-code` ของ Harness (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) ผ่าน manifest ที่เขียนไว้ที่ `$DSH_HOME/agentmemory.hooks.json` ค่า default คือ `~/.dsh` เมื่อไม่ได้ตั้งค่า `DSH_HOME` |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` เปิดใช้งานเครื่องมือ MCP เพิ่ม `--with-hooks` เพื่อโหลดปลั๊กอินบันทึกแบบเนทีฟที่รวมอยู่ใน AgentMemory โดยไม่ต้องติดตั้งแพ็กเกจปลั๊กอินแยกต่างหาก [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP settings UI | ใช้ `mcpServers` block เดียวกัน; ใช้ `goose configure` → Add Extension → MCP การแก้ YAML ตรง ๆ ที่ `~/.config/goose/config.yaml` ก็รองรับ แต่ schema ใช้ `extensions:` + `cmd` (ไม่ใช่ `mcpServers:` + `command`) |
 | **Aider** | n/a | คุยกับ REST API ตรง ๆ: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'` |
 | **Any agent (32+)** | n/a | `npx skillkit install agentmemory` จะตรวจจับ host อัตโนมัติและ merge ให้ |
@@ -825,9 +828,9 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 agentmemory ลงทะเบียน core operation ของมันเป็น iii function (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`) ภาษาใดก็ได้ที่มี iii SDK สามารถเรียกมันได้ตรง ๆ ผ่าน `ws://localhost:49134` โดยไม่ต้องมี REST client แยกสำหรับแต่ละภาษา
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1324,7 +1327,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom plugin systems | Worker Compose (`worker-compose.yaml`) |
 
-**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**253 source file · ~58,000 LOC · 4,000+ การทดสอบ · 322 function · 65 KV scope** ทั้งหมดอยู่บน primitive สามตัว ไม่มี `agentmemory plugin install` ระบบ plugin ก็คือ iii เองนั่นแหละ
 
 ---
 
@@ -1608,8 +1611,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1644,7 +1646,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoint บนพอร์ต `3111` REST API จะ bind กับ `127.0.0.1` โดย default endpoint ที่ป้องกันไว้ต้องมี `Authorization: Bearer <secret>` และ endpoint ของ mesh sync ต้องตั้งค่า `AGENTMEMORY_SECRET` ไว้อย่างชัดเจนทั้งสองฝั่ง
+146 endpoint บนพอร์ต `3111` REST API จะ bind กับ `127.0.0.1` โดย default endpoint ที่ป้องกันไว้ต้องมี `Authorization: Bearer <secret>` และ endpoint ของ mesh sync ต้องตั้งค่า `AGENTMEMORY_SECRET` ไว้อย่างชัดเจนทั้งสองฝั่ง
 
 **เปิดการยืนยันตัวตนไว้โดยปริยาย** หากไม่ได้ตั้ง `AGENTMEMORY_SECRET` (ใน shell หรือ `~/.agentmemory/.env`) CLI จะสร้าง secret แบบสุ่มเมื่อเริ่มครั้งแรก และเก็บเป็น `secret` mode `0600` ใน data directory ที่เลือก client ที่ bundle มาอ่าน secret จากที่นี่เมื่อเชื่อมต่อ server ในเครื่อง ส่ง secret ไปยัง loopback URL เท่านั้น (`localhost`, `127.0.0.0/8`, `::1`) client ระยะไกลต้องตั้ง secret ใน environment ของตน Docker self-host และ `deploy/` สร้าง secret ของตนเอง หากเรียก API ด้วยตนเอง:
 
@@ -1704,19 +1706,19 @@ Event ที่ล้มเหลวจะถูก retry ทุก `AGENTMEMORY
 
 เมื่อ server ล้ม ไม่ตอบทันเวลา หรือคืน 5xx hook จะต่อ observation เข้าไปที่ spool file ในเครื่อง `<data dir>/capture-spool/<host>-<port>.jsonl` (override folder ด้วย `AGENTMEMORY_CAPTURE_SPOOL_DIR`) ไฟล์นี้เป็นของ user คุณเท่านั้น (mode 600) secret ถูก redact แบบเดียวกับที่ server redact มัน มันเก็บได้สูงสุด `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) และ drop รายการที่เก่ากว่า `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168 ชั่วโมง) เมื่อเต็ม รายการใหม่จะถูก drop และนับไว้ และ `/agentmemory/status` จะรายงานมัน hook ยัง exit 0 ภายใน time limit ของมันเสมอ และไม่เพิ่มคำขอใด ๆ เมื่อ server ปกติดี spool จะถูกส่งตอนเริ่มครั้งถัดไป และโดย hook ตัวแรกที่เชื่อมต่อกับ server ได้อีกครั้ง ใน background process เพื่อไม่ให้ agent ต้องรอ event id ทำให้สิ่งนี้ปลอดภัย: observation ที่ถึงแล้วก่อน timeout จะไม่ถูกบันทึกซ้ำสองครั้ง `npx @agentmemory/agentmemory capture` จะแสดง spool และ server inbox, `--drain` จะส่ง spool ทันที, และ `GET /agentmemory/capture` คืนค่าแบบเดียวกันเป็น JSON ตั้งค่า `AGENTMEMORY_CAPTURE_SPOOL=false` เพื่อปิด spool
 
-**การ compact graph provenance** node และ edge ของ knowledge graph แต่ละตัวเก็บ id ของ observation ล่าสุด 32 ตัวที่มันมาจาก store ที่เขียนไว้ก่อนมี cap นี้อาจมี id นับพันต่อ hot node หนึ่งตัว ซึ่งทำให้ graph search และ viewer ช้าลงหรือทำให้ worker ล้ม agentmemory แก้ปัญหานี้ให้เอง: ในการเริ่มครั้งแรกหลัง upgrade มันจะตัด node, edge, superseded edge (temporal graph history) และ cached snapshot ทุกตัวให้เหลือตาม cap ในพื้นหลัง เป็น slice เล็ก ๆ พร้อมหยุดพักระหว่างกัน เพื่อให้ search, capture, และ viewer ทำงานต่อไปได้ มันจะบันทึกความคืบหน้า resume ได้หลัง restart และไม่รันอีกเมื่อเสร็จแล้ว `/agentmemory/status` และหน้า Health ของ viewer จะแสดงมันเป็น pending, running (พร้อม scope และตำแหน่งปัจจุบัน), done หรือ failed ตั้งค่า `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` เพื่อปิดมัน
+**การ compact graph provenance** การ compact provenance เก่าจะถูกเลื่อนเมื่อเริ่มระบบ เพราะต้องอ่าน scope เก่าทั้งหมด `/agentmemory/status` จะแสดง `deferred` หรือ `off` เมื่อตั้ง `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` ให้รันการ compact แบบแมนนวลด้านล่างระหว่างการบำรุงรักษา การย้ายดัชนีค้นหาเป็นงานแยกต่างหาก: ใช้ `agentmemory graph-index migrate --allow-legacy-scan` ตาม[คู่มือการบำรุงรักษา](../docs/reliability/graph-index-migration.md)
 
 หากต้องการรันด้วยมือ เรียก `POST /agentmemory/graph/compact` มันจะไล่ตาม name และ edge-key index แทนการ list node และ edge ทุกตัว และปลอดภัยที่จะรันซ้ำ เมื่อมันตัด id ออก มันจะเขียน audit entry แบบ `graph_compact`
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 บน store ขนาดใหญ่ หรือเมื่อคำขอคืน 504 ให้รันเป็น slice ส่ง `scope` (`nodes`, `edges` หรือ `history`), `offset` และ `limit` แล้วเรียกซ้ำด้วย `nextOffset` ที่คืนมาจนกว่าจะเป็น `null` ทำแบบนี้สำหรับ `nodes`, `edges` และ `history` แล้วปิดท้ายด้วยการเรียก `{"scope":"snapshot"}` หนึ่งครั้ง เพราะการรันแบบ slice จะไม่แตะ cached snapshot
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1726,7 +1728,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

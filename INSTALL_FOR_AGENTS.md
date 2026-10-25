@@ -75,7 +75,7 @@ From a second terminal, run:
 
 ```bash
 curl -fsS http://localhost:3111/agentmemory/livez
-curl -fsS http://localhost:3111/agentmemory/livez
+curl -fsS http://localhost:3111/agentmemory/health
 curl -fsS -o /dev/null http://localhost:3113/
 npx -y @agentmemory/agentmemory@latest status
 ```
@@ -108,17 +108,23 @@ npx -y @agentmemory/agentmemory@latest connect <agent>
 
 Supported agent names:
 
-`claude-code`, `copilot-cli`, `codex`, `cursor`, `gemini-cli`, `opencode`, `cline`, `continue`, `droid`, `hermes`, `openclaw`, `openhuman`, `pi`, `qwen`, `warp`, `zed`, `antigravity`, `kiro`.
+`claude-code`, `copilot-cli`, `codex`, `cursor`, `gemini-cli`, `opencode`, `cline`, `continue`, `droid`, `hermes`, `openclaw`, `openhuman`, `pi`, `omp`, `qwen`, `warp`, `zed`, `antigravity`, `kiro`.
 
 If you cannot tell which agent you are, default to `claude-code` on macOS/Linux. On native Windows, `copilot-cli` is the only automated adapter; configure all other agents with the manual MCP block in the README. Run `connect` inside WSL only when the target agent is installed inside the same WSL environment. After wiring, restart the agent or run its MCP reload command (for example `/mcp` in Claude Code) so it picks up the server.
 
 Expect: the agent now lists agentmemory's tools. With the server running you should see the full set of 54 tools (for example `memory_save`, `memory_smart_search`, `memory_sessions`). If you see only 7 tools, the MCP shim could not reach the server; see Troubleshooting.
+
+For Oh My Pi, `connect omp` installs native capture, recall and the bundled skills. Use `connect omp --with-mcp` for the full toolset, then restart OMP and run `/agentmemory-status`. See [OMP setup and verification](integrations/omp/README.md).
+
+For Pi, `connect pi` installs native capture, recall and the 17 bundled skills. Use `connect pi --with-mcp` for the full toolset, then restart Pi or `/reload` and run `/agentmemory-status`. Skills appear as `/skill:<name>`. Keep one extension installation; see [Pi setup and migration](integrations/pi/README.md).
 
 ## 6. Install native skills
 
 ```bash
 npx skills add rohitg00/agentmemory -y
 ```
+
+Pi, Oh My Pi, Hermes and OpenClaw already receive skills through their native connector; skip this extra installation for those hosts.
 
 This installs the native skills so the agent knows when to call the memory tools, not just that they exist. `connect` makes the tools available; skills teach the agent when to use them.
 
@@ -136,19 +142,27 @@ Expect: a JSON body with an ok status.
 
 Now write a memory and read it back. If MCP is wired, call the `memory_save` tool followed by `memory_smart_search`. Otherwise use REST directly (note: these are the REST paths, which differ from the MCP tool names):
 
+REST writes always require the bearer secret. If you configured `AGENTMEMORY_SECRET` in the daemon environment or env file, set that same value in this terminal. For the default generated local secret, load it without printing it:
+
 ```bash
-curl -X POST http://localhost:3111/agentmemory/remember \
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+```
+
+```bash
+curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"content":"agentmemory install verification probe","concepts":["install-check"]}'
 
-curl -X POST http://localhost:3111/agentmemory/smart-search \
+curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H "Content-Type: application/json" \
   -d '{"query":"install verification probe","limit":5}'
 ```
 
 Expect: the first call returns `201`, the second returns `200` with results that include the probe memory you just saved.
 
-If `AGENTMEMORY_SECRET` is set, protected REST routes require it. Otherwise the CLI generates a secret on first start and stores it at `<data dir>/secret`; for a manual local REST request, read that secret and add `-H "Authorization: Bearer <secret>"`. The CLI, viewer, and MCP shim read the local secret automatically.
+The generated local secret is stored at `~/.agentmemory/secret` and mirrored to `<data dir>/secret`. The CLI, viewer, and MCP shim read it automatically. Keep using the same secret after restarting.
 
 Now stop and restart the processes. If you selected a custom `--data-dir`, add that same option and value to both commands:
 

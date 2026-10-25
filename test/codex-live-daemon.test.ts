@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, mkdirSync, cpSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, mkdirSync, cpSync, copyFileSync, chmodSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { delimiter, dirname, join, resolve } from "node:path";
+import { delimiter, join, resolve } from "node:path";
 import { createServer } from "node:net";
 import { createInterface } from "node:readline";
 import { setTimeout as delay } from "node:timers/promises";
@@ -19,24 +19,9 @@ const engineBin = [
     return false;
   }
 });
-const workerRegistryReachable = !engineBin && (() => {
-  const target = process.platform === "linux"
-    ? process.arch === "arm64" ? "aarch64-unknown-linux-gnu" : process.arch === "arm" ? "armv7-unknown-linux-gnueabihf" : "x86_64-unknown-linux-gnu"
-    : process.platform === "darwin"
-      ? process.arch === "arm64" ? "aarch64-apple-darwin" : "x86_64-apple-darwin"
-      : process.platform === "win32"
-        ? process.arch === "arm64" ? "aarch64-pc-windows-msvc" : "x86_64-pc-windows-msvc"
-        : null;
-  if (!target) return false;
-  const urls = ["state/0.22.20", "http/0.22.7"].map((worker) => `https://api.workers.iii.dev/download/${worker}/${target}`);
-  const probe = `Promise.all(${JSON.stringify(urls)}.map(async url => { const response = await fetch(url, { signal: AbortSignal.timeout(8000) }); await response.body?.cancel(); if (response.status !== 200) process.exitCode = 1 })).catch(() => process.exit(1))`;
-  try {
-    execFileSync(process.execPath, ["-e", probe], { timeout: 10_000, stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
+if (process.env.AGENTMEMORY_REQUIRE_LIVE_TESTS === "1" && !engineBin) {
+  throw new Error(`Live plugin tests require iii ${III_PINNED_VERSION}; set AGENTMEMORY_TEST_III to the pinned engine binary.`);
+}
 const cliPath = join(root, "dist/cli.mjs");
 let activeRuntime: { port: number; env: NodeJS.ProcessEnv; cli: ChildProcess } | undefined;
 const children = new Set<ChildProcess>();
@@ -162,22 +147,25 @@ function mcp(script: string, cwd: string, env: NodeJS.ProcessEnv) {
   return { child, request, tool };
 }
 
-describe.skipIf(!engineBin && !workerRegistryReachable).each(["codex", "copilot", "antigravity"] as const)("%s plugin against the pinned iii daemon", (host) => {
+describe.skipIf(!engineBin).each(["codex", "copilot", "antigravity"] as const)("%s plugin against the pinned iii daemon", (host) => {
   it("authenticates locally, captures and recovers hooks, shares memory, and persists across restart", async () => {
     // vitest.config.ts isolates user configuration for the entire test process.
     expect(homedir()).toContain("agentmemory-test-home-");
-    if (engineBin) {
-      expect(execFileSync(engineBin, ["--version"], { encoding: "utf8" }).trim()).toBe(III_PINNED_VERSION);
-    }
+    if (!engineBin) throw new Error("Pinned iii engine binary is required");
+    expect(execFileSync(engineBin, ["--version"], { encoding: "utf8" }).trim()).toBe(III_PINNED_VERSION);
     sandbox = mkdtempSync(join(tmpdir(), "agentmemory-live-plugin-"));
     const home = join(sandbox, "home");
-    mkdirSync(home, { recursive: true });
+    const binDir = join(home, ".agentmemory", "bin");
+    mkdirSync(binDir, { recursive: true });
+    const isolatedEngine = join(binDir, process.platform === "win32" ? "iii.exe" : "iii");
+    copyFileSync(engineBin, isolatedEngine);
+    chmodSync(isolatedEngine, 0o755);
     const [restPort, viewerPort, enginePort, metricsPort] = await unusedPorts();
     const base = `http://127.0.0.1:${restPort}`;
     const stateDir = join(sandbox, "state");
     const secretPath = join(home, ".agentmemory", "secret");
     const inherited = Object.fromEntries(Object.entries(process.env).filter(([key]) => ["PATH", "SYSTEMROOT", "LANG"].includes(key)));
-    const path = engineBin ? `${dirname(engineBin)}${delimiter}${inherited.PATH ?? ""}` : inherited.PATH;
+    const path = `${binDir}${delimiter}${inherited.PATH ?? ""}`;
     const env: NodeJS.ProcessEnv = { ...inherited, PATH: path, HOME: home, USERPROFILE: home, TMPDIR: tmpdir(), TEMP: tmpdir(),
       AGENTMEMORY_URL: base, AGENTMEMORY_DATA_DIR: stateDir,
       III_ENGINE_URL: `ws://127.0.0.1:${enginePort}`, III_REST_PORT: String(restPort),

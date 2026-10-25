@@ -7,7 +7,7 @@
     Your coding agent remembers everything. No more re-explaining.
     Built on <a href="https://github.com/iii-hq/iii">iii engine</a>
   </strong><br/>
-  Persistent memory for Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI, Codex CLI, Hermes, OpenClaw, pi, OpenCode, and any MCP client.
+  Persistent memory for Claude Code, GitHub Copilot CLI, Cursor, Gemini CLI, Codex CLI, Hermes, OpenClaw, pi, Oh My Pi, OpenCode, and any MCP client.
 </p>
 
 <p align="center">
@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tools.svg"><img src="assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-hooks.svg"><img src="assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-deps.svg"><img src="assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tests.svg"><img src="assets/tags/stat-tests.svg" alt="3,800+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/stat-tests.svg"><img src="assets/tags/stat-tests.svg" alt="4,000+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -583,14 +583,20 @@ curl -fsS -o /dev/null http://localhost:3113/
 npx -y @agentmemory/agentmemory@latest status
 ```
 
-The runtime uses REST/MCP HTTP on 3111, the viewer on 3113, and the internal iii worker WebSocket on 49134. Viewer live events use SSE on REST. `status` confirms agentmemory health, the pinned engine version (`enginePinnedVersion`), and the active provider/embedding mode. Save a probe and confirm it is searchable:
+The runtime uses REST/MCP HTTP on 3111, the viewer on 3113, and the internal iii worker WebSocket on 49134. Viewer live events use SSE on REST. `status` confirms agentmemory health, the pinned engine version (`enginePinnedVersion`), and the active provider/embedding mode. Save a probe and confirm it is searchable. Protected REST requests require the daemon secret. If you configured `AGENTMEMORY_SECRET`, set the same value in this terminal; otherwise load the default generated local secret:
+
+```bash
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+```
 
 ```bash
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -637,7 +643,7 @@ npx -y @agentmemory/agentmemory@latest upgrade
 
 Warning: this command mutates the current workspace/runtime. It can update JavaScript dependencies and install the pinned iii 0.25.0 engine binary.
 
-Implementation details live in `src/cli.ts` (see `runUpgrade` around the `src/cli.ts:544-595` region).
+The CLI upgrades only to its supported engine pin; see the [iii 0.25 migration guide](docs/upgrades/iii-0.25.md) before updating an existing runtime.
 
 ### Claude Code (one block, paste it)
 
@@ -703,6 +709,19 @@ copilot plugin install rohitg00/agentmemory:plugin
 
 `agentmemory connect copilot-cli` merges `mcpServers.agentmemory` into `~/.copilot/mcp-config.json` (or `$COPILOT_HOME/mcp-config.json` when `COPILOT_HOME` is set) and preserves existing servers. On native Windows this is the only automated `connect` adapter; configure every other native Windows agent manually. WSL `connect` is supported only when the target agent is installed in that same WSL environment. Copilot picks up the MCP server on next launch or after `/mcp`. Install the plugin as well when you want the full hook/skill experience.
 
+### Cursor
+
+```bash
+# MCP wiring
+agentmemory connect cursor
+```
+
+Then add the native hooks: **Settings → Plugins → Add marketplace** → select an agentmemory checkout (the directory containing `.cursor-plugin/plugin.json`), enable the **agentmemory** plugin, and reload the window.
+
+Cursor runs the same lifecycle hooks as every other host — they are the canonical `plugin/scripts/*.mjs`, not a separate implementation. A thin adapter in front of them resolves which project a session belongs to, which Cursor does not reliably report: its payload `cwd` can be `.cursor`, the Cursor install directory, or missing entirely. Do not also wire hooks into `~/.cursor/hooks.json` — the plugin already dispatches them, and both copies firing records every observation twice.
+
+Full guide: [`integrations/cursor/`](integrations/cursor/)
+
 <details>
 <summary><b>OpenClaw (paste this prompt)</b></summary>
 
@@ -765,8 +784,8 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 
 This is **complementary** to `agentmemory connect <agent>`:
 
-- `agentmemory connect <agent>` writes the MCP server config so the tools are available.
-- `npx skills add rohitg00/agentmemory` installs the skills so the agent knows when to call them.
+- `agentmemory connect <agent>` normally writes the MCP server config. Hermes, OpenClaw, Pi and Oh My Pi install their native integration and bundled skills by default; MCP is opt-in with `--with-mcp`.
+- `npx skills add rohitg00/agentmemory` installs skills for agents without native bundled skills. Skip this step for Hermes, OpenClaw, Pi and Oh My Pi; their native connectors already install the skills.
 
 For the few agents the skills CLI doesn't cover yet (Zed v1.3.x and below), drop the 17 SKILL.md files under the agent's native skill directory yourself; the same format works everywhere.
 
@@ -790,7 +809,7 @@ The agentmemory entry is the **same MCP server block** across every host that us
 | Agent | Config file | Notes |
 |---|---|---|
 | **Cursor (MCP only)** | `~/.cursor/mcp.json` | Merge into `mcpServers`, or `agentmemory connect cursor`. One-click deeplink also available on the website. |
-| **Cursor (full plugin)** | `.cursor-plugin/` | Cursor Marketplace listing (submission in review) or Cursor Settings → Plugins → local checkout. Registers 7 auto-capture hooks (sessionStart, beforeSubmitPrompt, preToolUse, postToolUse, postToolUseFailure, stop, sessionEnd) + 17 skills + the MCP server, with `AGENTMEMORY_URL` / `AGENTMEMORY_SECRET` managed in Cursor's plugin dashboard. Works in the Cursor IDE and `cursor-agent` CLI; CLI print-mode prompts are backfilled from the session transcript at session end. |
+| **Cursor (full plugin)** | `.cursor-plugin/` | Cursor Marketplace listing or Settings → Plugins → local checkout. Registers lifecycle hooks via a thin adapter that delegates to the canonical `plugin/scripts/*.mjs`, plus skills and MCP. The adapter resolves the workspace Cursor does not reliably report. See [Cursor](#cursor). Works in the Cursor IDE and `cursor-agent` CLI. |
 | **Claude Desktop** | `claude_desktop_config.json` (Application Support) | Merge into `mcpServers`. Restart Claude Desktop after editing. |
 | **Cline / Roo Code / Kilo Code** | Cline MCP settings (Settings UI → MCP Servers → Edit) | Same `mcpServers` block. |
 | **Devin CLI (MCP + hooks)** | `~/.config/devin/config.json` | `agentmemory connect devin` merges the MCP entry; `--with-hooks` adds six native auto-capture hooks (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop, SessionEnd) with Devin'"'"'s lowercase tool matchers. Verify with `devin mcp list` and `/hooks` inside devin. |
@@ -804,8 +823,9 @@ The agentmemory entry is the **same MCP server block** across every host that us
 | **Codex CLI (full plugin)** | Codex plugin marketplace | `codex plugin marketplace add rohitg00/agentmemory` then `codex plugin add agentmemory@agentmemory`. Registers MCP + 6 lifecycle hooks + 17 skills. Trust hooks and verify capture in your host; see [Codex setup and validation](docs/plugins/codex-local.md). |
 | **OpenCode (MCP only)** | `opencode.json` | Different shape: top-level `mcp` key, command as array: `{"mcp": {"agentmemory": {"type": "local", "command": ["npx", "-y", "@agentmemory/mcp"], "enabled": true}}}`. |
 | **OpenCode (full plugin)** | `plugin/opencode/` | 22 auto-capture hooks covering session lifecycle, messages, tools, errors. Project attribution is per-session, so one OpenCode process spanning several repositories files each session under its own project. Two slash commands (`/recall`, `/remember`). Copy `plugin/opencode/` into your OpenCode workspace and add the plugin entry to `opencode.json`. See [`plugin/opencode/README.md`](plugin/opencode/README.md) for the full hook table + gap analysis. |
-| **pi** | `~/.pi/agent/extensions/agentmemory` | `agentmemory connect pi` installs the bundled extension into pi's auto-discovery directory (recall on agent start, capture on agent end, `memory_search` / `memory_save` / `memory_health` tools, `/agentmemory-status`). `/reload` in a running pi picks it up. [`integrations/pi`](integrations/pi/) is also a pi package (`pi install ./integrations/pi` from a checkout). |
-| **Hermes Agent** | `~/.hermes/config.yaml` | `cp -r integrations/hermes ~/.hermes/plugins/agentmemory` + `memory.provider: agentmemory` gives the 6-hook memory provider (prefetch, turn capture, session end, pre-compress, MEMORY.md mirroring, system prompt block). Validate with `hermes plugins doctor` and `hermes memory status`. See [`integrations/hermes`](integrations/hermes/). |
+| **pi** | Active Pi agent directory, default `~/.pi/agent` | `agentmemory connect pi --with-mcp` installs native recall/capture, offline replay, 17 skills and the full MCP toolset. Or build `integrations/pi` and use `pi install ./integrations/pi`; after npm publication, `pi install npm:@agentmemory/pi`. Use one method and run `/reload`. See [setup and migration](integrations/pi/). |
+| **Oh My Pi (OMP)** | Active OMP agent directory, default `~/.omp/agent/config.yml` | `agentmemory connect omp --with-mcp` installs native recall/capture, offline replay, 17 skills and the full MCP toolset. Restart OMP and run `/agentmemory-status`. See [setup, profiles and commands](integrations/omp/). |
+| **Hermes Agent** | `$HERMES_HOME/config.yaml`, default `~/.hermes/config.yaml` | `agentmemory connect hermes` installs the native provider and skills. Configure its scoped credentials with `hermes memory setup`. Add `--with-mcp` for the wider tool surface. See [setup and scope](integrations/hermes/). |
 | **Qwen Code** | `~/.qwen/settings.json` | `agentmemory connect qwen` writes the standard `mcpServers` block. Hook payload is field-compatible with Claude Code, so the existing 12-hook scripts work without modification; wire them via the `hooks` section in the same `settings.json`. |
 | **Antigravity IDE / 2.0** | `~/.gemini/config/mcp_config.json` | `agentmemory connect antigravity --with-hooks` installs MCP and capture hooks in the shared customization directory. See [Antigravity setup and limits](docs/plugins/antigravity.md). |
 | **Antigravity CLI** (`agy`) | `~/.gemini/config/mcp_config.json` | `agentmemory connect antigravity-cli --with-hooks` uses the same MCP and hook configuration as current IDE versions. Existing installations should refresh with `--force`; see the [upgrade notes](docs/plugins/antigravity.md). |
@@ -815,7 +835,7 @@ The agentmemory entry is the **same MCP server block** across every host that us
 | **Continue.dev** | `~/.continue/config.yaml` (preferred) or `config.json` (legacy) | `agentmemory connect continue` creates `config.yaml` from scratch when neither exists, or modifies existing `config.json`. **If you already have `config.yaml`** the adapter prints the exact block to paste under `mcpServers:`; it won't silently rewrite your yaml because preserving comments and anchors safely needs a YAML parser the package doesn't ship. Continue uses array form (not object) for `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` writes under `context_servers` (Zed's key, NOT `mcpServers`). Remote MCP servers can be wired via `{"url": "..."}` instead. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` writes the standard `mcpServers` block. Project-scoped overrides go in `<repo>/.factory/mcp.json`. Pass `--with-hooks` for native auto-capture. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` appends an `@deepseek-ai/dsh-mcp-client` row to the home-level patch layer every Harness profile loads; tools register as `mcp__agentmemory__*`. Pass `--with-hooks` to also wire auto-capture: the bundled Claude Code hook scripts run through Harness's first-party `@deepseek-ai/dsh-hooks-claude-code` bridge (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) via a manifest written to `$DSH_HOME/agentmemory.hooks.json`. Defaults to `~/.dsh` when `DSH_HOME` is unset. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` enables MCP tools. Add `--with-hooks` to load the native capture plugin bundled with AgentMemory. No separate plugin package is needed. [DSH](docs/dsh.md). |
 | **Goose** | Goose MCP settings UI | Same `mcpServers` block; use `goose configure` → Add Extension → MCP. Direct YAML edit at `~/.config/goose/config.yaml` is supported but the schema uses `extensions:` + `cmd` (not `mcpServers:` + `command`). |
 | **Aider** | n/a | Talk to the REST API directly: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Any agent (32+)** | n/a | `npx skillkit install agentmemory` auto-detects the host and merges. |
@@ -827,9 +847,9 @@ The agentmemory entry is the **same MCP server block** across every host that us
 agentmemory registers its core operations as iii functions (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Any language with an iii SDK can call them directly over `ws://localhost:49134`, with no separate REST client per language.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1348,7 +1368,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom plugin systems | Worker Compose (`worker-compose.yaml`) |
 
-**245 source files · ~56,000 LOC · 3,600+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**253 source files · ~58,000 LOC · 4,000+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
 
 ---
 
@@ -1638,8 +1658,7 @@ Create `~/.agentmemory/.env`:
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1677,9 +1696,9 @@ Create `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/tags/light/section-api.svg"><img src="assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoints on port `3111`. The REST API binds to `127.0.0.1` by default. Protected endpoints require `Authorization: Bearer <secret>`, and mesh sync endpoints require an explicitly set `AGENTMEMORY_SECRET` on both peers.
+146 endpoints on port `3111`. The REST API binds to `127.0.0.1` by default. Protected endpoints require `Authorization: Bearer <secret>`, and mesh sync endpoints require an explicitly set `AGENTMEMORY_SECRET` on both peers.
 
-**Authentication is on by default.** When `AGENTMEMORY_SECRET` is not set (in the shell or in `~/.agentmemory/.env`), the CLI generates a random secret on first start and stores it in the selected data directory as `secret` with mode `0600` (the platform-specific default data directory is described above). Every bundled client reads it from there when it talks to a local server: the CLI, the viewer, the hooks under `plugin/scripts`, the MCP server and the `@agentmemory/mcp` shim, the configs written by `agentmemory connect`, and the bundled OpenCode, Pi, OpenClaw, Hermes and filesystem-watcher integrations. The stored secret is only sent to loopback URLs (`localhost`, `127.0.0.0/8`, `::1`). An explicit `AGENTMEMORY_SECRET` always wins, and remote clients need the secret set in their environment. Repository-based Docker self-host deployments and the `deploy/` entrypoints generate and export their own secret. To call the API by hand:
+**Authentication is on by default.** When `AGENTMEMORY_SECRET` is not set (in the shell or in `~/.agentmemory/.env`), the CLI generates a random secret on first start and stores it at `~/.agentmemory/secret`, mirrored to the selected data directory as `secret`, with mode `0600` (the platform-specific default data directory is described above). Bundled clients read the canonical secret first when they talk to a local server: the CLI, the viewer, the hooks under `plugin/scripts`, the MCP server and the `@agentmemory/mcp` shim, the configs written by `agentmemory connect`, and the bundled OpenCode, Pi, OpenClaw, Hermes and filesystem-watcher integrations. The stored secret is only sent to loopback URLs (`localhost`, `127.0.0.0/8`, `::1`). An explicit `AGENTMEMORY_SECRET` always wins, and remote clients need the secret set in their environment. Repository-based Docker self-host deployments and the `deploy/` entrypoints generate and export their own secret. To call the API by hand:
 
 ```bash
 curl -H "Authorization: Bearer <secret-from-data-dir>" http://localhost:3111/agentmemory/health
@@ -1741,19 +1760,19 @@ When the server is down, does not answer in time or returns a 5xx, the hook appe
 
 **Upgrading from v0.9.30:** if you already reset the graph before upgrading, run `POST /agentmemory/graph/reset` again after the upgrade. Earlier reset timestamps are not used to infer a completed generation reset.
 
-**Compacting graph provenance.** Each knowledge graph node and edge keeps the ids of the newest 32 observations it came from. Stores written before that cap can hold thousands of ids per hot node, which makes graph search and the viewer slow or drops the worker. agentmemory fixes this by itself: on the first start after upgrading it trims every node, edge, superseded edge (the temporal graph history) and the cached snapshot to the cap in the background, in small slices with a pause between them, so search, capture and the viewer keep working. It saves its progress, resumes after a restart and never runs again once it has finished. `/agentmemory/status` and the viewer Health page show it as pending, running (with the current scope and position), done or failed. Set `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` to turn it off.
+**Compacting graph provenance.** Legacy provenance compaction is deferred at startup because it reads complete legacy scopes. `/agentmemory/status` reports `deferred`, or `off` with `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Run the manual compaction below during maintenance. Retrieval index migration is separate: use `agentmemory graph-index migrate --allow-legacy-scan` as described in the [maintenance guide](docs/reliability/graph-index-migration.md).
 
 To run it by hand, call `POST /agentmemory/graph/compact`. It walks the name and edge-key indexes instead of listing every node and edge, and is safe to re-run. When it trims ids it writes a `graph_compact` audit entry.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 On a large store, or when the call returns 504, run it in slices. Send `scope` (`nodes`, `edges` or `history`), `offset` and `limit`, then call again with the returned `nextOffset` until it is `null`. Do this for `nodes`, `edges` and `history`, and finish with one `{"scope":"snapshot"}` call, because a sliced run does not touch the cached snapshot.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1763,7 +1782,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

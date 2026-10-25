@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { collectRestEndpoints } from "../scripts/skills/rest-endpoints.js";
+import { collectRestEndpoints, collectRestEndpointsInDirectory } from "../scripts/skills/rest-endpoints.js";
 
 describe("generated REST endpoint methods", () => {
   it("associates adjacent status and mutation routes with their own methods", () => {
@@ -12,13 +13,16 @@ describe("generated REST endpoint methods", () => {
     ]);
   });
 
-  it("includes the viewer SSE route registered outside api.ts", () => {
-    const api = readFileSync(new URL("../src/triggers/api.ts", import.meta.url), "utf8");
-    const viewerSse = readFileSync(new URL("../src/triggers/viewer-sse.ts", import.meta.url), "utf8");
-    expect(collectRestEndpoints(api, viewerSse)).toContainEqual({
-      path: "/agentmemory/viewer/events",
-      method: "GET",
-    });
+  it("documents HTTP routes from every trigger module", () => {
+    const rows = collectRestEndpointsInDirectory(fileURLToPath(new URL("../src/triggers", import.meta.url)));
+    expect(rows).toHaveLength(146);
+    expect(rows).toEqual(expect.arrayContaining([
+      { path: "/agentmemory/viewer/events", method: "GET" },
+      { path: "/agentmemory/viewer/snapshot", method: "GET" },
+      { path: "/agentmemory/counts", method: "GET" },
+      { path: "/agentmemory/compression", method: "GET" },
+      { path: "/agentmemory/compression/retry", method: "POST" },
+    ]));
   });
 
   it("handles either property order and ignores neighboring methods, comments and strings", () => {

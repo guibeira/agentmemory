@@ -1195,7 +1195,7 @@ async function startIiiBin(iiiBin: string): Promise<boolean> {
     !["state", "http"].every((name) => existsSync(join(resolve(process.cwd(), workerBinDir), name))))) {
     throw new Error(`AGENTMEMORY_WORKER_BIN_DIR must contain executable state and http binaries: ${workerBinDir}`);
   }
-  const envPath = join(homedir(), ".agentmemory", ".env");
+  const envPath = process.env["AGENTMEMORY_ENV_FILE"] || join(homedir(), ".agentmemory", ".env");
   const namespace = composeNamespace(getRestPort());
   const projectRoot = resolve(__dirname, "..");
   const ports = { restPort: getRestPort(), viewerPort: getConfiguredViewerPort(), enginePort: getEnginePort() };
@@ -1244,7 +1244,6 @@ async function startIiiBin(iiiBin: string): Promise<boolean> {
     ...state,
     workerVersions: workerBinDir ? { local: true } : COMPOSE_WORKER_VERSIONS,
   });
-  engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
   engineReadinessDeadline = startupDeadline(startupTimeouts().engineMs);
   compose.child.on("error", (error) => {
     if (spawnedComposeDaemon === compose.child) {

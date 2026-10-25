@@ -301,7 +301,7 @@ const IMAGE_PLACEHOLDER = "[image dropped from capture spool]";
 const BOOT_ID_RE = /^[A-Za-z0-9]{8,64}$/;
 const SENT_FILE_RE = /^([A-Za-z0-9]{8,64})-(\d+)\.jsonl$/;
 const SENT_BUCKET_MS = 1e3;
-const MAX_DURABLE_AFTER_MS = 10 * 6e4;
+const MAX_DURABLE_AFTER_MS = 61 * 6e4;
 function emptyStats() {
 	return {
 		spooled: 0,

@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP eszköz" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 automatikus hook" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 külső adatbázis" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ sikeres teszt" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ sikeres teszt" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 A helyi CLI-runtime a REST/MCP HTTP-t a `3111`, a megjelenítőt a `3113`, a belső iii worker WebSocketet pedig a `49134` porton használja. A megjelenítő frissítései SSE-n, a REST-porton elérhető `GET /agentmemory/viewer/events` útvonalon érkeznek. Az állapot alapértelmezett tárolási helye macOS-en `~/Library/Application Support/agentmemory`, Linuxon `$XDG_DATA_HOME/agentmemory` vagy `~/.local/share/agentmemory`, Windowson `%APPDATA%\agentmemory`. A hely `--data-dir <path>` vagy `AGENTMEMORY_DATA_DIR` használatával módosítható; a 0. példány egy meglévő `./data/state_store.db` fájlt is újrahasznál. A `--instance N` elkülöníti a további runtime-okat, az `AGENTMEMORY_ENV_FILE` pedig másik `.env` fájlt választ.
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Figyelmeztetés: ez a parancs módosítja az aktuális munkaterületet/runtime-ot. Frissítheti a JavaScript-függőségeket, és telepítheti a rögzített iii 0.25.0 motorbinárist.
-
-Az implementációs részletek a `src/cli.ts`-ben élnek (lásd a `runUpgrade`-et a `src/cli.ts:544-595` környékén).
 
 ### Claude Code (egyetlen blokk, illeszd be)
 
@@ -815,7 +818,7 @@ Az agentmemory bejegyzés **ugyanaz az MCP szerver blokk** minden olyan hoszton,
 | **Continue.dev** | `~/.continue/config.yaml` (előnyben részesített) vagy `config.json` (örökölt) | Az `agentmemory connect continue` létrehoz egy `config.yaml`-t a semmiből, ha egyik sem létezik, vagy módosítja a meglévő `config.json`-t. **Ha már van `config.yaml`-od**, az adapter kiírja a pontos, a `mcpServers:` alá illesztendő blokkot; nem írja át némán a yaml-odat, mert a kommentek és a horgok biztonságos megtartásához egy YAML-parserre lenne szükség, amit a csomag nem szállít. A Continue tömb formátumot (nem objektumot) használ a `mcpServers`-hez. |
 | **Zed** | `~/.config/zed/settings.json` | Az `agentmemory connect zed` a `context_servers` alá ír (a Zed saját kulcsa, NEM a `mcpServers`). A távoli MCP szerverek egy `{"url": "..."}`-vel is bekötődhetnek. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | Az `agentmemory connect droid` beírja a standard `mcpServers` blokkot. A projekt-szintű felülírások a `<repo>/.factory/mcp.json`-ba kerülnek. Add meg a `--with-hooks`-ot a natív automatikus rögzítéshez. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | Az `agentmemory connect dsh` hozzáfűz egy `@deepseek-ai/dsh-mcp-client` sort a home-szintű patch-réteghez, amelyet minden Harness-profil betölt; az eszközök `mcp__agentmemory__*`-ként regisztrálódnak. Add meg a `--with-hooks`-ot az automatikus rögzítés bekötéséhez is: a becsomagolt Claude Code hook-szkriptek a Harness első féltől származó `@deepseek-ai/dsh-hooks-claude-code` hídján keresztül futnak (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop), egy a `$DSH_HOME/agentmemory.hooks.json`-ba írt manifeszt révén. Alapértelmezés szerint `~/.dsh`-ra áll, ha a `DSH_HOME` nincs beállítva. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | Az `agentmemory connect dsh` bekapcsolja az MCP-eszközöket. A `--with-hooks` betölti az AgentMemoryhoz mellékelt natív rögzítőbővítményt. Külön bővítménycsomag nem szükséges. [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP beállítások felhasználói felülete | Ugyanaz a `mcpServers` blokk; használd a `goose configure` → Add Extension → MCP menüt. A közvetlen YAML-szerkesztés a `~/.config/goose/config.yaml`-ban is támogatott, de a séma `extensions:` + `cmd`-t használ (nem `mcpServers:` + `command`-ot). |
 | **Aider** | n/a | Beszélj közvetlenül a REST API-val: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Bármely ágens (32+)** | n/a | Az `npx skillkit install agentmemory` automatikusan felismeri a hosztot, és beolvaszt. |
@@ -827,9 +830,9 @@ Az agentmemory bejegyzés **ugyanaz az MCP szerver blokk** minden olyan hoszton,
 Az agentmemory iii funkciókként regisztrálja a fő műveleteit (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Bármely nyelv, amelyhez van iii SDK, közvetlenül hívhatja ezeket a `ws://localhost:49134` felett, nyelvenkénti külön REST kliens nélkül.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1342,7 +1345,7 @@ A `/agentmemory/export` emellett elfogadja a `?maxSessions=`-t és a `?offset=`-
 | Prometheus / Grafana | iii OTEL + egészségfigyelő |
 | Egyéni plugin-rendszerek | Worker Compose (`worker-compose.yaml`) |
 
-**245 forrásfájl · ~56,000 LOC · 3,800+ teszt · 322 funkció · 65 KV-hatókör**, mindez három primitíven. Nincs `agentmemory plugin install`. A plugin-rendszer maga az iii.
+**253 forrásfájl · ~58,000 LOC · 4,000+ teszt · 322 funkció · 65 KV-hatókör**, mindez három primitíven. Nincs `agentmemory plugin install`. A plugin-rendszer maga az iii.
 
 ---
 
@@ -1633,8 +1636,7 @@ Hozd létre a `~/.agentmemory/.env`-et:
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1669,7 +1671,7 @@ Hozd létre a `~/.agentmemory/.env`-et:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoint a `3111`-es porton. A REST API alapértelmezetten a `127.0.0.1`-hez kötődik. A védett végpontok `Authorization: Bearer <secret>`-et igényelnek, és a mesh-sync végpontok mindkét oldalon explicit módon beállított `AGENTMEMORY_SECRET`-et igényelnek.
+146 endpoint a `3111`-es porton. A REST API alapértelmezetten a `127.0.0.1`-hez kötődik. A védett végpontok `Authorization: Bearer <secret>`-et igényelnek, és a mesh-sync végpontok mindkét oldalon explicit módon beállított `AGENTMEMORY_SECRET`-et igényelnek.
 
 **A hitelesítés alapértelmezetten be van kapcsolva.** Amikor az `AGENTMEMORY_SECRET` nincs beállítva (sem a shellben, sem a `~/.agentmemory/.env`-ben), a szerver az első indításkor egy véletlen secretet generál, és `0600` móddal tárolja a `~/.agentmemory/secret`-ben. Minden becsomagolt kliens onnan olvassa, amikor egy lokális szerverrel beszél: a CLI, a megjelenítő, a `plugin/scripts` alatti hookok, az MCP szerver és a `@agentmemory/mcp` shim, az `agentmemory connect` által írt konfigurációk, és a becsomagolt OpenCode, Pi, OpenClaw, Hermes és fájlrendszer-figyelő integrációk. A tárolt secret csak loopback URL-eknek kerül elküldésre (`localhost`, `127.0.0.0/8`, `::1`). Egy explicit `AGENTMEMORY_SECRET` mindig elsőbbséget kap, és a távoli klienseknek továbbra is be kell állítaniuk. A Docker és a `deploy/` entrypointok már generálnak és exportálnak egy saját secretet. Az API kézi hívásához:
 
@@ -1728,19 +1730,19 @@ Az elbukott eseményeket a rendszer minden `AGENTMEMORY_CAPTURE_RETRY_INTERVAL_M
 
 Amikor a szerver nem fut, nem válaszol időben, vagy 5xx-et ad vissza, a hook hozzáfűzi a megfigyelést egy lokális spool-fájlhoz, `<data dir>/capture-spool/<host>-<port>.jsonl` (a mappa felülírható az `AGENTMEMORY_CAPTURE_SPOOL_DIR`-ral). A fájl csak a saját felhasználód számára elérhető (mód 600), a secreteket a rendszer ugyanúgy elfedi, ahogy a szerver teszi, legfeljebb `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES`-ot (5 MiB) tárol, és eldobja az `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS`-nál (168) régebbi bejegyzéseket. Amikor betelik, az új bejegyzések elvetésre és megszámlálásra kerülnek, és a `/agentmemory/status` jelenti. A hook továbbra is 0-val lép ki az időkorlátján belül, és nem ad hozzá kérést, amikor a szerver egészséges. A spool a következő indításkor, és az első olyan hooknál kerül elküldésre, amely ismét eléri a szervert, egy háttérfolyamatban, hogy az ágens ne várjon. Az esemény-id-k ezt biztonságossá teszik: egy megfigyelés, amely már megérkezett egy timeout előtt, nem kerül kétszer tárolásra. Az `npx @agentmemory/agentmemory capture` megmutatja a spoolt és a szerver inboxát, a `--drain` elküldi a spoolt most, és a `GET /agentmemory/capture` ugyanezt adja vissza JSON-ként. Állítsd be az `AGENTMEMORY_CAPTURE_SPOOL=false`-t, hogy kikapcsold a spoolt.
 
-**A gráf-eredet tömörítése.** Minden tudásgráf-csomópont és -él megtartja a legújabb 32 megfigyelés id-jét, amelyekből származott. Az ennél a korlátnál korábban írt tárak csomópontonként akár több ezer id-t is tarthatnak egy forró csomóponton, ami lelassítja a gráfkeresést és a megjelenítőt, vagy elakasztja a workert. Az agentmemory ezt saját maga javítja: a frissítés utáni első indításkor a háttérben ritkít minden csomópontot, élt, felülírt élt (a temporális gráf-előzmény) és a gyorsítótárazott pillanatképet a korlátra, kis szeletekben, köztük szünettel, hogy a keresés, a rögzítés és a megjelenítő tovább működjön. Elmenti a haladását, folytatja egy újraindítás után, és soha nem fut újra, ha egyszer végzett. A `/agentmemory/status` és a megjelenítő Health oldala függőben lévőként, futóként (az aktuális hatókörrel és pozícióval), befejezettként vagy sikertelenként mutatja. Állítsd az `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`-ra, hogy kikapcsold.
+**A gráf-eredet tömörítése.** A régi eredetadatok tömörítése induláskor elhalasztódik, mert teljes régi scope-okat olvas be. Az `/agentmemory/status` értéke `deferred`, vagy `off`, ha `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Az alábbi kézi tömörítést karbantartás közben futtasd. A keresési index migrációja külön művelet: használd az `agentmemory graph-index migrate --allow-legacy-scan` parancsot a [karbantartási útmutató](../docs/reliability/graph-index-migration.md) szerint.
 
 Hogy kézzel futtasd, hívd meg a `POST /agentmemory/graph/compact`-ot. A név- és él-kulcs-indexeken sétál végig, nem listáz minden csomópontot és élt, és biztonságosan újrafuttatható. Amikor id-ket ritkít, egy `graph_compact` audit-bejegyzést ír.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Egy nagy táron, vagy amikor a hívás 504-et ad vissza, futtasd szeletekben. Küldd el a `scope`-ot (`nodes`, `edges` vagy `history`), az `offset`-et és a `limit`-et, majd hívd újra a visszaadott `nextOffset`-tel, amíg az `null` nem lesz. Tedd ezt a `nodes`, az `edges` és a `history` esetén, és fejezd be egy `{"scope":"snapshot"}` hívással, mert egy szeletelt futás nem érinti a gyorsítótárazott pillanatképet.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1750,7 +1752,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

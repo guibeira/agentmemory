@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 로컬 CLI 런타임은 REST/MCP HTTP를 `3111`, 뷰어를 `3113`, 내부 iii 워커 WebSocket을 `49134`에서 사용합니다. 뷰어 업데이트는 REST 포트의 SSE `GET /agentmemory/viewer/events`로 전달됩니다. 영구 상태는 기본적으로 macOS의 `~/Library/Application Support/agentmemory`, Linux의 `$XDG_DATA_HOME/agentmemory` 또는 `~/.local/share/agentmemory`, Windows의 `%APPDATA%\agentmemory`에 저장됩니다. `--data-dir <path>` 또는 `AGENTMEMORY_DATA_DIR`로 경로를 바꿀 수 있으며, 인스턴스 0은 기존 `./data/state_store.db`도 재사용합니다. `--instance N`은 추가 런타임을 격리하고, `AGENTMEMORY_ENV_FILE`은 다른 `.env` 파일을 선택합니다.
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 경고: 이 명령은 현재 workspace/runtime을 변경합니다. JavaScript 의존성을 업데이트하고 고정된 iii 0.25.0 엔진 바이너리를 설치할 수 있습니다.
-
-구현 세부 사항은 `src/cli.ts`에 있습니다(`runUpgrade`는 `src/cli.ts:544-595` 부근을 참고하십시오).
 
 ### Claude Code (블록 한 번, 붙여넣기)
 
@@ -815,7 +818,7 @@ agentmemory 항목은 `mcpServers` 형태를 사용하는 모든 호스트(Curso
 | **Continue.dev** | `~/.continue/config.yaml` (권장) 또는 `config.json` (레거시) | `agentmemory connect continue`는 둘 다 없으면 `config.yaml`을 새로 생성하고, 기존 `config.json`이 있으면 이를 수정합니다. **이미 `config.yaml`이 있다면** 어댑터는 `mcpServers:` 아래에 붙여넣을 정확한 블록을 출력합니다. 주석과 anchor를 안전하게 보존하려면 패키지가 포함하지 않은 YAML 파서가 필요하므로, yaml을 조용히 재작성하지는 않습니다. Continue는 `mcpServers`에 객체가 아닌 배열 형태를 사용합니다. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed`는 `context_servers`(Zed의 키이며 `mcpServers`가 아닙니다) 아래에 작성합니다. 원격 MCP 서버는 대신 `{"url": "..."}`로 연결할 수 있습니다. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid`는 표준 `mcpServers` 블록을 작성합니다. 프로젝트 범위 재정의는 `<repo>/.factory/mcp.json`에 둡니다. 네이티브 자동 캡처를 위해서는 `--with-hooks`를 전달하십시오. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh`는 모든 Harness 프로필이 로드하는 홈 수준 patch 레이어에 `@deepseek-ai/dsh-mcp-client` 행을 추가합니다. 도구는 `mcp__agentmemory__*`로 등록됩니다. 자동 캡처까지 연결하려면 `--with-hooks`를 전달하십시오: 번들된 Claude Code hook 스크립트는 Harness의 퍼스트파티 `@deepseek-ai/dsh-hooks-claude-code` 브리지(SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop)를 통해, `$DSH_HOME/agentmemory.hooks.json`에 작성된 매니페스트를 거쳐 실행됩니다. `DSH_HOME`이 설정되지 않으면 기본값은 `~/.dsh`입니다. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh`는 MCP 도구를 활성화합니다. `--with-hooks`를 추가하면 AgentMemory에 포함된 네이티브 캡처 플러그인을 불러옵니다. 별도 플러그인 패키지는 필요하지 않습니다. [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP 설정 UI | 동일한 `mcpServers` 블록. `goose configure` → Add Extension → MCP를 사용하십시오. `~/.config/goose/config.yaml`에서 직접 YAML을 편집할 수도 있지만, 스키마는 `mcpServers:` + `command`가 아니라 `extensions:` + `cmd`를 사용합니다. |
 | **Aider** | 해당 없음 | REST API에 직접 요청하십시오: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **모든 에이전트 (32+)** | 해당 없음 | `npx skillkit install agentmemory`가 호스트를 자동으로 감지해 병합합니다. |
@@ -827,9 +830,9 @@ agentmemory 항목은 `mcpServers` 형태를 사용하는 모든 호스트(Curso
 agentmemory는 핵심 작업을 iii 함수(`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`)로 등록합니다. iii SDK가 있는 모든 언어는 언어별로 별도의 REST 클라이언트 없이 `ws://localhost:49134`를 통해 이를 직접 호출할 수 있습니다.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1340,7 +1343,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health 모니터 |
 | 커스텀 플러그인 시스템 | Worker Compose (`worker-compose.yaml`) |
 
-**소스 파일 245개 · LOC ~56,000줄 · 테스트 3,800+개 · 함수 322개 · KV 스코프 65개**, 모두 세 가지 프리미티브 위에서 동작합니다. `agentmemory plugin install` 같은 것은 없습니다. 플러그인 시스템은 곧 iii 자체입니다.
+**소스 파일 253개 · LOC ~58,000줄 · 테스트 4,000+개 · 함수 322개 · KV 스코프 65개**, 모두 세 가지 프리미티브 위에서 동작합니다. `agentmemory plugin install` 같은 것은 없습니다. 플러그인 시스템은 곧 iii 자체입니다.
 
 ---
 
@@ -1631,8 +1634,7 @@ GRAPH_EXTRACTION_ENABLED=true
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1667,7 +1669,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-포트 `3111`의 엔드포인트 144개. REST API는 기본적으로 `127.0.0.1`에 바인딩됩니다. 보호된 엔드포인트는 `Authorization: Bearer <secret>`을 요구하며, mesh sync 엔드포인트는 양쪽 피어 모두에 `AGENTMEMORY_SECRET`이 명시적으로 설정되어 있어야 합니다.
+포트 `3111`의 엔드포인트 146개. REST API는 기본적으로 `127.0.0.1`에 바인딩됩니다. 보호된 엔드포인트는 `Authorization: Bearer <secret>`을 요구하며, mesh sync 엔드포인트는 양쪽 피어 모두에 `AGENTMEMORY_SECRET`이 명시적으로 설정되어 있어야 합니다.
 
 **인증은 기본적으로 켜져 있습니다.** `AGENTMEMORY_SECRET`이(셸이나 `~/.agentmemory/.env`에) 설정되어 있지 않으면, 서버는 첫 시작 시 무작위 시크릿을 생성해 `~/.agentmemory/secret`에 `0600` 권한으로 저장합니다. 번들된 모든 클라이언트는 로컬 서버와 통신할 때 그곳에서 이를 읽습니다: CLI, 뷰어, `plugin/scripts` 아래의 hook, MCP 서버와 `@agentmemory/mcp` shim, `agentmemory connect`가 작성하는 설정, 그리고 번들된 OpenCode, Pi, OpenClaw, Hermes, filesystem-watcher 통합까지입니다. 저장된 시크릿은 loopback URL(`localhost`, `127.0.0.0/8`, `::1`)에만 전송됩니다. 명시적인 `AGENTMEMORY_SECRET`은 항상 우선하며, 원격 클라이언트는 여전히 이를 설정해야 합니다. Docker와 `deploy/` 진입점은 이미 자체 시크릿을 생성하고 export합니다. API를 직접 호출하려면:
 
@@ -1726,19 +1728,19 @@ curl -H "Authorization: Bearer $(cat ~/.agentmemory/secret)" http://localhost:31
 
 서버가 다운되었거나, 제때 응답하지 않거나, 5xx를 반환하면, hook은 관측을 로컬 spool 파일 `<data dir>/capture-spool/<host>-<port>.jsonl`에 추가합니다(폴더는 `AGENTMEMORY_CAPTURE_SPOOL_DIR`로 재정의할 수 있습니다). 이 파일은 사용자 전용(모드 600)이며, 시크릿은 서버가 제거하는 방식과 동일하게 제거되고, 최대 `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES`(5MiB)까지 보관하며 `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS`(168)보다 오래된 항목은 버립니다. 가득 차면 새 항목은 버려지고 집계되며, `/agentmemory/status`가 이를 보고합니다. 서버가 정상일 때는 hook이 여전히 시간 제한 안에 0으로 종료하고 추가 요청을 보내지 않습니다. spool은 다음 시작 시점과, 서버에 다시 도달하는 첫 hook에 의해 백그라운드 프로세스로 전송되므로 에이전트가 기다리지 않습니다. 이벤트 id가 이를 안전하게 만듭니다: 타임아웃 전에 실제로 도착한 관측은 두 번 저장되지 않습니다. `npx @agentmemory/agentmemory capture`는 spool과 서버 인박스를 보여주고, `--drain`은 지금 spool을 전송하며, `GET /agentmemory/capture`는 동일한 내용을 JSON으로 반환합니다. spool을 끄려면 `AGENTMEMORY_CAPTURE_SPOOL=false`를 설정하십시오.
 
-**그래프 출처 압축.** 각 지식 그래프 노드와 엣지는 자신이 비롯된 가장 최근 관측 32개의 id를 보관합니다. 이 한도가 적용되기 전에 작성된 스토어는 활발한 노드마다 수천 개의 id를 가지고 있을 수 있는데, 이는 그래프 검색과 뷰어를 느리게 만들거나 워커를 다운시킵니다. agentmemory는 스스로 이를 고칩니다: 업그레이드 후 첫 시작 시, 모든 노드, 엣지, 대체된 엣지(시간적 그래프 기록), 캐시된 스냅샷을 백그라운드에서 그 한도까지 작은 조각 단위로, 사이에 일시 정지를 두고 정리하므로 검색, 캡처, 뷰어는 계속 동작합니다. 진행 상황을 저장하고, 재시작 후 이어서 진행하며, 완료되면 다시는 실행되지 않습니다. `/agentmemory/status`와 뷰어의 Health 페이지는 이를 pending, running(현재 스코프와 위치와 함께), done, failed로 보여줍니다. 끄려면 `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`를 설정하십시오.
+**그래프 출처 압축.** 기존 출처 데이터의 압축은 기존 scope 전체를 읽으므로 시작 시 보류됩니다. `/agentmemory/status`는 `deferred`를, `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`이면 `off`를 표시합니다. 유지보수 중 아래 수동 압축을 실행하세요. 검색 인덱스 마이그레이션은 별도 작업입니다. [유지보수 가이드](../docs/reliability/graph-index-migration.md)에 따라 `agentmemory graph-index migrate --allow-legacy-scan`을 사용하세요.
 
 수동으로 실행하려면 `POST /agentmemory/graph/compact`를 호출하십시오. 모든 노드와 엣지를 나열하는 대신 name과 edge-key 인덱스를 순회하며, 다시 실행해도 안전합니다. id를 정리할 때는 `graph_compact` 감사 항목을 기록합니다.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 큰 스토어에서, 또는 호출이 504를 반환할 때는 조각 단위로 실행하십시오. `scope`(`nodes`, `edges`, `history`), `offset`, `limit`을 보낸 다음, 반환된 `nextOffset`이 `null`이 될 때까지 다시 호출하십시오. `nodes`, `edges`, `history` 각각에 대해 이를 수행하고, 조각 단위 실행은 캐시된 스냅샷을 건드리지 않으므로 마지막에 `{"scope":"snapshot"}` 호출 하나로 마무리하십시오.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1748,7 +1750,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

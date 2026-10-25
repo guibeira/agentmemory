@@ -8,6 +8,7 @@ vi.mock("../src/logger.js", () => ({
 
 import { getAllTools } from "../src/mcp/tools-registry.js";
 import { VERSION } from "../src/version.js";
+import { collectRestEndpointsInDirectory } from "../scripts/skills/rest-endpoints.js";
 
 const ROOT = join(import.meta.dirname, "..");
 
@@ -16,10 +17,7 @@ function readText(relativePath: string): string {
 }
 
 function countRestApiEndpoints(): number {
-  const api = readText("src/triggers/api.ts");
-  const viewerSse = readText("src/triggers/viewer-sse.ts");
-  return Array.from(api.matchAll(/api_path:\s*["`]/g)).length +
-    Array.from(viewerSse.matchAll(/api_path:\s*["`]/g)).length;
+  return collectRestEndpointsInDirectory(join(ROOT, "src/triggers")).length;
 }
 
 describe("Consistency checks", () => {

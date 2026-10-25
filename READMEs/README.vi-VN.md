@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Runtime dùng REST/MCP HTTP 3111, viewer 3113 và WebSocket nội bộ 49134; live event của viewer truyền qua SSE trên REST. `status` báo `enginePinnedVersion`, tình trạng agentmemory và provider/embedding mode. Hãy lưu probe rồi xác nhận có thể tìm thấy:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Cảnh báo: lệnh này thay đổi workspace/runtime hiện tại; có thể cập nhật dependency JavaScript và cài binary iii 0.25.0 đã pin.
-
-Chi tiết triển khai nằm trong `src/cli.ts` (xem `runUpgrade` quanh khu vực `src/cli.ts:544-595`).
 
 ### Claude Code (một block, dán vào)
 
@@ -815,7 +818,7 @@ Entry của agentmemory là **cùng một block MCP server** trên mọi host d�
 | **Continue.dev** | `~/.continue/config.yaml` (ưu tiên) hoặc `config.json` (legacy) | `agentmemory connect continue` tạo mới `config.yaml` từ đầu khi không có file nào tồn tại, hoặc sửa `config.json` đã có. **Nếu bạn đã có `config.yaml`** adapter sẽ in ra đúng block để dán vào dưới `mcpServers:`; nó sẽ không lặng lẽ viết lại yaml của bạn vì việc giữ comment và anchor an toàn cần một YAML parser mà package này không đi kèm. Continue dùng dạng array (không phải object) cho `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` viết dưới `context_servers` (key riêng của Zed, KHÔNG phải `mcpServers`). Các MCP server remote có thể được kết nối qua `{"url": "..."}` thay thế. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` viết block `mcpServers` chuẩn. Các override theo project nằm trong `<repo>/.factory/mcp.json`. Truyền `--with-hooks` để có auto-capture gốc. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` thêm một dòng `@deepseek-ai/dsh-mcp-client` vào patch layer ở cấp home mà mọi Harness profile đều nạp; các tool đăng ký dưới dạng `mcp__agentmemory__*`. Truyền `--with-hooks` để kết nối thêm auto-capture: các hook script Claude Code đi kèm chạy qua bridge chính chủ `@deepseek-ai/dsh-hooks-claude-code` của Harness (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) qua một manifest được viết vào `$DSH_HOME/agentmemory.hooks.json`. Mặc định là `~/.dsh` khi `DSH_HOME` chưa được đặt. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` bật các công cụ MCP. Thêm `--with-hooks` để tải plugin ghi nhận sự kiện gốc đi kèm AgentMemory. Không cần gói plugin riêng. [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP settings UI | Cùng block `mcpServers`; dùng `goose configure` → Add Extension → MCP. Sửa YAML trực tiếp tại `~/.config/goose/config.yaml` cũng được hỗ trợ nhưng schema dùng `extensions:` + `cmd` (không phải `mcpServers:` + `command`). |
 | **Aider** | n/a | Gọi trực tiếp REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Bất kỳ agent nào (32+)** | n/a | `npx skillkit install agentmemory` tự phát hiện host và gộp. |
@@ -827,9 +830,9 @@ Entry của agentmemory là **cùng một block MCP server** trên mọi host d�
 agentmemory đăng ký các operation lõi của nó dưới dạng iii function (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Bất kỳ ngôn ngữ nào có iii SDK đều có thể gọi chúng trực tiếp qua `ws://localhost:49134`, không cần một REST client riêng cho từng ngôn ngữ.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1337,7 +1340,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Hệ thống plugin tùy chỉnh | Worker Compose (`worker-compose.yaml`) |
 
-**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**253 file source · ~58,000 LOC · 4,000+ test · 322 function · 65 KV scope**, tất cả trên ba primitive. Không có `agentmemory plugin install`. Hệ thống plugin chính là iii.
 
 ---
 
@@ -1621,8 +1624,7 @@ Tạo `~/.agentmemory/.env`:
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1657,7 +1659,7 @@ Tạo `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoint trên port `3111`. REST API bind vào `127.0.0.1` theo mặc định. Các endpoint được bảo vệ cần `Authorization: Bearer <secret>`, và các endpoint mesh sync cần `AGENTMEMORY_SECRET` được đặt rõ ràng trên cả hai phía.
+146 endpoint trên port `3111`. REST API bind vào `127.0.0.1` theo mặc định. Các endpoint được bảo vệ cần `Authorization: Bearer <secret>`, và các endpoint mesh sync cần `AGENTMEMORY_SECRET` được đặt rõ ràng trên cả hai phía.
 
 **Xác thực được bật mặc định.** Nếu chưa đặt `AGENTMEMORY_SECRET` (trong shell hoặc `~/.agentmemory/.env`), CLI tạo secret ngẫu nhiên khi khởi động lần đầu và lưu thành `secret`, mode `0600`, trong data directory đã chọn. Client đi kèm đọc secret tại đó khi kết nối server cục bộ; secret chỉ gửi đến loopback URL. Client từ xa cần secret trong environment của chúng. Docker self-host và `deploy/` tự tạo secret. Để gọi API thủ công:
 
@@ -1717,19 +1719,19 @@ Các event thất bại được retry mỗi `AGENTMEMORY_CAPTURE_RETRY_INTERVAL
 
 Khi server down, không trả lời kịp hoặc trả về 5xx, hook sẽ append observation vào một file spool cục bộ, `<data dir>/capture-spool/<host>-<port>.jsonl` (ghi đè thư mục bằng `AGENTMEMORY_CAPTURE_SPOOL_DIR`). File này riêng tư cho user của bạn (mode 600), secret được redact theo đúng cách server redact chúng, nó giữ tối đa `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) và drop các entry cũ hơn `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Khi nó đầy, các entry mới bị drop và được đếm, và `/agentmemory/status` sẽ báo cáo điều đó. Hook vẫn exit 0 trong giới hạn thời gian của nó và không thêm request nào khi server khỏe mạnh. Spool được gửi ở lần khởi động kế tiếp và bởi hook đầu tiên chạm tới server trở lại, trong một process nền để agent không phải chờ. Event id làm cho điều này an toàn: một observation đã đến trước một timeout không bị lưu hai lần. `npx @agentmemory/agentmemory capture` hiển thị spool và inbox của server, `--drain` gửi spool ngay, và `GET /agentmemory/capture` trả về cùng dữ liệu đó dưới dạng JSON. Đặt `AGENTMEMORY_CAPTURE_SPOOL=false` để tắt spool.
 
-**Compact provenance của graph.** Mỗi node và edge của knowledge graph giữ id của 32 observation mới nhất mà nó bắt nguồn từ đó. Các store được viết trước giới hạn đó có thể giữ hàng nghìn id cho mỗi node hot, khiến graph search và viewer chậm hoặc làm worker crash. agentmemory tự sửa điều này: ở lần khởi động đầu tiên sau khi nâng cấp, nó cắt gọn mọi node, edge, edge đã bị supersede (lịch sử graph temporal) và snapshot đã cache xuống đúng giới hạn ở nền, theo từng slice nhỏ có khoảng nghỉ giữa chúng, để search, capture và viewer vẫn hoạt động. Nó lưu tiến độ, resume sau một lần restart và không bao giờ chạy lại khi đã hoàn tất. `/agentmemory/status` và trang Health của viewer hiển thị nó là pending, running (kèm scope và vị trí hiện tại), done hoặc failed. Đặt `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` để tắt nó.
+**Compact provenance của graph.** Việc compact provenance cũ được hoãn khi khởi động vì phải đọc toàn bộ các scope cũ. `/agentmemory/status` báo `deferred`, hoặc `off` khi đặt `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Chạy compact thủ công bên dưới trong thời gian bảo trì. Di chuyển chỉ mục truy xuất là thao tác riêng: dùng `agentmemory graph-index migrate --allow-legacy-scan` theo [hướng dẫn bảo trì](../docs/reliability/graph-index-migration.md).
 
 Để chạy nó bằng tay, gọi `POST /agentmemory/graph/compact`. Nó duyệt qua các index tên và edge-key thay vì liệt kê mọi node và edge, và an toàn để chạy lại. Khi nó cắt gọn id, nó viết một audit entry `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Trên một store lớn, hoặc khi lệnh gọi trả về 504, hãy chạy nó theo slice. Gửi `scope` (`nodes`, `edges` hoặc `history`), `offset` và `limit`, rồi gọi lại với `nextOffset` được trả về cho tới khi nó là `null`. Làm điều này cho `nodes`, `edges` và `history`, và kết thúc với một lệnh gọi `{"scope":"snapshot"}`, vì một lần chạy theo slice không chạm tới snapshot đã cache.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1739,7 +1741,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

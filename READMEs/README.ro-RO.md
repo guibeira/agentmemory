@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 de instrumente MCP" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 hook-uri automate" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 baze de date externe" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,600+ teste trecute" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ teste trecute" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Runtime-ul folosește REST/MCP HTTP pe 3111, vizualizatorul pe 3113 și WebSocket-ul intern al worker-ilor iii pe 49134. Evenimentele live ale vizualizatorului folosesc SSE prin REST. `status` confirmă sănătatea agentmemory, versiunea fixată a engine-ului (`enginePinnedVersion`) și furnizorul activ/modul de embedding. Salvează o probă și confirmă că este căutabilă:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Atenție: această comandă modifică workspace-ul/runtime-ul curent. Poate actualiza dependențele JavaScript și instala binarul engine-ului iii 0.25.0 fixat.
-
-Detaliile de implementare se află în `src/cli.ts` (vezi `runUpgrade`, în jurul zonei `src/cli.ts:544-595`).
 
 ### Claude Code (un singur bloc, lipește-l)
 
@@ -815,7 +818,7 @@ Intrarea agentmemory este **același bloc de server MCP** pe fiecare host care f
 | **Continue.dev** | `~/.continue/config.yaml` (preferat) sau `config.json` (vechi/legacy) | `agentmemory connect continue` creează `config.yaml` de la zero când niciunul dintre cele două nu există, sau modifică `config.json`-ul existent. **Dacă ai deja `config.yaml`**, adaptorul afișează exact blocul de lipit sub `mcpServers:`; nu îți rescrie silențios yaml-ul, pentru că păstrarea sigură a comentariilor și a ancorelor necesită un parser YAML pe care pachetul nu îl include. Continue folosește forma de array (nu obiect) pentru `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` scrie sub `context_servers` (cheia specifică Zed, NU `mcpServers`). Serverele MCP la distanță pot fi conectate, în schimb, prin `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` scrie blocul standard `mcpServers`. Suprascrierile la nivel de proiect se pun în `<repo>/.factory/mcp.json`. Transmite `--with-hooks` pentru captare automată nativă. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` adaugă un rând `@deepseek-ai/dsh-mcp-client` în stratul de patch la nivel de home, pe care îl încarcă fiecare profil Harness; instrumentele se înregistrează ca `mcp__agentmemory__*`. Transmite `--with-hooks` pentru a conecta și captarea automată: scripturile de hook Claude Code incluse rulează prin bridge-ul oficial `@deepseek-ai/dsh-hooks-claude-code` al lui Harness (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop), printr-un manifest scris în `$DSH_HOME/agentmemory.hooks.json`. Implicit `~/.dsh`, când `DSH_HOME` nu este setat. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` activează instrumentele MCP. Adăugați `--with-hooks` pentru pluginul nativ de captură inclus în AgentMemory. Nu este necesar un pachet separat. [DSH](../docs/dsh.md). |
 | **Goose** | Interfața de setări MCP din Goose | Același bloc `mcpServers`; folosește `goose configure` → Add Extension → MCP. Editarea directă a YAML-ului la `~/.config/goose/config.yaml` este suportată, dar schema folosește `extensions:` + `cmd` (nu `mcpServers:` + `command`). |
 | **Aider** | n/a | Vorbește direct cu API-ul REST: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Orice agent (32+)** | n/a | `npx skillkit install agentmemory` detectează automat host-ul și îmbină configurația. |
@@ -827,9 +830,9 @@ Intrarea agentmemory este **același bloc de server MCP** pe fiecare host care f
 agentmemory își înregistrează operațiile de bază ca funcții iii (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Orice limbaj care are un SDK iii le poate apela direct prin `ws://localhost:49134`, fără a avea nevoie de un client REST separat pentru fiecare limbaj.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1329,7 +1332,7 @@ fi
 | Prometheus / Grafana | iii OTEL + monitor de sănătate |
 | Sisteme de plugin-uri personalizate | Worker Compose (`worker-compose.yaml`) |
 
-**245 de fișiere sursă · ~56,000 LOC · 3,600+ de teste · 322 de funcții · 65 de domenii KV**, toate pe trei primitive. Niciun `agentmemory plugin install`. Sistemul de plugin-uri este chiar iii.
+**253 de fișiere sursă · ~58,000 LOC · 4,000+ de teste · 322 de funcții · 65 de domenii KV**, toate pe trei primitive. Niciun `agentmemory plugin install`. Sistemul de plugin-uri este chiar iii.
 ---
 
 <h2 id="configuration"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-config.svg"><img src="../assets/tags/section-config.svg" alt="Configurare" height="32" /></picture></h2>
@@ -1619,8 +1622,7 @@ Creează `~/.agentmemory/.env`:
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1655,7 +1657,7 @@ Creează `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 de endpoint-uri pe portul `3111`. API-ul REST se leagă implicit la `127.0.0.1`. Endpoint-urile protejate necesită `Authorization: Bearer <secret>`, iar endpoint-urile de sincronizare mesh necesită un `AGENTMEMORY_SECRET` setat explicit pe ambii parteneri (peers).
+146 de endpoint-uri pe portul `3111`. API-ul REST se leagă implicit la `127.0.0.1`. Endpoint-urile protejate necesită `Authorization: Bearer <secret>`, iar endpoint-urile de sincronizare mesh necesită un `AGENTMEMORY_SECRET` setat explicit pe ambii parteneri (peers).
 
 **Autentificarea este activată implicit.** Când `AGENTMEMORY_SECRET` nu este setat (în shell sau în `~/.agentmemory/.env`), CLI-ul generează un secret aleatoriu la prima pornire și îl stochează în directorul de date selectat, sub numele `secret` și cu modul `0600` (locația implicită specifică platformei este descrisă mai sus). Toți clienții incluși îl citesc de acolo când comunică cu un server local: CLI-ul, vizualizatorul, hook-urile din `plugin/scripts`, serverul MCP și shim-ul `@agentmemory/mcp`, configurațiile scrise de `agentmemory connect` și integrările incluse OpenCode, Pi, OpenClaw, Hermes și filesystem-watcher. Secretul stocat este trimis doar către URL-uri loopback (`localhost`, `127.0.0.0/8`, `::1`). Un `AGENTMEMORY_SECRET` explicit are întotdeauna prioritate, iar clienții la distanță trebuie să seteze secretul în mediul lor. Implementările Docker self-host pornite din repository și entrypoint-urile `deploy/` își generează și exportă propriul secret. Pentru a apela API-ul manual:
 
@@ -1714,19 +1716,19 @@ Evenimentele care eșuează sunt reîncercate la fiecare `AGENTMEMORY_CAPTURE_RE
 
 Când serverul este căzut, nu răspunde la timp sau returnează un 5xx, hook-ul adaugă observația într-un fișier local de coadă (spool), `<data dir>/capture-spool/<host>-<port>.jsonl` (suprascrie directorul cu `AGENTMEMORY_CAPTURE_SPOOL_DIR`). Fișierul este privat pentru utilizatorul tău (mod 600), secretele sunt redactate la fel cum le redactează serverul, ține cel mult `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) și elimină intrările mai vechi de `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Când este plin, intrările noi sunt eliminate și contorizate, iar `/agentmemory/status` raportează asta. Hook-ul tot iese cu 0, în limita sa de timp, și nu adaugă nicio cerere, când serverul este sănătos. Coada este trimisă la următoarea pornire și de către primul hook care ajunge din nou la server, într-un proces de fundal, astfel încât agentul nu așteaptă. ID-urile de eveniment fac acest lucru sigur: o observație care a ajuns deja înainte de un timeout nu este stocată de două ori. `npx @agentmemory/agentmemory capture` arată coada și inbox-ul serverului, `--drain` trimite coada acum, iar `GET /agentmemory/capture` returnează aceleași date, ca JSON. Setează `AGENTMEMORY_CAPTURE_SPOOL=false` pentru a dezactiva coada.
 
-**Compactarea provenienței grafului.** Fiecare nod și muchie din graful de cunoștințe ține id-urile celor mai recente 32 de observații din care provine. Magazinele scrise înainte de acel plafon pot ține mii de id-uri per nod „fierbinte” (hot), ceea ce face căutarea în graf și vizualizatorul lente, sau blochează worker-ul. agentmemory remediază asta de la sine: la prima pornire de după actualizare, trimite fiecare nod, muchie, muchie suprascrisă (istoricul temporal al grafului) și instantaneul din cache la plafon, în fundal, în felii mici, cu o pauză între ele, astfel încât căutarea, captarea și vizualizatorul continuă să funcționeze. Își salvează progresul, reia după o repornire și nu mai rulează niciodată, odată terminat. `/agentmemory/status` și pagina Health a vizualizatorului îl arată ca în așteptare (pending), în curs (running) (cu scope-ul și poziția curente), finalizat (done) sau eșuat (failed). Setează `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` pentru a-l dezactiva.
+**Compactarea provenienței grafului.** Compactarea provenienței vechi este amânată la pornire deoarece citește scope-urile vechi în întregime. `/agentmemory/status` raportează `deferred`, sau `off` cu `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Rulează compactarea manuală de mai jos în timpul mentenanței. Migrarea indexului de căutare este separată: folosește `agentmemory graph-index migrate --allow-legacy-scan` conform [ghidului de mentenanță](../docs/reliability/graph-index-migration.md).
 
 Pentru a-l rula manual, apelează `POST /agentmemory/graph/compact`. Acesta traversează indecșii de nume și de chei de muchie, în loc să listeze fiecare nod și muchie, și este sigur de rulat din nou.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Pe un magazin mare, sau când apelul returnează 504, rulează-l în felii. Trimite `scope` (`nodes`, `edges` sau `history`), `offset` și `limit`, apoi apelează din nou cu `nextOffset`-ul returnat, până devine `null`. Fă asta pentru `nodes`, `edges` și `history`, și termină cu un singur apel `{"scope":"snapshot"}`, pentru că o rulare pe felii nu atinge instantaneul din cache.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1736,7 +1738,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

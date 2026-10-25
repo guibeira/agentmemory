@@ -85,6 +85,6 @@ Configuration is read from the environment and from `~/.agentmemory/.env` (no `e
 ## State backend
 
 - `AGENTMEMORY_STATE_BACKEND`: `file` (default) or `redis`. Anything else stops startup with an error.
-- `AGENTMEMORY_REDIS_URL`: required with `redis`, plain `redis://` only (the pinned engine has no TLS). The URL never appears in `/agentmemory/status` or the viewer.
+- `AGENTMEMORY_REDIS_URL`: required with `redis`, plain `redis://` only (the pinned state worker has no Redis TLS). The URL never appears in `/agentmemory/status` or the viewer.
 
 Switching backends starts from an empty store; move data with `/agentmemory/export` and `/agentmemory/import`. Give each concurrent instance its own Redis database or server so their state cannot mix. Viewer events are broadcast by the running agentmemory process; they do not rely on Redis pub/sub. See the README section "Storage backend: file (default) vs redis".

@@ -73,7 +73,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 כלי MCP" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 hooks אוטומטיים" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 מסדי נתונים חיצוניים" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ בדיקות עוברות" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ בדיקות עוברות" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -588,11 +588,16 @@ npx -y @agentmemory/agentmemory@latest status
 סביבת ההרצה המקומית של ה-CLI משתמשת ב-REST/MCP HTTP בפורט `3111`, במציג בפורט `3113`, וב-WebSocket פנימי של workers ב-`49134`. עדכוני המציג מגיעים ב-SSE דרך `GET /agentmemory/viewer/events` בפורט REST. כברירת מחדל, מצב מתמשך נשמר ב-`~/Library/Application Support/agentmemory` ב-macOS, ב-`$XDG_DATA_HOME/agentmemory` או `~/.local/share/agentmemory` ב-Linux, וב-`%APPDATA%\agentmemory` ב-Windows. לשינוי הנתיב השתמשו ב-`--data-dir <path>` או `AGENTMEMORY_DATA_DIR`; instance 0 גם עושה שימוש חוזר ב-`./data/state_store.db` קיים. `--instance N` מבודד סביבות נוספות, ו-`AGENTMEMORY_ENV_FILE` בוחר קובץ `.env` אחר.
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -638,8 +643,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 אזהרה: הפקודה הזו משנה את סביבת העבודה/ההרצה הנוכחית. היא עשויה לעדכן תלויות JavaScript ולהתקין את הבינארי הנעוץ של מנוע iii 0.25.0.
-
-פרטי המימוש נמצאים בקובץ `src/cli.ts` (ראו `runUpgrade` באזור `src/cli.ts:544-595`).
 
 ### Claude Code (בלוק אחד, הדביקו אותו)
 
@@ -817,7 +820,7 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 | **Continue.dev** | `~/.continue/config.yaml` (מועדף) או `config.json` (legacy) | `agentmemory connect continue` יוצר `config.yaml` מאפס כששניהם לא קיימים, או משנה `config.json` קיים. **אם יש לכם כבר `config.yaml`** המתאם מדפיס את הבלוק המדויק להדבקה תחת `mcpServers:`; הוא לא כותב מחדש בשקט את ה-yaml שלכם כי שמירה בטוחה על comments ועוגנים (anchors) מחייבת YAML parser שהחבילה לא מגיעה איתו. Continue משתמש בצורת מערך (לא object) עבור `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` כותב תחת `context_servers` (המפתח של Zed, לא `mcpServers`). שרתי MCP מרוחקים אפשר לחווט במקום זאת דרך `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` כותב את בלוק ה-`mcpServers` הסטנדרטי. override-ים בתחום פרויקט נכנסים ב-`<repo>/.factory/mcp.json`. העבירו `--with-hooks` ללכידה אוטומטית מובנית. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` מוסיף שורת `@deepseek-ai/dsh-mcp-client` לשכבת ה-patch בשכבת ה-home שכל פרופיל Harness טוען; הכלים נרשמים כ-`mcp__agentmemory__*`. העבירו `--with-hooks` כדי לחווט גם לכידה אוטומטית: סקריפטי ה-hook המצורפים של Claude Code רצים דרך הגשר ה-first-party של Harness, `@deepseek-ai/dsh-hooks-claude-code` (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop), באמצעות manifest שנכתב ל-`$DSH_HOME/agentmemory.hooks.json`. ברירת המחדל היא `~/.dsh` כש-`DSH_HOME` לא מוגדר. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` מפעיל את כלי MCP. הוסיפו `--with-hooks` כדי לטעון את תוסף הלכידה המובנה ב-AgentMemory. אין צורך בחבילת תוסף נפרדת. [DSH](../docs/dsh.md). |
 | **Goose** | ממשק הגדרות MCP של Goose | אותו בלוק `mcpServers`; השתמשו ב-`goose configure` → Add Extension → MCP. עריכה ישירה של YAML ב-`~/.config/goose/config.yaml` נתמכת אבל ה-schema משתמש ב-`extensions:` + `cmd` (לא `mcpServers:` + `command`). |
 | **Aider** | n/a | פנו ל-REST API ישירות: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **כל סוכן (32+)** | n/a | `npx skillkit install agentmemory` מגלה אוטומטית את ה-host וממזג. |
@@ -829,9 +832,9 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 agentmemory רושם את הפעולות המרכזיות שלו כפונקציות iii (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). כל שפה עם iii SDK יכולה לקרוא להן ישירות מעל `ws://localhost:49134`, בלי צורך בלקוח REST נפרד לכל שפה.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1341,7 +1344,7 @@ fi
 | Prometheus / Grafana | iii OTEL + מוניטור health |
 | מערכות plugin מותאמות אישית | Worker Compose (`worker-compose.yaml`) |
 
-**245 קובצי מקור · ~56,000 LOC · 3,800+ בדיקות · 322 פונקציות · 65 תחומי KV**, הכול על שלושה primitives. אין `agentmemory plugin install`. מערכת התוספים היא iii עצמו.
+**253 קבצי מקור · ~58,000 LOC · 4,000+ בדיקות · 322 פונקציות · 65 תחומי KV**, הכול על שלושה primitives. אין `agentmemory plugin install`. מערכת ה-plugin היא iii עצמו.
 
 ---
 
@@ -1632,8 +1635,7 @@ GRAPH_EXTRACTION_ENABLED=true
                                            # A hard kill loses at most this window.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1668,7 +1670,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoints בפורט `3111`. ה-REST API נקשר ל-`127.0.0.1` כברירת מחדל. endpoints מוגנים דורשים `Authorization: Bearer <secret>`, ו-endpoints של mesh sync דורשים `AGENTMEMORY_SECRET` מוגדר באופן מפורש בשני ה-peers.
+146 endpoints בפורט `3111`. ה-REST API נקשר ל-`127.0.0.1` כברירת מחדל. endpoints מוגנים דורשים `Authorization: Bearer <secret>`, ו-endpoints של mesh sync דורשים `AGENTMEMORY_SECRET` מוגדר באופן מפורש בשני ה-peers.
 
 **אימות (Authentication) פעיל כברירת מחדל.** כש-`AGENTMEMORY_SECRET` לא מוגדר (ב-shell או ב-`~/.agentmemory/.env`), השרת מייצר secret אקראי בהפעלה הראשונה ושומר אותו ב-`~/.agentmemory/secret` במוד `0600`. כל לקוח מצורף קורא אותו משם כשהוא מדבר עם שרת מקומי: ה-CLI, המציג, ה-hooks תחת `plugin/scripts`, שרת ה-MCP וה-shim `@agentmemory/mcp`, התצורות שנכתבות על ידי `agentmemory connect`, והאינטגרציות המצורפות של OpenCode, Pi, OpenClaw, Hermes וה-filesystem-watcher. ה-secret המאוחסן נשלח רק ל-URLs של loopback (`localhost`, `127.0.0.0/8`, `::1`). `AGENTMEMORY_SECRET` מפורש גובר תמיד, ולקוחות מרוחקים עדיין צריכים אותו מוגדר. Docker וה-entrypoints של `deploy/` כבר מייצרים ומייצאים את ה-secret שלהם. כדי לקרוא ל-API ביד:
 
@@ -1727,19 +1729,19 @@ curl -H "Authorization: Bearer $(cat ~/.agentmemory/secret)" http://localhost:31
 
 כשהשרת נפול, לא עונה בזמן, או מחזיר 5xx, ה-hook מוסיף את התצפית לקובץ spool מקומי, `<data dir>/capture-spool/<host>-<port>.jsonl` (override לתיקייה עם `AGENTMEMORY_CAPTURE_SPOOL_DIR`). הקובץ פרטי למשתמש שלכם (מוד 600), secrets מנוקים באותו אופן שבו השרת מנקה אותם, הוא מחזיק לכל היותר `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) ומפיל רשומות ישנות מ-`AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). כשהוא מלא, רשומות חדשות נופלות ונספרות, ו-`/agentmemory/status` מדווח על זה. ה-hook עדיין יוצא עם 0 בתוך מגבלת הזמן שלו ולא מוסיף בקשה כשהשרת תקין. ה-spool נשלח בהפעלה הבאה ועל ידי ה-hook הראשון שמגיע לשרת שוב, בתהליך רקע כך שהסוכן לא מחכה. מזהי אירועים מבטיחים שזה בטוח: תצפית שהגיעה לפני timeout לא נשמרת פעמיים. `npx @agentmemory/agentmemory capture` מציג את ה-spool ואת ה-inbox של השרת, `--drain` שולח את ה-spool עכשיו, ו-`GET /agentmemory/capture` מחזיר את אותו הדבר כ-JSON. הגדירו `AGENTMEMORY_CAPTURE_SPOOL=false` כדי לכבות את ה-spool.
 
-**דחיסת provenance של הגרף.** כל node ו-edge בגרף הידע שומר את המזהים של 32 התצפיות החדשות ביותר שהוא בא מהן. מאגרים שנכתבו לפני המכסה הזו יכולים להחזיק אלפי מזהים לכל node חם, מה שמאטה את חיפוש הגרף ואת המציג או מפיל את ה-worker. agentmemory מתקן את זה בעצמו: בהפעלה הראשונה אחרי שדרוג הוא גוזם כל node, edge, edge שהוחלף (היסטוריית הגרף הטמפורלית), וה-snapshot שבמטמון למכסה ברקע, בפרוסות קטנות עם הפסקה ביניהן, כך שחיפוש, לכידה, והמציג ממשיכים לעבוד. הוא שומר את ההתקדמות שלו, ממשיך אחרי הפעלה מחדש, ולעולם לא רץ שוב ברגע שהוא סיים. `/agentmemory/status` ועמוד ה-Health של המציג מציגים את זה כ-pending, running (עם ה-scope והמיקום הנוכחיים), done, או failed. הגדירו `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` כדי לכבות את זה.
+**דחיסת provenance של הגרף.** דחיסת נתוני provenance ישנים נדחית בזמן האתחול, משום שהיא קוראת scopes ישנים בשלמותם. `/agentmemory/status` מציג `deferred`, או `off` כאשר `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. הפעילו את הדחיסה הידנית שלהלן בזמן תחזוקה. העברת אינדקס האחזור היא פעולה נפרדת: השתמשו ב־`agentmemory graph-index migrate --allow-legacy-scan` לפי [מדריך התחזוקה](../docs/reliability/graph-index-migration.md).
 
 כדי להריץ את זה ביד, קראו ל-`POST /agentmemory/graph/compact`. זה הולך על אינדקסי ה-name וה-edge-key במקום לרשום כל node ו-edge, ובטוח להריץ מחדש. כשזה גוזם מזהים זה כותב רשומת audit מסוג `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 על מאגר גדול, או כשהקריאה מחזירה 504, הריצו את זה בפרוסות. שלחו `scope` (`nodes`, `edges`, או `history`), `offset`, ו-`limit`, ואז קראו שוב עם `nextOffset` שהוחזר עד שהוא `null`. עשו את זה ל-`nodes`, `edges`, ו-`history`, וסיימו עם קריאה אחת של `{"scope":"snapshot"}`, כי הרצה בפרוסות לא נוגעת ב-snapshot שבמטמון.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1749,7 +1751,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

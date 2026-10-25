@@ -1,14 +1,17 @@
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { parse } from "yaml";
 import { composeEnvironment } from "../src/cli/compose-control.js";
 import { COMPOSE_WORKER_VERSIONS, composeNamespace, renderWorkerCompose, shellCommand, shellQuote, writeWorkerCompose } from "../src/cli/compose-project.js";
 
 const root = mkdtempSync(join(tmpdir(), "agentmemory-compose-"));
 const rootUrl = `path://${root.replaceAll("\\", "/")}`;
-afterEach(() => rmSync(root, { recursive: true, force: true }));
+afterEach(() => {
+  rmSync(root, { recursive: true, force: true });
+  vi.unstubAllEnvs();
+});
 const options = (overrides: Record<string, unknown> = {}) => ({
   ports: { restPort: 3511, viewerPort: 3513, enginePort: 49534 },
   dataDir: join(root, "data"),
@@ -164,36 +167,54 @@ describe("Worker Compose project", () => {
     expect(text.slice(0, text.indexOf("containers:")).concat(text.slice(text.indexOf("  state:"), text.indexOf("  agentmemory:")))).not.toContain("fake-gate-key");
   });
 
-  it("forwards CLI and viewer overrides from the shell ahead of env-file values", () => {
-    const text = renderWorkerCompose(options({
-      workerEnvironment: {
-        AGENTMEMORY_TOOLS: "core",
-        AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
-        VIEWER_ALLOWED_HOSTS: "example.test:3513",
-        VIEWER_ALLOWED_ORIGINS: "https://example.test",
-      },
-    }));
-    for (const [key, value] of Object.entries({
+  it("preserves memory policy, provider and durability overrides in native and Docker workers", async () => {
+    const settings = {
+      FALLBACK_PROVIDERS: "openai,gemini",
+      OPENROUTER_EMBEDDING_MODEL: "custom/embedding",
+      OPENAI_API_VERSION: "2024-10-21",
+      MINIMAX_BASE_URL: "https://example.test/anthropic",
+      AGENTMEMORY_LLM_TIMEOUT_MS: "45000",
+      AGENTMEMORY_CAPTURE_INBOX_MAX: "1234",
+      AGENTMEMORY_EXPORT_ROOT: "/tmp/exports",
+      AGENTMEMORY_IMPORT_ROOT: "/tmp/imports",
       AGENTMEMORY_TOOLS: "core",
-      AGENTMEMORY_VIEWER_HOST: "127.0.0.1",
-      VIEWER_ALLOWED_HOSTS: "example.test:3513",
-      VIEWER_ALLOWED_ORIGINS: "https://example.test",
-    })) expect(text).toContain(`${key}: '${value}'`);
-    expect(composeEnvironment({ AGENTMEMORY_TOOLS: "core", VIEWER_ALLOWED_HOSTS: "example.test" }, "/tmp/state")).toMatchObject({
-      AGENTMEMORY_TOOLS: "core",
-      VIEWER_ALLOWED_HOSTS: "example.test",
-    });
-  });
-
-
-  it("uses the forwarded tools setting for the effective MCP tool list", async () => {
-    const text = renderWorkerCompose(options({ workerEnvironment: { AGENTMEMORY_TOOLS: "core" } }));
-    const app = (parse(text) as { containers: Record<string, { environment: Record<string, string> }> }).containers.agentmemory!;
-    const { getVisibleTools } = await import("../src/mcp/tools-registry.js");
-    const previous = process.env.AGENTMEMORY_TOOLS;
-    process.env.AGENTMEMORY_TOOLS = app.environment.AGENTMEMORY_TOOLS;
-    try { expect(getVisibleTools()).toHaveLength(8); }
-    finally { if (previous === undefined) delete process.env.AGENTMEMORY_TOOLS; else process.env.AGENTMEMORY_TOOLS = previous; }
+      AGENTMEMORY_INDEX_SAVE_INTERVAL_MS: "45000",
+      AGENTMEMORY_VECTOR_BUCKET_SIZE: "250",
+      AGENTMEMORY_VECTOR_BACKFILL_MAX: "100",
+      CONSOLIDATION_DECAY_DAYS: "90",
+      CONSOLIDATION_INTERVAL_MS: "900000",
+      GRAPH_EXTRACTION_BATCH_SIZE: "5",
+      AUTO_FORGET_ENABLED: "false",
+      LESSON_DECAY_ENABLED: "false",
+      INSIGHT_DECAY_ENABLED: "false",
+    };
+    const native = parse(renderWorkerCompose(options({ workerEnvironment: {
+      ...settings, UNRELATED_SECRET: "not-for-the-worker", III_NAMESPACE: "wrong",
+    } })));
+    const docker = parse(readFileSync(new URL("../deploy/runtime/worker-compose.yaml", import.meta.url), "utf8"));
+    const dockerService = parse(readFileSync(new URL("../docker-compose.yml", import.meta.url), "utf8")).services.agentmemory;
+    const coolify = parse(readFileSync(new URL("../deploy/coolify/docker-compose.yml", import.meta.url), "utf8")).services.agentmemory;
+    expect(native.containers.agentmemory.environment).toMatchObject(settings);
+    expect(native.containers.agentmemory.environment).not.toHaveProperty("UNRELATED_SECRET");
+    expect(native.containers.agentmemory.environment).not.toHaveProperty("III_NAMESPACE");
+    for (const key of Object.keys(settings)) {
+      expect(docker.containers.agentmemory.environment[key]).toBe("${" + key + ":-}");
+      expect(dockerService.environment[key]).toBe("${" + key + ":-}");
+      expect(coolify.environment[key]).toBe("${" + key + ":-}");
+    }
+    vi.stubEnv("AGENTMEMORY_ENV_FILE", join(root, "missing.env"));
+    for (const [key, value] of Object.entries(native.containers.agentmemory.environment)) {
+      vi.stubEnv(key, value as string);
+    }
+    vi.resetModules();
+    const config = await import("../src/config.js");
+    expect(config.loadFallbackConfig().providers).toEqual(["openai", "gemini"]);
+    expect(config.getConsolidationDecayDays()).toBe(90);
+    expect(config.getConsolidationIntervalMs()).toBe(900000);
+    expect(config.getIndexSaveIntervalMs()).toBe(45000);
+    expect(config.getVectorBucketSize()).toBe(250);
+    expect(config.getVectorBackfillMax()).toBe(100);
+    expect(config.getGraphBatchSize()).toBe(5);
   });
 
   it("supports Redis state without leaking Redis configuration into the daemon", () => {

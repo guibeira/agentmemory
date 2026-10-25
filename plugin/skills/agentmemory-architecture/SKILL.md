@@ -4,7 +4,7 @@ description: How agentmemory is built, the iii engine primitives it runs on, its
 user-invocable: false
 ---
 
-agentmemory is a memory server for coding agents. It runs locally, captures observations, indexes them for hybrid retrieval, and serves them back over REST and MCP. It is built on the iii engine.
+agentmemory is a memory server for coding agents. It runs locally, captures observations, indexes them for hybrid retrieval, and serves them back over REST and MCP. Worker Compose runs the pinned iii engine with AgentMemory and the registry `state` and `http` workers. The state worker uses a file-backed KV store by default, with Redis available by configuration; it is not SQLite.
 
 ## iii primitives
 
@@ -24,7 +24,7 @@ REST defaults to port `3111`, the viewer to `3113`, and the internal engine WebS
 
 ## Viewer
 
-A real-time web viewer at `http://localhost:3113` shows memory building as sessions run. Useful for demos and for confirming capture is working.
+A real-time web viewer at `http://localhost:3113` shows memory building as sessions run, with authenticated SSE updates over the REST port. Useful for demos and for confirming capture is working.
 
 ## See also
 

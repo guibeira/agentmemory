@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 εργαλεία MCP" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 αυτόματα hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 εξωτερικές βάσεις δεδομένων" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ επιτυχημένες δοκιμές" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ επιτυχημένες δοκιμές" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Το runtime χρησιμοποιεί REST/MCP HTTP στη 3111, το viewer στη 3113, και το εσωτερικό WebSocket του iii worker στη 49134. Τα live events του viewer χρησιμοποιούν SSE μέσω REST. Το `status` επιβεβαιώνει την υγεία του agentmemory, την καρφιτσωμένη έκδοση engine (`enginePinnedVersion`) και την ενεργή λειτουργία provider/embedding. Αποθηκεύστε μια δοκιμαστική εγγραφή και επιβεβαιώστε ότι είναι αναζητήσιμη:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Προειδοποίηση: αυτή η εντολή τροποποιεί τον τρέχοντα χώρο εργασίας/runtime. Μπορεί να ενημερώσει εξαρτήσεις JavaScript και να εγκαταστήσει το καρφιτσωμένο binary engine iii 0.25.0.
-
-Οι λεπτομέρειες υλοποίησης βρίσκονται στο `src/cli.ts` (δείτε το `runUpgrade` γύρω από την περιοχή `src/cli.ts:544-595`).
 
 ### Claude Code (ένα block, επικολλήστε το)
 
@@ -815,7 +818,7 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 | **Continue.dev** | `~/.continue/config.yaml` (προτιμώμενο) ή `config.json` (παλαιό) | Το `agentmemory connect continue` δημιουργεί το `config.yaml` από την αρχή όταν δεν υπάρχει κανένα από τα δύο, ή τροποποιεί το υπάρχον `config.json`. **Αν έχετε ήδη `config.yaml`**, ο adapter εκτυπώνει το ακριβές block για επικόλληση κάτω από το `mcpServers:`· δεν ξαναγράφει σιωπηλά το yaml σας, επειδή η ασφαλής διατήρηση σχολίων και anchors απαιτεί έναν YAML parser που το πακέτο δεν διαθέτει. Το Continue χρησιμοποιεί μορφή array (όχι object) για το `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | Το `agentmemory connect zed` γράφει κάτω από το `context_servers` (το κλειδί του Zed, ΟΧΙ `mcpServers`). Απομακρυσμένοι διακομιστές MCP μπορούν να συνδεθούν εναλλακτικά μέσω `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | Το `agentmemory connect droid` γράφει το τυπικό block `mcpServers`. Οι παρακάμψεις σε επίπεδο project μπαίνουν στο `<repo>/.factory/mcp.json`. Περάστε `--with-hooks` για εγγενή αυτόματη καταγραφή. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | Το `agentmemory connect dsh` προσθέτει μια γραμμή `@deepseek-ai/dsh-mcp-client` στο επίπεδο patch home που φορτώνει κάθε προφίλ Harness· τα εργαλεία καταχωρούνται ως `mcp__agentmemory__*`. Περάστε `--with-hooks` για να συνδέσετε επίσης την αυτόματη καταγραφή: τα ενσωματωμένα scripts hooks του Claude Code εκτελούνται μέσω της πρωτογενούς γέφυρας `@deepseek-ai/dsh-hooks-claude-code` του Harness (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) μέσω ενός manifest που γράφεται στο `$DSH_HOME/agentmemory.hooks.json`. Προεπιλέγει στο `~/.dsh` όταν το `DSH_HOME` δεν έχει ρυθμιστεί. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | Το `agentmemory connect dsh` ενεργοποιεί τα εργαλεία MCP. Προσθέστε `--with-hooks` για το εγγενές πρόσθετο καταγραφής που περιλαμβάνεται στο AgentMemory. Δεν χρειάζεται ξεχωριστό πακέτο. [DSH](../docs/dsh.md). |
 | **Goose** | Settings UI MCP του Goose | Το ίδιο block `mcpServers`· χρησιμοποιήστε `goose configure` → Add Extension → MCP. Υποστηρίζεται άμεση επεξεργασία YAML στο `~/.config/goose/config.yaml`, αλλά το σχήμα χρησιμοποιεί `extensions:` + `cmd` (όχι `mcpServers:` + `command`). |
 | **Aider** | n/a | Επικοινωνήστε απευθείας με το REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Οποιοσδήποτε agent (32+)** | n/a | Το `npx skillkit install agentmemory` ανιχνεύει αυτόματα τον host και συγχωνεύει. |
@@ -827,9 +830,9 @@ npx skills add rohitg00/agentmemory -y -a '*'   # install to every installed age
 Το agentmemory καταχωρεί τις βασικές λειτουργίες του ως iii functions (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Κάθε γλώσσα με ένα iii SDK μπορεί να τα καλέσει απευθείας μέσω `ws://localhost:49134`, χωρίς ξεχωριστό REST client ανά γλώσσα.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1343,7 +1346,7 @@ fi
 | Prometheus / Grafana | iii OTEL + monitor υγείας |
 | Προσαρμοσμένα συστήματα plugin | Worker Compose (`worker-compose.yaml`) |
 
-**245 αρχεία πηγαίου κώδικα · ~56,000 LOC · 3,600+ δοκιμές · 322 functions · 65 KV scopes**, όλα πάνω σε τρία primitives. Δεν υπάρχει `agentmemory plugin install`. Το σύστημα plugin είναι το ίδιο το iii.
+**253 αρχεία πηγαίου κώδικα · ~58,000 LOC · 4,000+ δοκιμές · 322 functions · 65 KV scopes**, όλα πάνω σε τρία primitives. Δεν υπάρχει `agentmemory plugin install`. Το σύστημα plugin είναι το ίδιο το iii.
 
 ---
 
@@ -1633,8 +1636,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1669,7 +1671,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoints στη θύρα `3111`. Το REST API συνδέεται στο `127.0.0.1` από προεπιλογή. Τα προστατευμένα endpoints απαιτούν `Authorization: Bearer <secret>`, και τα endpoints mesh sync απαιτούν ένα ρητά ρυθμισμένο `AGENTMEMORY_SECRET` και στους δύο peers.
+146 endpoints στη θύρα `3111`. Το REST API συνδέεται στο `127.0.0.1` από προεπιλογή. Τα προστατευμένα endpoints απαιτούν `Authorization: Bearer <secret>`, και τα endpoints mesh sync απαιτούν ένα ρητά ρυθμισμένο `AGENTMEMORY_SECRET` και στους δύο peers.
 
 **Η πιστοποίηση είναι ενεργή από προεπιλογή.** Όταν το `AGENTMEMORY_SECRET` δεν έχει ρυθμιστεί (στο shell ή στο `~/.agentmemory/.env`), ο διακομιστής δημιουργεί ένα τυχαίο secret στην πρώτη εκκίνηση και το αποθηκεύει στο `~/.agentmemory/secret` με mode `0600`. Κάθε ενσωματωμένος client το διαβάζει από εκεί όταν μιλά με έναν τοπικό διακομιστή: το CLI, το viewer, τα hooks κάτω από το `plugin/scripts`, ο διακομιστής MCP και το shim `@agentmemory/mcp`, οι ρυθμίσεις που γράφει το `agentmemory connect`, και οι ενσωματωμένες ενσωματώσεις OpenCode, Pi, OpenClaw, Hermes, και filesystem-watcher. Το αποθηκευμένο secret αποστέλλεται μόνο σε loopback URLs (`localhost`, `127.0.0.0/8`, `::1`). Ένα ρητό `AGENTMEMORY_SECRET` υπερισχύει πάντα, και οι απομακρυσμένοι clients εξακολουθούν να το χρειάζονται ρυθμισμένο. Το Docker και τα entrypoints του `deploy/` δημιουργούν και εξάγουν ήδη το δικό τους secret. Για να καλέσετε το API χειροκίνητα:
 
@@ -1728,19 +1730,19 @@ curl -H "Authorization: Bearer $(cat ~/.agentmemory/secret)" http://localhost:31
 
 Όταν ο διακομιστής είναι εκτός λειτουργίας, δεν απαντά εγκαίρως, ή επιστρέφει 5xx, το hook προσθέτει την παρατήρηση σε ένα τοπικό αρχείο spool, `<data dir>/capture-spool/<host>-<port>.jsonl` (παρακάμψτε τον φάκελο με `AGENTMEMORY_CAPTURE_SPOOL_DIR`). Το αρχείο είναι ιδιωτικό για τον χρήστη σας (mode 600), τα μυστικά αποκρύπτονται με τον ίδιο τρόπο που τα αποκρύπτει ο διακομιστής, κρατά το πολύ `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) και αφαιρεί καταχωρήσεις παλαιότερες από `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Όταν είναι γεμάτο, οι νέες καταχωρήσεις αφαιρούνται και μετρούνται, και το `/agentmemory/status` το αναφέρει. Το hook συνεχίζει να κάνει exit 0 εντός του χρονικού ορίου του και δεν προσθέτει κανένα αίτημα όταν ο διακομιστής είναι υγιής. Το spool αποστέλλεται στην επόμενη εκκίνηση και από το πρώτο hook που φτάνει ξανά στον διακομιστή, σε μια διαδικασία παρασκηνίου ώστε ο agent να μην περιμένει. Τα event ids το κάνουν ασφαλές: μια παρατήρηση που είχε φτάσει πριν από ένα timeout δεν αποθηκεύεται δύο φορές. Το `npx @agentmemory/agentmemory capture` δείχνει το spool και το inbox του διακομιστή, το `--drain` στέλνει το spool τώρα, και το `GET /agentmemory/capture` επιστρέφει το ίδιο ως JSON. Ρυθμίστε `AGENTMEMORY_CAPTURE_SPOOL=false` για να απενεργοποιήσετε το spool.
 
-**Συμπύκνωση προέλευσης γράφου.** Κάθε κόμβος και ακμή γράφου γνώσης κρατά τα ids των 32 πιο πρόσφατων παρατηρήσεων από τις οποίες προήλθε. Stores γραμμένα πριν από αυτό το όριο μπορούν να κρατούν χιλιάδες ids ανά hot κόμβο, κάτι που κάνει την αναζήτηση γράφου και το viewer αργά ή ρίχνει τον worker. Το agentmemory το διορθώνει μόνο του: στην πρώτη εκκίνηση μετά από αναβάθμιση περιορίζει κάθε κόμβο, ακμή, αντικατεστημένη ακμή (το χρονικό ιστορικό γράφου), και το cached snapshot στο όριο, στο παρασκήνιο, σε μικρές φέτες με μια παύση μεταξύ τους, ώστε η αναζήτηση, η καταγραφή, και το viewer να συνεχίζουν να λειτουργούν. Αποθηκεύει την πρόοδό του, συνεχίζει μετά από επανεκκίνηση, και δεν ξανατρέχει μόλις τελειώσει. Το `/agentmemory/status` και η σελίδα Health του viewer το δείχνουν ως εκκρεμές, σε εξέλιξη (με το τρέχον scope και θέση), ολοκληρωμένο, ή αποτυχημένο. Ρυθμίστε `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` για να το απενεργοποιήσετε.
+**Συμπύκνωση προέλευσης γράφου.** Η συμπύκνωση παλαιών δεδομένων προέλευσης αναβάλλεται κατά την εκκίνηση, επειδή διαβάζει ολόκληρα τα παλαιά scopes. Το `/agentmemory/status` αναφέρει `deferred`, ή `off` με `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Εκτελέστε τη χειροκίνητη συμπύκνωση παρακάτω κατά τη συντήρηση. Η μετεγκατάσταση του ευρετηρίου ανάκτησης είναι ξεχωριστή: χρησιμοποιήστε `agentmemory graph-index migrate --allow-legacy-scan` όπως περιγράφει ο [οδηγός συντήρησης](../docs/reliability/graph-index-migration.md).
 
 Για να το εκτελέσετε χειροκίνητα, καλέστε `POST /agentmemory/graph/compact`. Διασχίζει τα ευρετήρια ονόματος και edge-key αντί να απαριθμεί κάθε κόμβο και ακμή, και είναι ασφαλές να ξανατρέξει. Όταν περιορίζει ids, γράφει μια καταχώρηση audit `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Σε ένα μεγάλο store, ή όταν η κλήση επιστρέφει 504, εκτελέστε το σε φέτες. Στείλτε `scope` (`nodes`, `edges`, ή `history`), `offset`, και `limit`, και μετά καλέστε ξανά με το επιστρεφόμενο `nextOffset` μέχρι να γίνει `null`. Κάντε το αυτό για τα `nodes`, `edges`, και `history`, και τελειώστε με μία κλήση `{"scope":"snapshot"}`, επειδή μια κλήση σε φέτες δεν αγγίζει το cached snapshot.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1750,7 +1752,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

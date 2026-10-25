@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP nástrojů" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 automatických hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 externích databází" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ testů úspěšně proběhlo" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ testů úspěšně proběhlo" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Runtime používá REST/MCP HTTP na 3111, viewer na 3113 a interní WebSocket iii workeru na 49134. Živé události vieweru používají SSE přes REST. `status` potvrzuje zdraví agentmemory, pinned verzi enginu (`enginePinnedVersion`) a aktivního poskytovatele/režim embeddingů. Uložte sondu a ověřte, že je vyhledatelná:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Varování: tento příkaz mění aktuální workspace/runtime. Může aktualizovat JavaScriptové závislosti a nainstalovat pinned binárku enginu iii 0.25.0.
-
-Detaily implementace jsou v `src/cli.ts` (viz `runUpgrade` kolem oblasti `src/cli.ts:544-595`).
 
 ### Claude Code (jeden blok, vložte ho)
 
@@ -815,7 +818,7 @@ Položka agentmemory je **stejný blok serveru MCP** na všech hostitelích, kte
 | **Continue.dev** | `~/.continue/config.yaml` (preferované) nebo `config.json` (starší) | `agentmemory connect continue` vytvoří `config.yaml` od nuly, pokud žádný z nich neexistuje, nebo upraví existující `config.json`. **Pokud už máte `config.yaml`**, adaptér vypíše přesný blok k vložení pod `mcpServers:`; váš yaml tiše nepřepíše, protože bezpečné zachování komentářů a kotev vyžaduje parser YAML, který balíček nedodává. Continue používá pro `mcpServers` formu pole (ne objektu). |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` zapíše pod `context_servers` (klíč Zed, NE `mcpServers`). Vzdálené servery MCP lze zapojit místo toho přes `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` zapíše standardní blok `mcpServers`. Přepisy na úrovni projektu patří do `<repo>/.factory/mcp.json`. Pro nativní automatické zachycení přidejte `--with-hooks`. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` připojí řádek `@deepseek-ai/dsh-mcp-client` do vrstvy patchů na úrovni home, kterou načítá každý profil Harness; nástroje se registrují jako `mcp__agentmemory__*`. Pro zapojení i automatického zachycení přidejte `--with-hooks`: zabalené skripty hooks pro Claude Code běží přes vlastní most Harness `@deepseek-ai/dsh-hooks-claude-code` (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) pomocí manifestu zapsaného do `$DSH_HOME/agentmemory.hooks.json`. Pokud `DSH_HOME` není nastaveno, výchozí je `~/.dsh`. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` zapne nástroje MCP. Přidejte `--with-hooks` pro nativní zachytávání zahrnuté v AgentMemory. Samostatný balíček pluginu není potřeba. [DSH](../docs/dsh.md). |
 | **Goose** | UI nastavení MCP v Goose | Stejný blok `mcpServers`; použijte `goose configure` → Add Extension → MCP. Přímá úprava YAML v `~/.config/goose/config.yaml` je podporována, ale schéma používá `extensions:` + `cmd` (ne `mcpServers:` + `command`). |
 | **Aider** | n/a | Mluvte přímo s REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Jakýkoli agent (32+)** | n/a | `npx skillkit install agentmemory` automaticky detekuje hostitele a sloučí konfiguraci. |
@@ -827,9 +830,9 @@ Položka agentmemory je **stejný blok serveru MCP** na všech hostitelích, kte
 agentmemory registruje své klíčové operace jako iii funkce (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Jakýkoli jazyk s iii SDK je může volat přímo přes `ws://localhost:49134`, bez samostatného klienta REST pro každý jazyk.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1345,7 +1348,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Vlastní systémy pluginů | Worker Compose (`worker-compose.yaml`) |
 
-**245 zdrojových souborů · ~56,000 řádků kódu · 3,600+ testů · 322 funkcí · 65 KV scopes**, vše na třech primitivech. Žádné `agentmemory plugin install`. Systém pluginů je samo iii.
+**253 zdrojových souborů · ~58,000 řádků kódu · 4,000+ testů · 322 funkcí · 65 KV scopes**, vše na třech primitivech. Žádné `agentmemory plugin install`. Systém pluginů je samo iii.
 
 ---
 
@@ -1635,8 +1638,7 @@ Vytvořte `~/.agentmemory/.env`:
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1671,7 +1673,7 @@ Vytvořte `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpointů na portu `3111`. REST API se ve výchozím stavu váže na `127.0.0.1`. Chráněné endpointy vyžadují `Authorization: Bearer <secret>`, a endpointy pro mesh sync vyžadují explicitně nastavené `AGENTMEMORY_SECRET` na obou stranách.
+146 endpointů na portu `3111`. REST API se ve výchozím stavu váže na `127.0.0.1`. Chráněné endpointy vyžadují `Authorization: Bearer <secret>`, a endpointy pro mesh sync vyžadují explicitně nastavené `AGENTMEMORY_SECRET` na obou stranách.
 
 **Autentizace je ve výchozím stavu zapnutá.** Pokud není nastavena `AGENTMEMORY_SECRET` (v shellu ani v `~/.agentmemory/.env`), CLI při prvním spuštění vygeneruje náhodný secret a uloží jej do vybraného datového adresáře jako `secret` s režimem `0600` (výchozí umístění podle platformy je popsáno výše). Všichni zabalení klienti jej načítají odtud při komunikaci s lokálním serverem: CLI, viewer, hooks v `plugin/scripts`, server MCP a shim `@agentmemory/mcp`, konfigurace zapsané pomocí `agentmemory connect` a zabalené integrace OpenCode, Pi, OpenClaw, Hermes a filesystem-watcher. Uložený secret se odesílá pouze na loopback URL (`localhost`, `127.0.0.0/8`, `::1`). Výslovně nastavená `AGENTMEMORY_SECRET` má vždy přednost a vzdálení klienti ji musí mít ve svém prostředí. Self-host nasazení Dockeru z repozitáře a entrypointy `deploy/` generují a exportují vlastní secret. Pro ruční volání API:
 
@@ -1730,19 +1732,19 @@ Neúspěšné události se opakují každých `AGENTMEMORY_CAPTURE_RETRY_INTERVA
 
 Když je server mimo provoz, neodpoví včas nebo vrátí 5xx, hook připojí pozorování do lokálního souboru spoolu, `<data dir>/capture-spool/<host>-<port>.jsonl` (adresář přepište pomocí `AGENTMEMORY_CAPTURE_SPOOL_DIR`). Soubor je privátní pro vašeho uživatele (režim 600), secrets jsou odstraněny stejně jako je odstraňuje server, pojme nejvýš `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) a zahazuje záznamy starší než `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Když je plný, nové záznamy se zahodí a započítají, a `/agentmemory/status` to nahlásí. Hook stále skončí s kódem 0 ve svém časovém limitu a nepřidá žádný požadavek, když je server zdravý. Spool se odešle při dalším startu a prvním hookem, který se znovu dostane k serveru, v procesu na pozadí, aby agent nečekal. Id událostí to dělají bezpečným: pozorování, které dorazilo před timeoutem, se neuloží dvakrát. `npx @agentmemory/agentmemory capture` zobrazí spool i inbox serveru, `--drain` hned odešle spool a `GET /agentmemory/capture` vrátí totéž jako JSON. Nastavte `AGENTMEMORY_CAPTURE_SPOOL=false`, abyste spool vypnuli.
 
-**Komprimace provenience grafu.** Každý uzel a hrana znalostního grafu si drží id posledních 32 pozorování, ze kterých vznikly. Úložiště zapsaná před tímto limitem mohou mít u „horkého" uzlu tisíce id, což zpomaluje vyhledávání v grafu a viewer, nebo to shazuje worker. agentmemory to opravuje samo: při prvním startu po upgradu na pozadí zmenší každý uzel, hranu, nahrazenou hranu (temporální historii grafu) a cachovaný snapshot na tento limit, v malých dávkách s pauzou mezi nimi, aby vyhledávání, zachycení i viewer fungovaly dál. Ukládá si svůj postup, pokračuje po restartu a po dokončení už nikdy znovu neběží. `/agentmemory/status` a stránka Health vieweru ji zobrazují jako čekající, běžící (s aktuálním scope a pozicí), hotovou nebo neúspěšnou. Nastavte `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`, abyste ji vypnuli.
+**Komprimace provenience grafu.** Komprimace starší provenience se při spuštění odkládá, protože načítá celé starší rozsahy. `/agentmemory/status` hlásí `deferred`, nebo `off` při `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Níže uvedenou ruční komprimaci spusťte během údržby. Migrace vyhledávacího indexu je samostatná: použijte `agentmemory graph-index migrate --allow-legacy-scan` podle [průvodce údržbou](../docs/reliability/graph-index-migration.md).
 
 Pro manuální spuštění zavolejte `POST /agentmemory/graph/compact`. Prochází indexy názvů a klíčů hran místo výpisu každého uzlu a hrany, a je bezpečné ho spustit znovu. Když zmenší id, zapíše audit záznam `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Na velkém úložišti, nebo když volání vrátí 504, spusťte ho po dávkách. Pošlete `scope` (`nodes`, `edges` nebo `history`), `offset` a `limit`, pak volejte znovu s vráceným `nextOffset`, dokud není `null`. Udělejte to pro `nodes`, `edges` a `history`, a zakončete jedním voláním `{"scope":"snapshot"}`, protože dávkový běh se cachovaného snapshotu nedotýká.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1752,7 +1754,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

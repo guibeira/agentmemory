@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 tools MCP" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 hooks automáticos" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 bases de datos externas" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ tests superados" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ tests superados" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 El runtime usa REST/MCP HTTP en 3111, el visor en 3113 y el WebSocket interno de los workers iii en 49134. Los eventos en vivo del visor usan SSE en REST. `status` confirma el estado de agentmemory, la versión fijada del motor (`enginePinnedVersion`) y el modo de proveedor/embeddings activo. Guarda una sonda y confirma que se puede buscar:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Aviso: este comando modifica el workspace/runtime actual. Puede actualizar dependencias de JavaScript e instalar el binario fijado de iii 0.25.0.
-
-Los detalles de implementación viven en `src/cli.ts` (ver `runUpgrade` alrededor de la región `src/cli.ts:544-595`).
 
 ### Claude Code (un bloque, pégalo)
 
@@ -815,7 +818,7 @@ La entrada de agentmemory es el **mismo bloque de servidor MCP** en todos los ho
 | **Continue.dev** | `~/.continue/config.yaml` (preferido) o `config.json` (legacy) | `agentmemory connect continue` crea `config.yaml` desde cero cuando no existe ninguno, o modifica el `config.json` existente. **Si ya tienes `config.yaml`** el adaptador imprime el bloque exacto para pegar bajo `mcpServers:`; no reescribe tu yaml silenciosamente porque preservar comentarios y anchors de forma segura necesita un parser YAML que el paquete no incluye. Continue usa forma de array (no de objeto) para `mcpServers`. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed` escribe bajo `context_servers` (la clave de Zed, NO `mcpServers`). Los servidores MCP remotos se pueden conectar en su lugar vía `{"url": "..."}`. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid` escribe el bloque `mcpServers` estándar. Los overrides con scope de proyecto van en `<repo>/.factory/mcp.json`. Pasa `--with-hooks` para captura automática nativa. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` añade una fila `@deepseek-ai/dsh-mcp-client` a la capa de patch de nivel home que carga cada perfil de Harness; las tools se registran como `mcp__agentmemory__*`. Pasa `--with-hooks` para conectar también la captura automática: los scripts de hook de Claude Code empaquetados corren a través del bridge first-party de Harness `@deepseek-ai/dsh-hooks-claude-code` (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) vía un manifest escrito en `$DSH_HOME/agentmemory.hooks.json`. Por defecto `~/.dsh` cuando `DSH_HOME` no está definido. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` activa las herramientas MCP. Añade `--with-hooks` para cargar el complemento nativo de captura incluido en AgentMemory. No requiere un paquete adicional. [DSH](../docs/dsh.md). |
 | **Goose** | UI de ajustes MCP de Goose | El mismo bloque `mcpServers`; usa `goose configure` → Add Extension → MCP. La edición directa del YAML en `~/.config/goose/config.yaml` está soportada, pero el schema usa `extensions:` + `cmd` (no `mcpServers:` + `command`). |
 | **Aider** | n/a | Habla directamente con la REST API: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Cualquier agente (32+)** | n/a | `npx skillkit install agentmemory` autodetecta el host y fusiona. |
@@ -827,9 +830,9 @@ La entrada de agentmemory es el **mismo bloque de servidor MCP** en todos los ho
 agentmemory registra sus operaciones principales como funciones iii (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). Cualquier lenguaje con un SDK de iii puede llamarlas directamente sobre `ws://localhost:49134`, sin necesidad de un cliente REST separado por lenguaje.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1342,7 +1345,7 @@ fi
 | Prometheus / Grafana | iii OTEL + monitor de salud |
 | Sistemas de plugins propios | Worker Compose (`worker-compose.yaml`) |
 
-**245 ficheros de código · ~56,000 LOC · 3,600+ tests · 322 funciones · 65 scopes KV**, todo sobre tres primitivos. No hay `agentmemory plugin install`. El sistema de plugins es iii mismo.
+**253 ficheros de código · ~58,000 LOC · 4,000+ tests · 322 funciones · 65 scopes KV**, todo sobre tres primitivos. No hay `agentmemory plugin install`. El sistema de plugins es iii mismo.
 
 ---
 
@@ -1632,8 +1635,7 @@ Crea `~/.agentmemory/.env`:
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1668,7 +1670,7 @@ Crea `~/.agentmemory/.env`:
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-144 endpoints en el puerto `3111`. La REST API se enlaza a `127.0.0.1` por defecto. Los endpoints protegidos requieren `Authorization: Bearer <secret>`, y los endpoints de mesh sync requieren un `AGENTMEMORY_SECRET` definido explícitamente en ambos peers.
+146 endpoints en el puerto `3111`. La REST API se enlaza a `127.0.0.1` por defecto. Los endpoints protegidos requieren `Authorization: Bearer <secret>`, y los endpoints de mesh sync requieren un `AGENTMEMORY_SECRET` definido explícitamente en ambos peers.
 
 **La autenticación está activada por defecto.** Si `AGENTMEMORY_SECRET` no está definida (en el shell ni en `~/.agentmemory/.env`), la CLI genera un secreto aleatorio en el primer arranque y lo guarda como `secret` en el directorio de datos seleccionado con permisos `0600` (el directorio predeterminado según la plataforma se describe arriba). Todos los clientes incluidos lo leen desde allí al comunicarse con un servidor local: la CLI, el visor, los hooks de `plugin/scripts`, el servidor MCP y el shim `@agentmemory/mcp`, las configuraciones escritas por `agentmemory connect` y las integraciones incluidas de OpenCode, Pi, OpenClaw, Hermes y filesystem-watcher. El secreto guardado solo se envía a URL de loopback (`localhost`, `127.0.0.0/8`, `::1`). Un `AGENTMEMORY_SECRET` explícito siempre tiene prioridad, y los clientes remotos necesitan que el secreto esté definido en su entorno. Los despliegues Docker alojados por cuenta propia desde el repositorio y los entrypoints de `deploy/` generan y exportan su propio secreto. Para llamar a la API manualmente:
 
@@ -1727,19 +1729,19 @@ Los eventos fallidos se reintentan cada `AGENTMEMORY_CAPTURE_RETRY_INTERVAL_MS` 
 
 Cuando el servidor está caído, no responde a tiempo o devuelve un 5xx, el hook añade la observación a un fichero de spool local, `<data dir>/capture-spool/<host>-<port>.jsonl` (sobrescribe la carpeta con `AGENTMEMORY_CAPTURE_SPOOL_DIR`). El fichero es privado para tu usuario (modo 600), los secretos se redactan de la misma forma que los redacta el servidor, contiene como máximo `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) y descarta entradas más viejas que `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS` (168). Cuando está lleno, las entradas nuevas se descartan y se cuentan, y `/agentmemory/status` lo reporta. El hook sigue saliendo con código 0 dentro de su límite de tiempo y no añade ninguna petición cuando el servidor está sano. El spool se envía en el siguiente arranque y por el primer hook que vuelve a alcanzar el servidor, en un proceso en segundo plano para que el agente no espere. Los ids de evento hacen esto seguro: una observación que sí llegó antes de un timeout no se almacena dos veces. `npx @agentmemory/agentmemory capture` muestra el spool y el inbox del servidor, `--drain` envía el spool ahora, y `GET /agentmemory/capture` devuelve lo mismo como JSON. Define `AGENTMEMORY_CAPTURE_SPOOL=false` para desactivar el spool.
 
-**Compactación de provenance del grafo.** Cada nodo y edge del grafo de conocimiento guarda los ids de las 32 observaciones más recientes de las que proviene. Los stores escritos antes de ese tope pueden contener miles de ids por nodo caliente, lo que ralentiza la búsqueda de grafo y el visor, o tira el worker. agentmemory soluciona esto por sí mismo: en el primer arranque tras actualizar, recorta cada nodo, edge, edge reemplazado (el historial temporal del grafo) y el snapshot cacheado hasta el tope en segundo plano, en pequeños slices con una pausa entre ellos, para que la búsqueda, la captura y el visor sigan funcionando. Guarda su progreso, se reanuda tras un reinicio y nunca vuelve a correr una vez que ha terminado. `/agentmemory/status` y la página Health del visor lo muestran como pending, running (con el scope y la posición actuales), done o failed. Define `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` para desactivarlo.
+**Compactación de provenance del grafo.** La compactación de la procedencia antigua se aplaza al arrancar porque lee ámbitos antiguos completos. `/agentmemory/status` muestra `deferred`, u `off` con `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false`. Ejecuta la compactación manual de abajo durante el mantenimiento. La migración del índice de búsqueda es independiente: usa `agentmemory graph-index migrate --allow-legacy-scan` como indica la [guía de mantenimiento](../docs/reliability/graph-index-migration.md).
 
 Para ejecutarlo a mano, llama a `POST /agentmemory/graph/compact`. Recorre los índices de nombre y de clave de edge en lugar de listar cada nodo y edge, y es seguro volver a ejecutarlo. Cuando recorta ids escribe una entrada de auditoría `graph_compact`.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 En un store grande, o cuando la llamada devuelve 504, ejecútalo en slices. Envía `scope` (`nodes`, `edges` o `history`), `offset` y `limit`, y luego vuelve a llamar con el `nextOffset` devuelto hasta que sea `null`. Haz esto para `nodes`, `edges` y `history`, y termina con una llamada `{"scope":"snapshot"}`, porque una ejecución en slices no toca el snapshot cacheado.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1749,7 +1751,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

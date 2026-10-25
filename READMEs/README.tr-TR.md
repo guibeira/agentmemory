@@ -71,7 +71,7 @@
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tools.svg"><img src="../assets/tags/stat-tools.svg" alt="54 MCP tools" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-hooks.svg"><img src="../assets/tags/stat-hooks.svg" alt="12 auto hooks" height="38" /></picture>
   <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-deps.svg"><img src="../assets/tags/stat-deps.svg" alt="0 external DBs" height="38" /></picture>
-  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="3,800+ tests passing" height="38" /></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/stat-tests.svg"><img src="../assets/tags/stat-tests.svg" alt="4,000+ tests passing" height="38" /></picture>
 </p>
 
 <p align="center">
@@ -586,11 +586,16 @@ npx -y @agentmemory/agentmemory@latest status
 Runtime REST/MCP HTTP 3111, görüntüleyici 3113 ve dahili iii worker WebSocket 49134 kullanır; canlı viewer olayları REST üzerinden SSE ile aktarılır. `status`, `enginePinnedVersion` ile sabitlenmiş sürümü ve etkin provider/embedding modunu bildirir. Bir probe kaydedip arandığını doğrulayın:
 
 ```bash
+# Default generated local secret. For an explicit AGENTMEMORY_SECRET, use that value instead.
+read -r AGENTMEMORY_SECRET < "$HOME/.agentmemory/secret"
+
 curl -fsS -X POST http://localhost:3111/agentmemory/remember \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"content":"agentmemory restart persistence probe","concepts":["install-check"]}'
 
 curl -fsS -X POST http://localhost:3111/agentmemory/smart-search \
+  -H "Authorization: Bearer $AGENTMEMORY_SECRET" \
   -H 'Content-Type: application/json' \
   -d '{"query":"restart persistence probe","limit":5}'
 ```
@@ -636,8 +641,6 @@ npx -y @agentmemory/agentmemory@latest upgrade
 ```
 
 Uyarı: bu komut mevcut workspace/runtime’ı değiştirir; JavaScript bağımlılıklarını güncelleyebilir ve sabitlenmiş iii 0.25.0 binary’sini kurabilir.
-
-Uygulama detayları `src/cli.ts` içinde yaşar (`src/cli.ts:544-595` bölgesindeki `runUpgrade`'e bakın).
 
 ### Claude Code (tek blok, yapıştırın)
 
@@ -815,7 +818,7 @@ agentmemory girdisi, `mcpServers` şeklini kullanan her host'ta (Cursor, Claude 
 | **Continue.dev** | `~/.continue/config.yaml` (tercih edilen) veya `config.json` (eski/legacy) | `agentmemory connect continue`, ikisi de yoksa `config.yaml`'ı sıfırdan oluşturur veya mevcut `config.json`'u değiştirir. **Zaten bir `config.yaml`'ınız varsa**, adaptör `mcpServers:` altına yapıştırılacak tam bloğu yazdırır; yaml'ınızı sessizce yeniden yazmaz, çünkü yorumları ve anchor'ları güvenle korumak, paketin birlikte gelmediği bir YAML parser'ı gerektirir. Continue, `mcpServers` için dizi biçimini (nesne değil) kullanır. |
 | **Zed** | `~/.config/zed/settings.json` | `agentmemory connect zed`, `context_servers` altına yazar (Zed'in key'i, `mcpServers` DEĞİL). Uzak MCP sunucuları, bunun yerine `{"url": "..."}` üzerinden bağlanabilir. |
 | **Droid (Factory.ai)** | `~/.factory/mcp.json` | `agentmemory connect droid`, standart `mcpServers` bloğunu yazar. Proje kapsamlı geçersiz kılmalar `<repo>/.factory/mcp.json` içine gider. Yerel otomatik yakalama için `--with-hooks` geçirin. |
-| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh`, her Harness profilinin yüklediği ev-seviyesi (home-level) patch katmanına bir `@deepseek-ai/dsh-mcp-client` satırı ekler; tool'lar `mcp__agentmemory__*` olarak kaydolur. Otomatik yakalamayı da bağlamak için `--with-hooks` geçirin: paketlenmiş Claude Code hook scriptleri, `$DSH_HOME/agentmemory.hooks.json`'a yazılan bir manifest aracılığıyla Harness'ın birinci taraf `@deepseek-ai/dsh-hooks-claude-code` köprüsü üzerinden çalışır (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop). `DSH_HOME` ayarsızken varsayılan olarak `~/.dsh` kullanılır. |
+| **DeepSeek Harness** | `$DSH_HOME/cordis.patch.yml` | `agentmemory connect dsh` MCP araçlarını etkinleştirir. AgentMemory ile gelen yerel kayıt eklentisini yüklemek için `--with-hooks` ekleyin. Ayrı bir eklenti paketi gerekmez. [DSH](../docs/dsh.md). |
 | **Goose** | Goose MCP ayarları arayüzü | Aynı `mcpServers` bloğu; `goose configure` → Add Extension → MCP kullanın. `~/.config/goose/config.yaml`'da doğrudan YAML düzenleme desteklenir, ancak şema `extensions:` + `cmd` kullanır (`mcpServers:` + `command` değil). |
 | **Aider** | yok | REST API ile doğrudan konuşun: `curl -X POST http://localhost:3111/agentmemory/smart-search -d '{"query": "auth"}'`. |
 | **Herhangi bir ajan (32+)** | yok | `npx skillkit install agentmemory`, host'u otomatik algılar ve birleştirir. |
@@ -827,9 +830,9 @@ Host'un `localhost`'una erişemeyen **sandboxlanmış MCP istemcileri** (Flatpak
 agentmemory, çekirdek işlemlerini iii fonksiyonları olarak kaydeder (`mem::remember`, `mem::observe`, `mem::context`, `mem::smart-search`, `mem::forget`). iii SDK'sı olan herhangi bir dil, bunları doğrudan `ws://localhost:49134` üzerinden çağırabilir; dil başına ayrı bir REST istemcisi gerekmez.
 
 ```bash
-pip install iii-sdk         # Python
-cargo add iii-sdk           # Rust
-npm  install iii-sdk        # Node
+pip install iii-sdk==0.25.0 # Python
+cargo add iii-sdk@=0.25.0   # Rust
+npm install --save-exact iii-sdk@0.25.0 # Node
 ```
 
 ```python
@@ -1337,7 +1340,7 @@ fi
 | Prometheus / Grafana | iii OTEL + health monitor |
 | Custom eklenti sistemleri | Worker Compose (`worker-compose.yaml`) |
 
-**245 source files · ~56,000 LOC · 3,800+ tests · 322 functions · 65 KV scopes**, all on three primitives. No `agentmemory plugin install`. The plugin system is iii itself.
+**253 kaynak dosya · ~58,000 LOC · 4,000+ test · 322 fonksiyon · 65 KV scope**, hepsi üç primitif üzerinde. `agentmemory plugin install` yok. Eklenti sistemi, iii'nin kendisidir.
 
 ---
 
@@ -1621,8 +1624,7 @@ GRAPH_EXTRACTION_ENABLED=true
 # AGENTMEMORY_STATE_SAVE_INTERVAL_MS=2000  # Default file-state save interval: 2000 ms.
 # AGENTMEMORY_INDEX_SAVE_INTERVAL_MS=600000  # Minimum time between search index saves;
                                              # shutdown and deletes still save at once.
-# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # One-time background trim of oversized graph
-                                           # provenance; false skips it
+# AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=true   # Boot compaction is deferred; false reports off
 
 # Sessions
 # AGENTMEMORY_SESSION_SWEEP_ENABLED=true   # Hourly sweep marks sessions left active past
@@ -1657,7 +1659,7 @@ GRAPH_EXTRACTION_ENABLED=true
 
 <h2 id="api"><picture><source media="(prefers-color-scheme: dark)" srcset="../assets/tags/light/section-api.svg"><img src="../assets/tags/section-api.svg" alt="API" height="32" /></picture></h2>
 
-`3111` portunda 144 endpoint. REST API, varsayılan olarak `127.0.0.1`'e bağlanır. Korumalı endpoint'ler `Authorization: Bearer <secret>` gerektirir ve mesh sync endpoint'leri her iki peer'da da açıkça ayarlanmış bir `AGENTMEMORY_SECRET` gerektirir.
+`3111` portunda 146 endpoint. REST API, varsayılan olarak `127.0.0.1`'e bağlanır. Korumalı endpoint'ler `Authorization: Bearer <secret>` gerektirir ve mesh sync endpoint'leri her iki peer'da da açıkça ayarlanmış bir `AGENTMEMORY_SECRET` gerektirir.
 
 **Kimlik doğrulama varsayılan olarak açıktır.** `AGENTMEMORY_SECRET` (shell’de veya `~/.agentmemory/.env` içinde) ayarlanmadığında CLI ilk başlatmada rastgele secret üretir ve seçili data directory içindeki `secret` dosyasına `0600` izniyle kaydeder. Paketli istemciler yerel sunucuya bağlanırken buradan okur; secret yalnız loopback URL’lerine (`localhost`, `127.0.0.0/8`, `::1`) gönderilir. Uzak istemciler secret’ı kendi ortamında sağlamalıdır. Docker self-host ve `deploy/` kendi secret’larını üretir. API’yi elle çağırmak için:
 
@@ -1717,19 +1719,19 @@ Başarısız olaylar, `AGENTMEMORY_CAPTURE_MAX_ATTEMPTS`'e (5) kadar, ikiye katl
 
 Sunucu kapalıyken, zamanında yanıt vermediğinde veya bir 5xx döndürdüğünde, hook gözlemi yerel bir spool dosyasına ekler, `<data dir>/capture-spool/<host>-<port>.jsonl` (klasörü `AGENTMEMORY_CAPTURE_SPOOL_DIR` ile geçersiz kılın). Dosya, kullanıcınıza özeldir (mod 600), secret'lar sunucunun onları redakte ettiği şekilde redakte edilir, en fazla `AGENTMEMORY_CAPTURE_SPOOL_MAX_BYTES` (5 MiB) tutar ve `AGENTMEMORY_CAPTURE_SPOOL_MAX_AGE_HOURS`'tan (168) daha eski girdileri düşürür. Dolduğunda, yeni girdiler düşürülür ve sayılır ve `/agentmemory/status` bunu bildirir. Hook, hâlâ zaman limiti içinde 0 ile çıkar ve sunucu sağlıklı olduğunda hiçbir istek eklemez. Spool, bir sonraki başlatmada ve sunucuya yeniden ulaşan ilk hook tarafından, ajan beklemesin diye bir arka plan sürecinde gönderilir. Event id'leri bunu güvenli kılar: bir timeout'tan önce ulaşan bir gözlem iki kez saklanmaz. `npx @agentmemory/agentmemory capture`, spool'u ve sunucu inbox'ını gösterir, `--drain` spool'u şimdi gönderir ve `GET /agentmemory/capture`, aynısını JSON olarak döndürür. Spool'u kapatmak için `AGENTMEMORY_CAPTURE_SPOOL=false` ayarlayın.
 
-**Graf provenance'ını kırpma (compacting).** Her bilgi grafı düğümü ve kenarı, geldiği en yeni 32 gözlemin id'lerini tutar. Bu üst sınırdan önce yazılan depolar, hot bir düğüm başına binlerce id tutabilir, bu da graf aramasını ve görüntüleyiciyi yavaşlatır veya worker'ı düşürür. agentmemory bunu kendi başına düzeltir: yükseltmeden sonraki ilk başlatmada, her düğümü, kenarı, supersede edilmiş kenarı (temporal graf geçmişi) ve önbelleğe alınmış snapshot'ı arka planda, aralarında bir duraklama olan küçük parçalar halinde üst sınıra kırpar, bu yüzden arama, yakalama ve görüntüleyici çalışmayı sürdürür. İlerlemesini kaydeder, bir yeniden başlatmadan sonra devam eder ve tamamlandıktan sonra bir daha asla çalışmaz. `/agentmemory/status` ve görüntüleyicinin Health sayfası, bunu bekliyor (pending), çalışıyor (mevcut scope ve pozisyonla), tamamlandı veya başarısız olarak gösterir. Kapatmak için `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` ayarlayın.
+**Graf provenance'ını kırpma (compacting).** Eski provenance verilerinin kırpılması, eski scope’ların tamamını okuduğu için başlangıçta ertelenir. `/agentmemory/status`, `deferred` veya `AGENTMEMORY_GRAPH_COMPACT_ON_BOOT=false` olduğunda `off` bildirir. Aşağıdaki manuel kırpmayı bakım sırasında çalıştırın. Arama indeksi geçişi ayrıdır: [bakım kılavuzunda](../docs/reliability/graph-index-migration.md) açıklandığı gibi `agentmemory graph-index migrate --allow-legacy-scan` kullanın.
 
 Elle çalıştırmak için, `POST /agentmemory/graph/compact`'ı çağırın. Her düğümü ve kenarı listelemek yerine ad ve kenar-key indekslerinde yürür ve yeniden çalıştırmak güvenlidir. Id'leri kırptığında bir `graph_compact` audit girdisi yazar.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{}'
 ```
 
 Büyük bir depoda veya çağrı 504 döndürdüğünde, bunu parçalar halinde çalıştırın. `scope` (`nodes`, `edges` veya `history`), `offset` ve `limit` gönderin, ardından `null` olana kadar döndürülen `nextOffset` ile yeniden çağırın. Bunu `nodes`, `edges` ve `history` için yapın ve bir `{"scope":"snapshot"}` çağrısıyla bitirin, çünkü parçalı bir çalıştırma önbelleğe alınmış snapshot'a dokunmaz.
 
 ```bash
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
-curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"nodes","offset":0,"limit":200}'
+curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Authorization: Bearer <secret>" -H "Content-Type: application/json" -d '{"scope":"snapshot"}'
 ```
 
 ---
@@ -1739,7 +1741,7 @@ curl -X POST http://localhost:3111/agentmemory/graph/compact -H "Content-Type: a
 ```bash
 npm run dev               # Hot reload
 npm run build             # Production build
-npm test                  # 3,800+ tests
+npm test                  # 4,000+ tests
 npm run test:integration  # API tests (requires running services)
 ```
 

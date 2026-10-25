@@ -1,3 +1,5 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import ts from "typescript";
 
 function property(object: ts.ObjectLiteralExpression, name: string): ts.Expression | undefined {
@@ -29,4 +31,10 @@ export function collectRestEndpoints(...texts: string[]): { path: string; method
   }
   for (const source of sources) visit(source);
   return [...rows.values()].sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
+}
+
+export function collectRestEndpointsInDirectory(directory: string): { path: string; method: string }[] {
+  return collectRestEndpoints(...readdirSync(directory)
+    .filter((file) => file.endsWith(".ts"))
+    .map((file) => readFileSync(join(directory, file), "utf8")));
 }
